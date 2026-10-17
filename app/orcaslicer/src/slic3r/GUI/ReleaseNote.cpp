@@ -156,7 +156,7 @@ UpdatePluginDialog::UpdatePluginDialog(wxWindow* parent /*= nullptr*/)
         EndModal(wxID_OK);
         });
 
-    auto m_button_cancel = new Button(this, _L("Cancel"));
+    auto m_button_cancel = new Button(this, _L("Später"));
     m_button_cancel->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
 
     m_button_cancel->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& e) {
@@ -236,7 +236,7 @@ void UpdatePluginDialog::update_info(std::string json_path)
 }
 
 UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
-    : DPIDialog(parent, wxID_ANY, _L("New version of Orca Slicer"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX | wxRESIZE_BORDER)
+    : DPIDialog(parent, wxID_ANY, _L("135er-PRINTBENCH Update"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX | wxRESIZE_BORDER)
 {
     SetBackgroundColour(*wxWHITE);
 
@@ -247,7 +247,7 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
     wxBoxSizer *m_sizer_top  = new wxBoxSizer(wxHORIZONTAL);
     wxBoxSizer *m_sizer_desc = new wxBoxSizer(wxVERTICAL);
 
-    auto sm    = create_scaled_bitmap("OrcaSlicer", nullptr, 64);
+    auto sm    = create_scaled_bitmap("logo_192px", nullptr, 64);
     m_brand = new wxStaticBitmap(this, wxID_ANY, sm, wxDefaultPosition, FromDIP(wxSize(64, 64)));
 
     m_text_up_info = new Label(this, Label::Head_14, wxEmptyString, LB_AUTO_WRAP);
@@ -255,7 +255,7 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
 
     // Store builds get updates from the Microsoft Store: wxID_YES opens the Store
     // product page there (see the EVT_SLIC3R_VERSION_ONLINE handler) instead of GitHub.
-    auto github_link = new HyperLink(this, is_running_in_msix() ? _L("Check on Microsoft Store") : _L("Check on GitHub"), "", LB_AUTO_WRAP);
+    auto github_link = new HyperLink(this, is_running_in_msix() ? _L("Check on Microsoft Store") : _L("PRINTBENCH Release auf GitHub"), "", LB_AUTO_WRAP);
     github_link->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &e) {
         EndModal(wxID_YES);
     });
@@ -305,14 +305,14 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
 
     auto sizer_button = new wxBoxSizer(wxHORIZONTAL);
 
-    m_button_download = new Button(this, is_running_in_msix() ? _L("Open Microsoft Store") : _L("Download"));
+    m_button_download = new Button(this, is_running_in_msix() ? _L("Open Microsoft Store") : _L("Update herunterladen"));
     m_button_download->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
 
     m_button_download->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &e) {
         EndModal(wxID_YES);
     });
 
-    m_button_skip_version = new Button(this, _L("Skip this Version"));
+    m_button_skip_version = new Button(this, _L("Diese Version überspringen"));
     m_button_skip_version->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
 
     m_button_skip_version->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &e) {
@@ -327,7 +327,7 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
         e.Skip();
     });
 
-    auto stable_only_label = new Label(this, _L("Check for stable updates only"));
+    auto stable_only_label = new Label(this, _L("Nur stabile PRINTBENCH-Updates"));
     stable_only_label->SetFont(Label::Body_12);
 
     m_button_cancel = new Button(this, _L("Cancel"));

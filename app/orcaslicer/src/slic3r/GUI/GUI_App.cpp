@@ -3,6 +3,7 @@
 #include "libslic3r/Technologies.hpp"
 #include "GUI_App.hpp"
 #include "PrintbenchNetworkBootstrap.hpp"
+#include "PrintbenchUpdateService.hpp"
 #include "GUI_Init.hpp"
 #include "GUI_ObjectList.hpp"
 #include "slic3r/GUI/UserManager.hpp"
@@ -941,8 +942,8 @@ void GUI_App::post_init()
                 this->preset_updater->sync(http_url, language, network_ver, sys_preset ? preset_bundle : nullptr);
             }
 
-            // PRINTBENCH owns its release/update channel; never query or advertise Orca releases on startup.
-            // this->check_new_version_sf();
+            // Lightweight modular PRINTBENCH release check.
+            this->check_new_version_sf();
             const auto cloud_provider = get_printer_cloud_provider();
             if (is_user_login(cloud_provider) && !app_config->get_stealth_mode()) {
               // this->check_privacy_version(0);
@@ -5612,147 +5613,30 @@ void maybe_attach_updater_signature(Http& http, const std::string& canonical_que
 
 void GUI_App::check_new_version_sf(bool show_tips, int by_user)
 {
-    AppConfig* app_config = wxGetApp().app_config;
-    bool       check_stable_only = app_config->get_bool("check_stable_update_only");
-    auto version_check_url = app_config->version_check_url();
+    (void)show_tips;
+    const bool stable_only = app_config->get_bool("check_stable_update_only");
 
-    UpdaterQuery query{
-        detect_updater_iid(app_config),
-        detect_updater_version(),
-        detect_updater_os(),
-        detect_updater_arch(),
-        detect_updater_os_info()
-    };
-
-    const std::string query_string = build_updater_query(query);
-    if (!query_string.empty()) {
-        const bool has_query = version_check_url.find('?') != std::string::npos;
-        if (!has_query)
-            version_check_url.push_back('?');
-        else if (!version_check_url.empty() && version_check_url.back() != '&' && version_check_url.back() != '?')
-            version_check_url.push_back('&');
-        version_check_url += query_string;
-    }
-
-    auto http = Http::get(version_check_url);
-    maybe_attach_updater_signature(http, query_string, version_check_url);
-
-    http.header("accept", "application/vnd.github.v3+json")
-        .timeout_connect(5)
-        .timeout_max(10)
-        .on_error([&](std::string body, std::string error, unsigned http_status) {
-          (void)body;
-          BOOST_LOG_TRIVIAL(error) << format("Error getting: `%1%`: HTTP %2%, %3%", "check_new_version_sf", http_status,
-                                             error);
-        })
-        .on_complete([this, by_user, check_stable_only](std::string body, unsigned http_status) {
-          if (http_status != 200)
+    PrintbenchUpdateService::check(stable_only, [this, by_user](std::optional<PrintbenchUpdateInfo> update, std::string error) {
+        if (!error.empty()) {
+            BOOST_LOG_TRIVIAL(warning) << "PRINTBENCH update check failed: " << error;
             return;
-          try {
-            boost::trim(body);
-            if (body.empty()) {
-                if (by_user != 0)
-                    this->no_new_version();
-                return;
-            }
+        }
+        if (!update) {
+            if (by_user != 0)
+                this->no_new_version();
+            return;
+        }
 
-            boost::property_tree::ptree root;
-            std::stringstream           json_stream(body);
-            boost::property_tree::read_json(json_stream, root);
+        version_info.url = update->release_url;
+        version_info.version_str = update->version;
+        version_info.description = update->notes;
+        version_info.force_upgrade = false;
 
-            std::regex matcher("[0-9]+\\.[0-9]+(\\.[0-9]+)*(-[A-Za-z0-9]+)?(\\+[A-Za-z0-9]+)?");
-            Semver    current_version = get_version(SoftFever_VERSION, matcher);
-            Semver    best_pre(0, 0, 0);
-            Semver    best_release(0, 0, 0);
-            bool      best_pre_valid = false;
-            bool      best_release_valid = false;
-            std::string best_pre_url;
-            std::string best_release_url;
-            std::string best_release_content;
-            std::string best_pre_content;
-
-            auto consider_release = [&](const boost::property_tree::ptree& node) {
-                auto tag_opt = node.get_optional<std::string>("tag_name");
-                if (!tag_opt)
-                    return;
-
-                std::string tag = *tag_opt;
-                if (!tag.empty() && tag.front() == 'v')
-                    tag.erase(0, 1);
-
-                Semver tag_version = get_version(tag, matcher);
-                if (!tag_version.valid())
-                    return;
-
-                const bool is_prerelease = node.get_optional<bool>("prerelease").get_value_or(false);
-                const std::string html_url = node.get_optional<std::string>("html_url").get_value_or(std::string());
-                const std::string body_copy = node.get_optional<std::string>("body").get_value_or(std::string());
-
-                if (is_prerelease) {
-                    if (!best_pre_valid || best_pre < tag_version) {
-                        best_pre        = tag_version;
-                        best_pre_url    = html_url;
-                        best_pre_content = body_copy;
-                        best_pre_valid  = true;
-                    }
-                } else {
-                    if (!best_release_valid || best_release < tag_version) {
-                        best_release         = tag_version;
-                        best_release_url     = html_url;
-                        best_release_content = body_copy;
-                        best_release_valid   = true;
-                    }
-                }
-            };
-
-            if (root.get_optional<std::string>("tag_name")) {
-                consider_release(root);
-            } else {
-                for (const auto& child : root)
-                    consider_release(child.second);
-            }
-
-            if (!best_release_valid && !best_pre_valid) {
-                if (by_user != 0)
-                    this->no_new_version();
-                return;
-            }
-
-            if (best_pre_valid && best_release_valid && best_pre < best_release) {
-                best_pre        = best_release;
-                best_pre_url    = best_release_url;
-                best_pre_content = best_release_content;
-                best_pre_valid  = true;
-            }
-
-            const bool        prefer_release = check_stable_only || !best_pre_valid;
-            const Semver&     chosen_version = prefer_release ? best_release : best_pre;
-            const bool        chosen_valid   = prefer_release ? best_release_valid : best_pre_valid;
-
-            if (!chosen_valid) {
-                if (by_user != 0)
-                    this->no_new_version();
-                return;
-            }
-
-            if (current_version.valid() && chosen_version <= current_version) {
-                if (by_user != 0)
-                    this->no_new_version();
-                return;
-            }
-
-            version_info.url           = prefer_release ? best_release_url : best_pre_url;
-            version_info.version_str   = prefer_release ? best_release.to_string_sf() : best_pre.to_string_sf();
-            version_info.description   = prefer_release ? best_release_content : best_pre_content;
-            version_info.force_upgrade = false;
-
-            wxCommandEvent* evt = new wxCommandEvent(EVT_SLIC3R_VERSION_ONLINE);
-            evt->SetString((prefer_release ? best_release : best_pre).to_string());
-            GUI::wxGetApp().QueueEvent(evt);
-          } catch (...) {}
-        });
-
-    http.perform();
+        auto* evt = new wxCommandEvent(EVT_SLIC3R_VERSION_ONLINE);
+        evt->SetString(GUI::from_u8(update->version));
+        evt->SetInt(by_user);
+        GUI::wxGetApp().QueueEvent(evt);
+    });
 }
 
 // return true if handled

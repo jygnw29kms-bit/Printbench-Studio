@@ -196,6 +196,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/ImageDPIFrame.hpp
     GUI/GUI_App.cpp
     GUI/GUI_App.hpp
+    GUI/PrintbenchUpdateService.cpp
+    GUI/PrintbenchUpdateService.hpp
     GUI/GUI_AuxiliaryList.cpp
     GUI/GUI_AuxiliaryList.hpp
     GUI/GUI_Colors.cpp
@@ -736,6 +738,8 @@ set(ORCA_UPDATER_SIG_KEY_AVAILABLE 0)
 if(ORCA_UPDATER_SIG_KEY_B64)
     set(ORCA_UPDATER_SIG_KEY_AVAILABLE 1)
 endif()
+
+set(PRINTBENCH_VERSION "0.1.0")
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/GeneratedConfig.hpp.in
                ${CMAKE_CURRENT_BINARY_DIR}/GeneratedConfig.hpp

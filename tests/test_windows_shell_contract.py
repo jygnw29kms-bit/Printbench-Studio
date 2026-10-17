@@ -20,10 +20,11 @@ def test_windows_exe_uses_printbench_icon_resource():
     assert (ROOT / 'assets/branding/PRINTBENCH_AppIcon_MASTER_1024.png').is_file()
 
 
-def test_orca_update_advertising_is_not_run_at_printbench_startup():
-    startup_marker = '// PRINTBENCH owns its release/update channel; never query or advertise Orca releases on startup.'
-    assert startup_marker in GUI_APP
-    assert startup_marker + '\n            // this->check_new_version_sf();' in GUI_APP
+def test_printbench_update_service_runs_instead_of_orca_update_channel():
+    assert '#include "PrintbenchUpdateService.hpp"' in GUI_APP
+    assert 'PrintbenchUpdateService::check' in GUI_APP
+    assert '// Lightweight modular PRINTBENCH release check.' in GUI_APP
+    assert 'this->check_new_version_sf();' in GUI_APP
 
 
 def test_windows_installer_uses_the_same_printbench_icon():
