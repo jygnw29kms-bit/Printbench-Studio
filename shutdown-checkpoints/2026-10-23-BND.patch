@@ -1,0 +1,703 @@
+diff --git a/app/orcaslicer/CMakeLists.txt b/app/orcaslicer/CMakeLists.txt
+index 15dc540b..a646b514 100644
+--- a/app/orcaslicer/CMakeLists.txt
++++ b/app/orcaslicer/CMakeLists.txt
+@@ -933,7 +933,7 @@ set (CPACK_PACKAGE_VENDOR "JL1976 Software")
+ set (CPACK_PACKAGE_VERSION_MAJOR "${ORCA_VERSION_MAJOR}")
+ set (CPACK_PACKAGE_VERSION_MINOR "${ORCA_VERSION_MINOR}")
+ set (CPACK_PACKAGE_VERSION_PATCH "${ORCA_VERSION_PATCH}")
+-set (CPACK_PACKAGE_FILE_NAME "135er-PRINTBENCH_Windows_Installer_V${SoftFever_VERSION}")
++set (CPACK_PACKAGE_FILE_NAME "135er-PRINTBENCH_Windows_Installer_V0.1.0")
+ # Suffix the Windows installer with its target arch so the x64 and arm64 builds
+ # produce distinct filenames (matches ARCH_SUFFIX in build_orca.yml). Same
+ # CMAKE_SYSTEM_PROCESSOR mapping used by orcaslicer_copy_dlls() above.
+diff --git a/app/orcaslicer/src/slic3r/CMakeLists.txt b/app/orcaslicer/src/slic3r/CMakeLists.txt
+index 317a8285..e2359253 100644
+--- a/app/orcaslicer/src/slic3r/CMakeLists.txt
++++ b/app/orcaslicer/src/slic3r/CMakeLists.txt
+@@ -196,6 +196,8 @@ set(SLIC3R_GUI_SOURCES
+     GUI/ImageDPIFrame.hpp
+     GUI/GUI_App.cpp
+     GUI/GUI_App.hpp
++    GUI/PrintbenchUpdateService.cpp
++    GUI/PrintbenchUpdateService.hpp
+     GUI/GUI_AuxiliaryList.cpp
+     GUI/GUI_AuxiliaryList.hpp
+     GUI/GUI_Colors.cpp
+@@ -737,6 +739,8 @@ if(ORCA_UPDATER_SIG_KEY_B64)
+     set(ORCA_UPDATER_SIG_KEY_AVAILABLE 1)
+ endif()
+ 
++set(PRINTBENCH_VERSION "0.1.0")
++
+ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/GeneratedConfig.hpp.in
+                ${CMAKE_CURRENT_BINARY_DIR}/GeneratedConfig.hpp
+                @ONLY)
+diff --git a/app/orcaslicer/src/slic3r/GUI/GUI_App.cpp b/app/orcaslicer/src/slic3r/GUI/GUI_App.cpp
+index 80e0d9b8..f8b66c3f 100644
+--- a/app/orcaslicer/src/slic3r/GUI/GUI_App.cpp
++++ b/app/orcaslicer/src/slic3r/GUI/GUI_App.cpp
+@@ -3,6 +3,7 @@
+ #include "libslic3r/Technologies.hpp"
+ #include "GUI_App.hpp"
+ #include "PrintbenchNetworkBootstrap.hpp"
++#include "PrintbenchUpdateService.hpp"
+ #include "GUI_Init.hpp"
+ #include "GUI_ObjectList.hpp"
+ #include "slic3r/GUI/UserManager.hpp"
+@@ -941,8 +942,8 @@ void GUI_App::post_init()
+                 this->preset_updater->sync(http_url, language, network_ver, sys_preset ? preset_bundle : nullptr);
+             }
+ 
+-            // PRINTBENCH owns its release/update channel; never query or advertise Orca releases on startup.
+-            // this->check_new_version_sf();
++            // Lightweight modular PRINTBENCH release check.
++            this->check_new_version_sf();
+             const auto cloud_provider = get_printer_cloud_provider();
+             if (is_user_login(cloud_provider) && !app_config->get_stealth_mode()) {
+               // this->check_privacy_version(0);
+@@ -5612,147 +5613,30 @@ void maybe_attach_updater_signature(Http& http, const std::string& canonical_que
+ 
+ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
+ {
+-    AppConfig* app_config = wxGetApp().app_config;
+-    bool       check_stable_only = app_config->get_bool("check_stable_update_only");
+-    auto version_check_url = app_config->version_check_url();
+-
+-    UpdaterQuery query{
+-        detect_updater_iid(app_config),
+-        detect_updater_version(),
+-        detect_updater_os(),
+-        detect_updater_arch(),
+-        detect_updater_os_info()
+-    };
++    (void)show_tips;
++    const bool stable_only = app_config->get_bool("check_stable_update_only");
+ 
+-    const std::string query_string = build_updater_query(query);
+-    if (!query_string.empty()) {
+-        const bool has_query = version_check_url.find('?') != std::string::npos;
+-        if (!has_query)
+-            version_check_url.push_back('?');
+-        else if (!version_check_url.empty() && version_check_url.back() != '&' && version_check_url.back() != '?')
+-            version_check_url.push_back('&');
+-        version_check_url += query_string;
+-    }
+-
+-    auto http = Http::get(version_check_url);
+-    maybe_attach_updater_signature(http, query_string, version_check_url);
+-
+-    http.header("accept", "application/vnd.github.v3+json")
+-        .timeout_connect(5)
+-        .timeout_max(10)
+-        .on_error([&](std::string body, std::string error, unsigned http_status) {
+-          (void)body;
+-          BOOST_LOG_TRIVIAL(error) << format("Error getting: `%1%`: HTTP %2%, %3%", "check_new_version_sf", http_status,
+-                                             error);
+-        })
+-        .on_complete([this, by_user, check_stable_only](std::string body, unsigned http_status) {
+-          if (http_status != 200)
++    PrintbenchUpdateService::check(stable_only, [this, by_user](std::optional<PrintbenchUpdateInfo> update, std::string error) {
++        if (!error.empty()) {
++            BOOST_LOG_TRIVIAL(warning) << "PRINTBENCH update check failed: " << error;
+             return;
+-          try {
+-            boost::trim(body);
+-            if (body.empty()) {
+-                if (by_user != 0)
+-                    this->no_new_version();
+-                return;
+-            }
+-
+-            boost::property_tree::ptree root;
+-            std::stringstream           json_stream(body);
+-            boost::property_tree::read_json(json_stream, root);
+-
+-            std::regex matcher("[0-9]+\\.[0-9]+(\\.[0-9]+)*(-[A-Za-z0-9]+)?(\\+[A-Za-z0-9]+)?");
+-            Semver    current_version = get_version(SoftFever_VERSION, matcher);
+-            Semver    best_pre(0, 0, 0);
+-            Semver    best_release(0, 0, 0);
+-            bool      best_pre_valid = false;
+-            bool      best_release_valid = false;
+-            std::string best_pre_url;
+-            std::string best_release_url;
+-            std::string best_release_content;
+-            std::string best_pre_content;
+-
+-            auto consider_release = [&](const boost::property_tree::ptree& node) {
+-                auto tag_opt = node.get_optional<std::string>("tag_name");
+-                if (!tag_opt)
+-                    return;
+-
+-                std::string tag = *tag_opt;
+-                if (!tag.empty() && tag.front() == 'v')
+-                    tag.erase(0, 1);
+-
+-                Semver tag_version = get_version(tag, matcher);
+-                if (!tag_version.valid())
+-                    return;
+-
+-                const bool is_prerelease = node.get_optional<bool>("prerelease").get_value_or(false);
+-                const std::string html_url = node.get_optional<std::string>("html_url").get_value_or(std::string());
+-                const std::string body_copy = node.get_optional<std::string>("body").get_value_or(std::string());
+-
+-                if (is_prerelease) {
+-                    if (!best_pre_valid || best_pre < tag_version) {
+-                        best_pre        = tag_version;
+-                        best_pre_url    = html_url;
+-                        best_pre_content = body_copy;
+-                        best_pre_valid  = true;
+-                    }
+-                } else {
+-                    if (!best_release_valid || best_release < tag_version) {
+-                        best_release         = tag_version;
+-                        best_release_url     = html_url;
+-                        best_release_content = body_copy;
+-                        best_release_valid   = true;
+-                    }
+-                }
+-            };
+-
+-            if (root.get_optional<std::string>("tag_name")) {
+-                consider_release(root);
+-            } else {
+-                for (const auto& child : root)
+-                    consider_release(child.second);
+-            }
+-
+-            if (!best_release_valid && !best_pre_valid) {
+-                if (by_user != 0)
+-                    this->no_new_version();
+-                return;
+-            }
+-
+-            if (best_pre_valid && best_release_valid && best_pre < best_release) {
+-                best_pre        = best_release;
+-                best_pre_url    = best_release_url;
+-                best_pre_content = best_release_content;
+-                best_pre_valid  = true;
+-            }
+-
+-            const bool        prefer_release = check_stable_only || !best_pre_valid;
+-            const Semver&     chosen_version = prefer_release ? best_release : best_pre;
+-            const bool        chosen_valid   = prefer_release ? best_release_valid : best_pre_valid;
+-
+-            if (!chosen_valid) {
+-                if (by_user != 0)
+-                    this->no_new_version();
+-                return;
+-            }
+-
+-            if (current_version.valid() && chosen_version <= current_version) {
+-                if (by_user != 0)
+-                    this->no_new_version();
+-                return;
+-            }
+-
+-            version_info.url           = prefer_release ? best_release_url : best_pre_url;
+-            version_info.version_str   = prefer_release ? best_release.to_string_sf() : best_pre.to_string_sf();
+-            version_info.description   = prefer_release ? best_release_content : best_pre_content;
+-            version_info.force_upgrade = false;
++        }
++        if (!update) {
++            if (by_user != 0)
++                this->no_new_version();
++            return;
++        }
+ 
+-            wxCommandEvent* evt = new wxCommandEvent(EVT_SLIC3R_VERSION_ONLINE);
+-            evt->SetString((prefer_release ? best_release : best_pre).to_string());
+-            GUI::wxGetApp().QueueEvent(evt);
+-          } catch (...) {}
+-        });
++        version_info.url = update->release_url;
++        version_info.version_str = update->version;
++        version_info.description = update->notes;
++        version_info.force_upgrade = false;
+ 
+-    http.perform();
++        auto* evt = new wxCommandEvent(EVT_SLIC3R_VERSION_ONLINE);
++        evt->SetString(GUI::from_u8(update->version));
++        evt->SetInt(by_user);
++        GUI::wxGetApp().QueueEvent(evt);
++    });
+ }
+ 
+ // return true if handled
+diff --git a/app/orcaslicer/src/slic3r/GUI/PrintbenchNativePanel.cpp b/app/orcaslicer/src/slic3r/GUI/PrintbenchNativePanel.cpp
+index 41219ba5..c4142291 100644
+--- a/app/orcaslicer/src/slic3r/GUI/PrintbenchNativePanel.cpp
++++ b/app/orcaslicer/src/slic3r/GUI/PrintbenchNativePanel.cpp
+@@ -280,7 +280,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
+     brand_row->Add(brand, 0, wxALIGN_CENTER_VERTICAL);
+     side->Add(brand_row, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(16));
+     auto* brand_sub = new wxStaticText(sidebar, wxID_ANY, wxString(L"Studio  \u2022  JL1976 Software"));
+-    style_label(brand_sub, 9, false, PB_ACCENT);
++    style_label(brand_sub, 10, false, PB_ACCENT);
+     side->Add(brand_sub, 0, wxLEFT | wxRIGHT | wxTOP | wxBOTTOM, FromDIP(16));
+     const std::array<wxString, 13> nav_items{
+         wxString(L"\u00DCbersicht"), L"Live Ansicht", L"Steuerung", L"AMS 2 Pro", L"Material",
+@@ -299,7 +299,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
+         auto icon_bitmap = create_scaled_bitmap(nav_icons[i], item, 14);
+         auto* icon = new wxStaticBitmap(item, wxID_ANY, icon_bitmap);
+         auto* label = new wxStaticText(item, wxID_ANY, nav_items[i]);
+-        style_label(label, 10, i == 0, i == 0 ? *wxWHITE : PB_TEXT);
++        style_label(label, 11, i == 0, i == 0 ? *wxWHITE : PB_TEXT);
+         m_nav_rows[i] = item;
+         m_nav_labels[i] = label;
+         const auto nav_handler = [this, i](wxMouseEvent&) { handle_nav(i); };
+@@ -315,10 +315,10 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
+     }
+     side->AddStretchSpacer();
+     auto* side_p2s = new wxStaticText(sidebar, wxID_ANY, wxString(L"\u25CF  Bambu Lab P2S"));
+-    style_label(side_p2s, 9, true, PB_OK);
++    style_label(side_p2s, 10, true, PB_OK);
+     side->Add(side_p2s, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(16));
+     auto* side_ams = new wxStaticText(sidebar, wxID_ANY, wxString(L"\u25CF  AMS 2 Pro"));
+-    style_label(side_ams, 9, true, PB_OK);
++    style_label(side_ams, 10, true, PB_OK);
+     side->Add(side_ams, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(16));
+     auto* system_item = new wxStaticText(sidebar, wxID_ANY, wxString(L"\u2699  System"));
+     style_label(system_item, 11, false, PB_TEXT);
+@@ -331,7 +331,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
+     const std::array<wxString, 6> top_items{L"Drucker", L"Slicer", wxString(L"Ger\u00E4te"), L"Material", L"Historie", L"Einstellungen"};
+     for (size_t i = 0; i < top_items.size(); ++i) {
+         auto* label = new wxStaticText(this, wxID_ANY, top_items[i]);
+-        style_label(label, 11, i == 0, i == 0 ? PB_ACCENT : PB_TEXT);
++        style_label(label, 12, i == 0, i == 0 ? PB_ACCENT : PB_TEXT);
+         label->SetCursor(wxCursor(wxCURSOR_HAND));
+         label->Bind(wxEVT_LEFT_UP, [this, i](wxMouseEvent&) {
+             switch (i) {
+@@ -348,7 +348,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
+     }
+     header->AddStretchSpacer();
+     m_header_status = new wxStaticText(this, wxID_ANY, wxString(L"\u25CF  P2S Offline"));
+-    style_label(m_header_status, 11, true, PB_MUTED);
++    style_label(m_header_status, 12, true, PB_MUTED);
+     header->Add(m_header_status, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+     root->Add(header, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(10));
+     root->AddSpacer(FromDIP(6));
+@@ -363,7 +363,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
+     style_label(m_printer_name, 20, true);
+     body->Add(m_printer_name, 0, wxBOTTOM, FromDIP(4));
+     m_ready_banner = new wxStaticText(printer_card, wxID_ANY, wxString(L"\u25CF  Offline"));
+-    style_label(m_ready_banner, 11, true, PB_MUTED);
++    style_label(m_ready_banner, 12, true, PB_MUTED);
+     body->Add(m_ready_banner, 0, wxBOTTOM, FromDIP(8));
+     auto hero_bitmap = create_scaled_bitmap("printbench_hero_p2s_ams", this, 560);
+     auto* hero_image = new wxStaticBitmap(printer_card, wxID_ANY, hero_bitmap);
+@@ -474,9 +474,9 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
+     auto* job_icon = new wxStaticBitmap(print_card, wxID_ANY, job_bitmap);
+     auto* job_text = new wxBoxSizer(wxVERTICAL);
+     m_job_name = new wxStaticText(print_card, wxID_ANY, "Kein aktiver Druck");
+-    style_label(m_job_name, 13, true, PB_TEXT);
++    style_label(m_job_name, 14, true, PB_TEXT);
+     auto* job_meta = new wxStaticText(print_card, wxID_ANY, "Bambu Lab P2S  ÔÇó  lokaler Druckauftrag");
+-    style_label(job_meta, 9, false, PB_MUTED);
++    style_label(job_meta, 10, false, PB_MUTED);
+     job_text->Add(m_job_name, 0, wxBOTTOM, FromDIP(3));
+     job_text->Add(job_meta, 0);
+     job_row->Add(job_icon, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+@@ -490,9 +490,9 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
+     auto add_metric = [&](const wxString& caption, wxStaticText*& value) {
+         auto* col = new wxBoxSizer(wxVERTICAL);
+         auto* name = new wxStaticText(print_card, wxID_ANY, caption);
+-        style_label(name, 8, true, PB_MUTED);
++        style_label(name, 9, true, PB_MUTED);
+         value = new wxStaticText(print_card, wxID_ANY, "--");
+-        style_label(value, 12, true, PB_TEXT);
++        style_label(value, 13, true, PB_TEXT);
+         col->Add(name, 0, wxBOTTOM, FromDIP(2));
+         col->Add(value, 0);
+         print_metrics->Add(col, 1, wxRIGHT, FromDIP(8));
+@@ -511,9 +511,9 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
+     for (size_t i = 0; i < m_temp_values.size(); ++i) {
+         auto* col = new wxBoxSizer(wxVERTICAL);
+         auto* name = new wxStaticText(temp_card, wxID_ANY, temp_names[i]);
+-        style_label(name, 8, true, temp_colours[i]);
++        style_label(name, 9, true, temp_colours[i]);
+         m_temp_values[i] = new wxStaticText(temp_card, wxID_ANY, "-- C");
+-        style_label(m_temp_values[i], 12, true);
++        style_label(m_temp_values[i], 13, true);
+         col->Add(name, 0, wxBOTTOM, FromDIP(2));
+         col->Add(m_temp_values[i], 0);
+         temp_values->Add(col, 1, wxRIGHT, i + 1 < m_temp_values.size() ? FromDIP(10) : 0);
+@@ -554,9 +554,9 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
+         cell->SetBackgroundColour(wxColour(8, 25, 37));
+         auto* cell_sizer = new wxBoxSizer(wxVERTICAL);
+         auto* caption = new wxStaticText(cell, wxID_ANY, status_names[i]);
+-        style_label(caption, 8, true, PB_MUTED);
++        style_label(caption, 9, true, PB_MUTED);
+         m_device_status_values[i] = new wxStaticText(cell, wxID_ANY, status_initial[i]);
+-        style_label(m_device_status_values[i], 10, true, i >= 4 ? PB_OK : PB_MUTED);
++        style_label(m_device_status_values[i], 11, true, i >= 4 ? PB_OK : PB_MUTED);
+         cell_sizer->Add(caption, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(8));
+         cell_sizer->Add(m_device_status_values[i], 0, wxLEFT | wxRIGHT | wxTOP | wxBOTTOM, FromDIP(8));
+         cell->SetSizer(cell_sizer);
+@@ -569,7 +569,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
+     m_history_card = history_card;
+     for (size_t i = 0; i < m_history_rows.size(); ++i) {
+         m_history_rows[i] = new wxStaticText(history_card, wxID_ANY, i == 0 ? "Noch keine lokalen Druckabschluesse." : "");
+-        style_label(m_history_rows[i], 9, i == 0, i == 0 ? PB_MUTED : PB_TEXT);
++        style_label(m_history_rows[i], 10, i == 0, i == 0 ? PB_MUTED : PB_TEXT);
+         body->Add(m_history_rows[i], 0, wxEXPAND | wxBOTTOM, FromDIP(5));
+     }
+     bottom->Add(history_card, 1, wxEXPAND | wxRIGHT, FromDIP(10));
+@@ -659,7 +659,7 @@ wxPanel* PrintbenchNativePanel::make_card(wxWindow* parent, const wxString& titl
+     card->SetBackgroundColour(PB_CARD);
+     auto* outer = new wxBoxSizer(wxVERTICAL);
+     auto* heading = new wxStaticText(card, wxID_ANY, title);
+-    style_label(heading, 11, true, PB_ACCENT);
++    style_label(heading, 12, true, PB_ACCENT);
+     outer->Add(heading, 0, wxALL, FromDIP(10));
+     auto* line = new wxStaticLine(card, wxID_ANY);
+     line->SetForegroundColour(PB_BORDER);
+@@ -675,9 +675,9 @@ wxStaticText* PrintbenchNativePanel::add_value(wxWindow* parent, wxSizer* sizer,
+ {
+     auto* row = new wxBoxSizer(wxHORIZONTAL);
+     auto* name = new wxStaticText(parent, wxID_ANY, caption);
+-    style_label(name, 10, false, PB_MUTED);
++    style_label(name, 11, false, PB_MUTED);
+     auto* value = new wxStaticText(parent, wxID_ANY, "--");
+-    style_label(value, 12, true);
++    style_label(value, 13, true);
+     row->Add(name, 1, wxALIGN_CENTER_VERTICAL);
+     row->Add(value, 0, wxALIGN_CENTER_VERTICAL);
+     sizer->Add(row, 0, wxEXPAND | wxBOTTOM, FromDIP(6));
+@@ -885,7 +885,7 @@ void PrintbenchNativePanel::activate_nav(size_t index)
+             continue;
+         const bool active = i == index;
+         m_nav_rows[i]->SetBackgroundColour(active ? wxColour(8, 102, 218) : wxColour(4, 14, 24));
+-        style_label(m_nav_labels[i], 10, active, active ? *wxWHITE : PB_TEXT);
++        style_label(m_nav_labels[i], 11, active, active ? *wxWHITE : PB_TEXT);
+         m_nav_rows[i]->Refresh(false);
+     }
+ }
+diff --git a/app/orcaslicer/src/slic3r/GUI/PrintbenchUpdateService.cpp b/app/orcaslicer/src/slic3r/GUI/PrintbenchUpdateService.cpp
+new file mode 100644
+index 00000000..97ec8489
+--- /dev/null
++++ b/app/orcaslicer/src/slic3r/GUI/PrintbenchUpdateService.cpp
+@@ -0,0 +1,102 @@
++#include "PrintbenchUpdateService.hpp"
++
++#include "GeneratedConfig.hpp"
++#include "../Utils/Http.hpp"
++
++#include <algorithm>
++#include <array>
++#include <boost/algorithm/string.hpp>
++#include <boost/property_tree/json_parser.hpp>
++#include <boost/property_tree/ptree.hpp>
++#include <sstream>
++#include <tuple>
++
++namespace Slic3r::GUI {
++namespace {
++
++constexpr const char* kReleaseApi = "https://api.github.com/repos/jygnw29kms-bit/Printbench-Studio/releases?per_page=20";
++constexpr const char* kTagPrefix = "printbench-v";
++
++std::array<int, 3> parse_version(std::string version)
++{
++    if (boost::algorithm::starts_with(version, kTagPrefix))
++        version.erase(0, std::char_traits<char>::length(kTagPrefix));
++
++    std::array<int, 3> out {0, 0, 0};
++    std::stringstream ss(version);
++    std::string part;
++    for (size_t i = 0; i < out.size() && std::getline(ss, part, '.'); ++i) {
++        try { out[i] = std::stoi(part); }
++        catch (...) { return {0, 0, 0}; }
++    }
++    return out;
++}
++
++bool newer_than_current(const std::string& candidate)
++{
++    return parse_version(candidate) > parse_version(PRINTBENCH_VERSION);
++}
++
++} // namespace
++
++const char* PrintbenchUpdateService::current_version()
++{
++    return PRINTBENCH_VERSION;
++}
++
++const char* PrintbenchUpdateService::release_api_url()
++{
++    return kReleaseApi;
++}
++
++void PrintbenchUpdateService::check(bool stable_only, Result result)
++{
++    auto http = Http::get(kReleaseApi);
++    http.header("accept", "application/vnd.github+json")
++        .header("x-github-api-version", "2022-11-28")
++        .timeout_connect(5)
++        .timeout_max(10)
++        .on_error([result](std::string, std::string error, unsigned status) {
++            result(std::nullopt, status == 0 ? error : "HTTP " + std::to_string(status));
++        })
++        .on_complete([stable_only, result](std::string body, unsigned status) {
++            if (status != 200) {
++                result(std::nullopt, "HTTP " + std::to_string(status));
++                return;
++            }
++
++            try {
++                boost::property_tree::ptree root;
++                std::stringstream json(body);
++                boost::property_tree::read_json(json, root);
++
++                std::optional<PrintbenchUpdateInfo> best;
++                for (const auto& entry : root) {
++                    const auto& node = entry.second;
++                    const std::string tag = node.get<std::string>("tag_name", "");
++                    if (!boost::algorithm::starts_with(tag, kTagPrefix))
++                        continue;
++
++                    const bool prerelease = node.get<bool>("prerelease", false);
++                    const bool draft = node.get<bool>("draft", false);
++                    if (draft || (stable_only && prerelease) || !newer_than_current(tag))
++                        continue;
++
++                    PrintbenchUpdateInfo candidate;
++                    candidate.version = tag.substr(std::char_traits<char>::length(kTagPrefix));
++                    candidate.release_url = node.get<std::string>("html_url", "");
++                    candidate.notes = node.get<std::string>("body", "");
++                    candidate.prerelease = prerelease;
++
++                    if (!best || parse_version(kTagPrefix + candidate.version) > parse_version(kTagPrefix + best->version))
++                        best = std::move(candidate);
++                }
++                result(best, {});
++            } catch (const std::exception& e) {
++                result(std::nullopt, e.what());
++            }
++        });
++    http.perform();
++}
++
++} // namespace Slic3r::GUI
+diff --git a/app/orcaslicer/src/slic3r/GUI/PrintbenchUpdateService.hpp b/app/orcaslicer/src/slic3r/GUI/PrintbenchUpdateService.hpp
+new file mode 100644
+index 00000000..4d90be25
+--- /dev/null
++++ b/app/orcaslicer/src/slic3r/GUI/PrintbenchUpdateService.hpp
+@@ -0,0 +1,27 @@
++#pragma once
++
++#include <functional>
++#include <optional>
++#include <string>
++
++namespace Slic3r::GUI {
++
++struct PrintbenchUpdateInfo
++{
++    std::string version;
++    std::string release_url;
++    std::string notes;
++    bool prerelease { false };
++};
++
++class PrintbenchUpdateService
++{
++public:
++    using Result = std::function<void(std::optional<PrintbenchUpdateInfo>, std::string)>;
++
++    static void check(bool stable_only, Result result);
++    static const char* current_version();
++    static const char* release_api_url();
++};
++
++} // namespace Slic3r::GUI
+diff --git a/app/orcaslicer/src/slic3r/GUI/ReleaseNote.cpp b/app/orcaslicer/src/slic3r/GUI/ReleaseNote.cpp
+index cf0dca4f..f75c7583 100644
+--- a/app/orcaslicer/src/slic3r/GUI/ReleaseNote.cpp
++++ b/app/orcaslicer/src/slic3r/GUI/ReleaseNote.cpp
+@@ -156,7 +156,7 @@ UpdatePluginDialog::UpdatePluginDialog(wxWindow* parent /*= nullptr*/)
+         EndModal(wxID_OK);
+         });
+ 
+-    auto m_button_cancel = new Button(this, _L("Cancel"));
++    auto m_button_cancel = new Button(this, _L("Sp├ñter"));
+     m_button_cancel->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
+ 
+     m_button_cancel->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& e) {
+@@ -236,7 +236,7 @@ void UpdatePluginDialog::update_info(std::string json_path)
+ }
+ 
+ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
+-    : DPIDialog(parent, wxID_ANY, _L("New version of Orca Slicer"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX | wxRESIZE_BORDER)
++    : DPIDialog(parent, wxID_ANY, _L("135er-PRINTBENCH Update"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX | wxRESIZE_BORDER)
+ {
+     SetBackgroundColour(*wxWHITE);
+ 
+@@ -247,7 +247,7 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
+     wxBoxSizer *m_sizer_top  = new wxBoxSizer(wxHORIZONTAL);
+     wxBoxSizer *m_sizer_desc = new wxBoxSizer(wxVERTICAL);
+ 
+-    auto sm    = create_scaled_bitmap("OrcaSlicer", nullptr, 64);
++    auto sm    = create_scaled_bitmap("logo_192px", nullptr, 64);
+     m_brand = new wxStaticBitmap(this, wxID_ANY, sm, wxDefaultPosition, FromDIP(wxSize(64, 64)));
+ 
+     m_text_up_info = new Label(this, Label::Head_14, wxEmptyString, LB_AUTO_WRAP);
+@@ -255,7 +255,7 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
+ 
+     // Store builds get updates from the Microsoft Store: wxID_YES opens the Store
+     // product page there (see the EVT_SLIC3R_VERSION_ONLINE handler) instead of GitHub.
+-    auto github_link = new HyperLink(this, is_running_in_msix() ? _L("Check on Microsoft Store") : _L("Check on GitHub"), "", LB_AUTO_WRAP);
++    auto github_link = new HyperLink(this, is_running_in_msix() ? _L("Check on Microsoft Store") : _L("PRINTBENCH Release auf GitHub"), "", LB_AUTO_WRAP);
+     github_link->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &e) {
+         EndModal(wxID_YES);
+     });
+@@ -305,14 +305,14 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
+ 
+     auto sizer_button = new wxBoxSizer(wxHORIZONTAL);
+ 
+-    m_button_download = new Button(this, is_running_in_msix() ? _L("Open Microsoft Store") : _L("Download"));
++    m_button_download = new Button(this, is_running_in_msix() ? _L("Open Microsoft Store") : _L("Update herunterladen"));
+     m_button_download->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
+ 
+     m_button_download->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &e) {
+         EndModal(wxID_YES);
+     });
+ 
+-    m_button_skip_version = new Button(this, _L("Skip this Version"));
++    m_button_skip_version = new Button(this, _L("Diese Version ├╝berspringen"));
+     m_button_skip_version->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
+ 
+     m_button_skip_version->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &e) {
+@@ -327,7 +327,7 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
+         e.Skip();
+     });
+ 
+-    auto stable_only_label = new Label(this, _L("Check for stable updates only"));
++    auto stable_only_label = new Label(this, _L("Nur stabile PRINTBENCH-Updates"));
+     stable_only_label->SetFont(Label::Body_12);
+ 
+     m_button_cancel = new Button(this, _L("Cancel"));
+diff --git a/app/orcaslicer/src/slic3r/GeneratedConfig.hpp.in b/app/orcaslicer/src/slic3r/GeneratedConfig.hpp.in
+index 130f1130..1e437552 100644
+--- a/app/orcaslicer/src/slic3r/GeneratedConfig.hpp.in
++++ b/app/orcaslicer/src/slic3r/GeneratedConfig.hpp.in
+@@ -3,3 +3,5 @@
+ #define ORCA_UPDATER_SIG_KEY_B64 "@ORCA_UPDATER_SIG_KEY_B64@"
+ #define ORCA_UPDATER_SIG_KEY_AVAILABLE @ORCA_UPDATER_SIG_KEY_AVAILABLE@
+ 
++
++#define PRINTBENCH_VERSION "@PRINTBENCH_VERSION@"
+diff --git a/tests/test_final_master_typography.py b/tests/test_final_master_typography.py
+new file mode 100644
+index 00000000..9902f2af
+--- /dev/null
++++ b/tests/test_final_master_typography.py
+@@ -0,0 +1,14 @@
++from pathlib import Path
++ROOT=Path(__file__).resolve().parents[1]
++CPP=(ROOT/'app/orcaslicer/src/slic3r/GUI/PrintbenchNativePanel.cpp').read_text(encoding='utf-8')
++
++def test_master_navigation_is_readable_at_desktop_scale():
++    assert 'style_label(label, 11, i == 0, i == 0 ? *wxWHITE : PB_TEXT);' in CPP
++    assert 'style_label(label, 12, i == 0, i == 0 ? PB_ACCENT : PB_TEXT);' in CPP
++    assert 'style_label(m_nav_labels[i], 11, active' in CPP
++
++def test_master_card_typography_has_clear_hierarchy():
++    assert 'style_label(heading, 12, true, PB_ACCENT);' in CPP
++    assert 'style_label(m_job_name, 14, true, PB_TEXT);' in CPP
++    assert 'style_label(value, 13, true, PB_TEXT);' in CPP
++    assert 'style_label(m_device_status_values[i], 11, true' in CPP
+diff --git a/tests/test_windows_build_contract.py b/tests/test_windows_build_contract.py
+index cee4169f..6c6df69b 100644
+--- a/tests/test_windows_build_contract.py
++++ b/tests/test_windows_build_contract.py
+@@ -16,3 +16,18 @@ def test_windows_build_requires_fresh_nonempty_outputs():
+     assert "Build output is stale" in SCRIPT
+     assert "Build output is empty" in SCRIPT
+     assert "build complete with fresh outputs" in SCRIPT
++
++
++def test_windows_build_recovers_after_repo_is_moved():
++    assert "CMAKE_HOME_DIRECTORY:INTERNAL=*" in SCRIPT
++    assert "PRINTBENCH source moved; reset generated CMake cache" in SCRIPT
++    assert "Remove-Item -LiteralPath $MainBuild -Recurse -Force" in SCRIPT
++    assert "System.StringComparison]::OrdinalIgnoreCase" in SCRIPT
++
++
++def test_windows_build_relocates_generated_dependency_metadata():
++    assert "Where-Object { $_.Extension -in @('.cmake', '.pc') }" in SCRIPT
++    assert 'StalePrefixPattern' in SCRIPT
++    assert '[regex]::Replace($Text, $StalePrefixPattern, $PrefixForward)' in SCRIPT
++    assert 'Relocated $RelocatedMetadata generated dependency metadata file(s)' in SCRIPT
++    assert 'Set-Content -LiteralPath $Metadata.FullName' in SCRIPT
+diff --git a/tests/test_windows_shell_contract.py b/tests/test_windows_shell_contract.py
+index 1d5ab941..54eb9a13 100644
+--- a/tests/test_windows_shell_contract.py
++++ b/tests/test_windows_shell_contract.py
+@@ -20,10 +20,11 @@ def test_windows_exe_uses_printbench_icon_resource():
+     assert (ROOT / 'assets/branding/PRINTBENCH_AppIcon_MASTER_1024.png').is_file()
+ 
+ 
+-def test_orca_update_advertising_is_not_run_at_printbench_startup():
+-    startup_marker = '// PRINTBENCH owns its release/update channel; never query or advertise Orca releases on startup.'
+-    assert startup_marker in GUI_APP
+-    assert startup_marker + '\n            // this->check_new_version_sf();' in GUI_APP
++def test_printbench_update_service_runs_instead_of_orca_update_channel():
++    assert '#include "PrintbenchUpdateService.hpp"' in GUI_APP
++    assert 'PrintbenchUpdateService::check' in GUI_APP
++    assert '// Lightweight modular PRINTBENCH release check.' in GUI_APP
++    assert 'this->check_new_version_sf();' in GUI_APP
+ 
+ 
+ def test_windows_installer_uses_the_same_printbench_icon():
+diff --git a/tools/build_printbench_orca.ps1 b/tools/build_printbench_orca.ps1
+index 9a522da4..2fd29f35 100644
+--- a/tools/build_printbench_orca.ps1
++++ b/tools/build_printbench_orca.ps1
+@@ -36,6 +36,43 @@ if (-not $SkipDependencies) {
+     if ($LASTEXITCODE -ne 0) { throw 'Dependency build failed' }
+ }
+ 
++# Orca's prebuilt dependency exports contain absolute paths. If PRINTBENCH is
++# moved as a project folder, rewrite only generated package metadata so the
++# existing dependency binaries remain usable at the new location.
++if (Test-Path $Prefix) {
++    $PrefixForward = $Prefix.Replace('\\', '/')
++    $StalePrefixPattern = '(?i)[A-Z]:[\\\\/][^"\\r\\n;]*?[\\\\/]app[\\\\/]orcaslicer[\\\\/]deps[\\\\/]build[\\\\/]OrcaSlicer_dep[\\\\/]usr[\\\\/]local'
++    $RelocatedMetadata = 0
++    $MetadataFiles = Get-ChildItem -LiteralPath $Prefix -Recurse -File -ErrorAction SilentlyContinue |
++        Where-Object { $_.Extension -in @('.cmake', '.pc') }
++    foreach ($Metadata in $MetadataFiles) {
++        $Text = Get-Content -LiteralPath $Metadata.FullName -Raw
++        if ([string]::IsNullOrEmpty($Text)) { continue }
++        $Updated = [regex]::Replace($Text, $StalePrefixPattern, $PrefixForward)
++        if ($Updated -ne $Text) {
++            Set-Content -LiteralPath $Metadata.FullName -Value $Updated -Encoding UTF8 -NoNewline
++            $RelocatedMetadata++
++        }
++    }
++    if ($RelocatedMetadata -gt 0) {
++        Write-Host "== Relocated $RelocatedMetadata generated dependency metadata file(s) =="
++    }
++}
++
++$MainCache = Join-Path $MainBuild 'CMakeCache.txt'
++if (Test-Path $MainCache) {
++    $HomeLine = Get-Content -LiteralPath $MainCache | Where-Object { $_ -like 'CMAKE_HOME_DIRECTORY:INTERNAL=*' } | Select-Object -First 1
++    if ($HomeLine) {
++        $CachedSource = ($HomeLine -split '=', 2)[1]
++        $CurrentSource = [System.IO.Path]::GetFullPath($OrcaRoot)
++        try { $CachedSource = [System.IO.Path]::GetFullPath($CachedSource) } catch { }
++        if (-not [string]::Equals($CachedSource.TrimEnd('\\','/'), $CurrentSource.TrimEnd('\\','/'), [System.StringComparison]::OrdinalIgnoreCase)) {
++            Write-Host "== PRINTBENCH source moved; reset generated CMake cache =="
++            Remove-Item -LiteralPath $MainBuild -Recurse -Force
++        }
++    }
++}
++
+ Write-Host '== Configure PRINTBENCH Orca =='
+ & $CMake -S $OrcaRoot -B $MainBuild -G 'Visual Studio 18 2026' -A x64 `
+     -DDEP_BUILD_DIR="$DepsBuild" `
