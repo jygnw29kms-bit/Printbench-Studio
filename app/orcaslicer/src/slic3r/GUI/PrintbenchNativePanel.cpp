@@ -280,7 +280,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     brand_row->Add(brand, 0, wxALIGN_CENTER_VERTICAL);
     side->Add(brand_row, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(16));
     auto* brand_sub = new wxStaticText(sidebar, wxID_ANY, wxString(L"Studio  \u2022  JL1976 Software"));
-    style_label(brand_sub, 9, false, PB_ACCENT);
+    style_label(brand_sub, 10, false, PB_ACCENT);
     side->Add(brand_sub, 0, wxLEFT | wxRIGHT | wxTOP | wxBOTTOM, FromDIP(16));
     const std::array<wxString, 13> nav_items{
         wxString(L"\u00DCbersicht"), L"Live Ansicht", L"Steuerung", L"AMS 2 Pro", L"Material",
@@ -299,7 +299,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
         auto icon_bitmap = create_scaled_bitmap(nav_icons[i], item, 14);
         auto* icon = new wxStaticBitmap(item, wxID_ANY, icon_bitmap);
         auto* label = new wxStaticText(item, wxID_ANY, nav_items[i]);
-        style_label(label, 10, i == 0, i == 0 ? *wxWHITE : PB_TEXT);
+        style_label(label, 11, i == 0, i == 0 ? *wxWHITE : PB_TEXT);
         m_nav_rows[i] = item;
         m_nav_labels[i] = label;
         const auto nav_handler = [this, i](wxMouseEvent&) { handle_nav(i); };
@@ -315,10 +315,10 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     }
     side->AddStretchSpacer();
     auto* side_p2s = new wxStaticText(sidebar, wxID_ANY, wxString(L"\u25CF  Bambu Lab P2S"));
-    style_label(side_p2s, 9, true, PB_OK);
+    style_label(side_p2s, 10, true, PB_OK);
     side->Add(side_p2s, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(16));
     auto* side_ams = new wxStaticText(sidebar, wxID_ANY, wxString(L"\u25CF  AMS 2 Pro"));
-    style_label(side_ams, 9, true, PB_OK);
+    style_label(side_ams, 10, true, PB_OK);
     side->Add(side_ams, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(16));
     auto* system_item = new wxStaticText(sidebar, wxID_ANY, wxString(L"\u2699  System"));
     style_label(system_item, 11, false, PB_TEXT);
@@ -331,7 +331,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     const std::array<wxString, 6> top_items{L"Drucker", L"Slicer", wxString(L"Ger\u00E4te"), L"Material", L"Historie", L"Einstellungen"};
     for (size_t i = 0; i < top_items.size(); ++i) {
         auto* label = new wxStaticText(this, wxID_ANY, top_items[i]);
-        style_label(label, 11, i == 0, i == 0 ? PB_ACCENT : PB_TEXT);
+        style_label(label, 12, i == 0, i == 0 ? PB_ACCENT : PB_TEXT);
         label->SetCursor(wxCursor(wxCURSOR_HAND));
         label->Bind(wxEVT_LEFT_UP, [this, i](wxMouseEvent&) {
             switch (i) {
@@ -348,7 +348,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     }
     header->AddStretchSpacer();
     m_header_status = new wxStaticText(this, wxID_ANY, wxString(L"\u25CF  P2S Offline"));
-    style_label(m_header_status, 11, true, PB_MUTED);
+    style_label(m_header_status, 12, true, PB_MUTED);
     header->Add(m_header_status, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
     root->Add(header, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(10));
     root->AddSpacer(FromDIP(6));
@@ -363,7 +363,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     style_label(m_printer_name, 20, true);
     body->Add(m_printer_name, 0, wxBOTTOM, FromDIP(4));
     m_ready_banner = new wxStaticText(printer_card, wxID_ANY, wxString(L"\u25CF  Offline"));
-    style_label(m_ready_banner, 11, true, PB_MUTED);
+    style_label(m_ready_banner, 12, true, PB_MUTED);
     body->Add(m_ready_banner, 0, wxBOTTOM, FromDIP(8));
     auto hero_bitmap = create_scaled_bitmap("printbench_hero_p2s_ams", this, 560);
     auto* hero_image = new wxStaticBitmap(printer_card, wxID_ANY, hero_bitmap);
@@ -474,9 +474,9 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     auto* job_icon = new wxStaticBitmap(print_card, wxID_ANY, job_bitmap);
     auto* job_text = new wxBoxSizer(wxVERTICAL);
     m_job_name = new wxStaticText(print_card, wxID_ANY, "Kein aktiver Druck");
-    style_label(m_job_name, 13, true, PB_TEXT);
+    style_label(m_job_name, 14, true, PB_TEXT);
     auto* job_meta = new wxStaticText(print_card, wxID_ANY, "Bambu Lab P2S  •  lokaler Druckauftrag");
-    style_label(job_meta, 9, false, PB_MUTED);
+    style_label(job_meta, 10, false, PB_MUTED);
     job_text->Add(m_job_name, 0, wxBOTTOM, FromDIP(3));
     job_text->Add(job_meta, 0);
     job_row->Add(job_icon, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(10));
@@ -490,9 +490,9 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     auto add_metric = [&](const wxString& caption, wxStaticText*& value) {
         auto* col = new wxBoxSizer(wxVERTICAL);
         auto* name = new wxStaticText(print_card, wxID_ANY, caption);
-        style_label(name, 8, true, PB_MUTED);
+        style_label(name, 9, true, PB_MUTED);
         value = new wxStaticText(print_card, wxID_ANY, "--");
-        style_label(value, 12, true, PB_TEXT);
+        style_label(value, 13, true, PB_TEXT);
         col->Add(name, 0, wxBOTTOM, FromDIP(2));
         col->Add(value, 0);
         print_metrics->Add(col, 1, wxRIGHT, FromDIP(8));
@@ -511,9 +511,9 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     for (size_t i = 0; i < m_temp_values.size(); ++i) {
         auto* col = new wxBoxSizer(wxVERTICAL);
         auto* name = new wxStaticText(temp_card, wxID_ANY, temp_names[i]);
-        style_label(name, 8, true, temp_colours[i]);
+        style_label(name, 9, true, temp_colours[i]);
         m_temp_values[i] = new wxStaticText(temp_card, wxID_ANY, "-- C");
-        style_label(m_temp_values[i], 12, true);
+        style_label(m_temp_values[i], 13, true);
         col->Add(name, 0, wxBOTTOM, FromDIP(2));
         col->Add(m_temp_values[i], 0);
         temp_values->Add(col, 1, wxRIGHT, i + 1 < m_temp_values.size() ? FromDIP(10) : 0);
@@ -554,9 +554,9 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
         cell->SetBackgroundColour(wxColour(8, 25, 37));
         auto* cell_sizer = new wxBoxSizer(wxVERTICAL);
         auto* caption = new wxStaticText(cell, wxID_ANY, status_names[i]);
-        style_label(caption, 8, true, PB_MUTED);
+        style_label(caption, 9, true, PB_MUTED);
         m_device_status_values[i] = new wxStaticText(cell, wxID_ANY, status_initial[i]);
-        style_label(m_device_status_values[i], 10, true, i >= 4 ? PB_OK : PB_MUTED);
+        style_label(m_device_status_values[i], 11, true, i >= 4 ? PB_OK : PB_MUTED);
         cell_sizer->Add(caption, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(8));
         cell_sizer->Add(m_device_status_values[i], 0, wxLEFT | wxRIGHT | wxTOP | wxBOTTOM, FromDIP(8));
         cell->SetSizer(cell_sizer);
@@ -569,7 +569,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     m_history_card = history_card;
     for (size_t i = 0; i < m_history_rows.size(); ++i) {
         m_history_rows[i] = new wxStaticText(history_card, wxID_ANY, i == 0 ? "Noch keine lokalen Druckabschluesse." : "");
-        style_label(m_history_rows[i], 9, i == 0, i == 0 ? PB_MUTED : PB_TEXT);
+        style_label(m_history_rows[i], 10, i == 0, i == 0 ? PB_MUTED : PB_TEXT);
         body->Add(m_history_rows[i], 0, wxEXPAND | wxBOTTOM, FromDIP(5));
     }
     bottom->Add(history_card, 1, wxEXPAND | wxRIGHT, FromDIP(10));
@@ -659,7 +659,7 @@ wxPanel* PrintbenchNativePanel::make_card(wxWindow* parent, const wxString& titl
     card->SetBackgroundColour(PB_CARD);
     auto* outer = new wxBoxSizer(wxVERTICAL);
     auto* heading = new wxStaticText(card, wxID_ANY, title);
-    style_label(heading, 11, true, PB_ACCENT);
+    style_label(heading, 12, true, PB_ACCENT);
     outer->Add(heading, 0, wxALL, FromDIP(10));
     auto* line = new wxStaticLine(card, wxID_ANY);
     line->SetForegroundColour(PB_BORDER);
@@ -675,9 +675,9 @@ wxStaticText* PrintbenchNativePanel::add_value(wxWindow* parent, wxSizer* sizer,
 {
     auto* row = new wxBoxSizer(wxHORIZONTAL);
     auto* name = new wxStaticText(parent, wxID_ANY, caption);
-    style_label(name, 10, false, PB_MUTED);
+    style_label(name, 11, false, PB_MUTED);
     auto* value = new wxStaticText(parent, wxID_ANY, "--");
-    style_label(value, 12, true);
+    style_label(value, 13, true);
     row->Add(name, 1, wxALIGN_CENTER_VERTICAL);
     row->Add(value, 0, wxALIGN_CENTER_VERTICAL);
     sizer->Add(row, 0, wxEXPAND | wxBOTTOM, FromDIP(6));
@@ -885,7 +885,7 @@ void PrintbenchNativePanel::activate_nav(size_t index)
             continue;
         const bool active = i == index;
         m_nav_rows[i]->SetBackgroundColour(active ? wxColour(8, 102, 218) : wxColour(4, 14, 24));
-        style_label(m_nav_labels[i], 10, active, active ? *wxWHITE : PB_TEXT);
+        style_label(m_nav_labels[i], 11, active, active ? *wxWHITE : PB_TEXT);
         m_nav_rows[i]->Refresh(false);
     }
 }

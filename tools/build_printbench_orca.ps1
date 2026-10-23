@@ -36,6 +36,43 @@ if (-not $SkipDependencies) {
     if ($LASTEXITCODE -ne 0) { throw 'Dependency build failed' }
 }
 
+# Orca's prebuilt dependency exports contain absolute paths. If PRINTBENCH is
+# moved as a project folder, rewrite only generated package metadata so the
+# existing dependency binaries remain usable at the new location.
+if (Test-Path $Prefix) {
+    $PrefixForward = $Prefix.Replace('\', '/')
+    $StalePrefixPattern = '(?i)[A-Z]:[\\/][^"\r\n;]*?[\\/]app[\\/]orcaslicer[\\/]deps[\\/]build[\\/]OrcaSlicer_dep[\\/]usr[\\/]local'
+    $RelocatedMetadata = 0
+    $MetadataFiles = Get-ChildItem -LiteralPath $Prefix -Recurse -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Extension -in @('.cmake', '.pc') }
+    foreach ($Metadata in $MetadataFiles) {
+        $Text = Get-Content -LiteralPath $Metadata.FullName -Raw
+        if ([string]::IsNullOrEmpty($Text)) { continue }
+        $Updated = [regex]::Replace($Text, $StalePrefixPattern, $PrefixForward)
+        if ($Updated -ne $Text) {
+            Set-Content -LiteralPath $Metadata.FullName -Value $Updated -Encoding UTF8 -NoNewline
+            $RelocatedMetadata++
+        }
+    }
+    if ($RelocatedMetadata -gt 0) {
+        Write-Host "== Relocated $RelocatedMetadata generated dependency metadata file(s) =="
+    }
+}
+
+$MainCache = Join-Path $MainBuild 'CMakeCache.txt'
+if (Test-Path $MainCache) {
+    $HomeLine = Get-Content -LiteralPath $MainCache | Where-Object { $_ -like 'CMAKE_HOME_DIRECTORY:INTERNAL=*' } | Select-Object -First 1
+    if ($HomeLine) {
+        $CachedSource = ($HomeLine -split '=', 2)[1]
+        $CurrentSource = [System.IO.Path]::GetFullPath($OrcaRoot)
+        try { $CachedSource = [System.IO.Path]::GetFullPath($CachedSource) } catch { }
+        if (-not [string]::Equals($CachedSource.TrimEnd('\','/'), $CurrentSource.TrimEnd('\','/'), [System.StringComparison]::OrdinalIgnoreCase)) {
+            Write-Host "== PRINTBENCH source moved; reset generated CMake cache =="
+            Remove-Item -LiteralPath $MainBuild -Recurse -Force
+        }
+    }
+}
+
 Write-Host '== Configure PRINTBENCH Orca =='
 & $CMake -S $OrcaRoot -B $MainBuild -G 'Visual Studio 18 2026' -A x64 `
     -DDEP_BUILD_DIR="$DepsBuild" `
