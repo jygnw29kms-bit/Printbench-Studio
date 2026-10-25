@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-24T09:36:48+00:00",
+  "updated": "2026-10-25T09:53:45+00:00",
   "sources": [
     {
       "name": "3D Filament Profiles",
@@ -47,7 +47,7 @@
         "PLA+": 10.79,
         "HS-PLA": 11.99,
         "PETG": 4.99,
-        "ABS": 8.04,
+        "ABS": 6.59,
         "ASA": 12.0,
         "TPU": 9.99
       }
@@ -69,7 +69,7 @@
       "materials": {
         "PLA": 16.99,
         "PLA+": 18.99,
-        "PETG": 8.54,
+        "PETG": 8.99,
         "ABS": 19.99,
         "ASA": 24.99,
         "TPU": 25.99
@@ -111,7 +111,7 @@
       "name": "Bambu Lab",
       "materials": {
         "PLA": 7.59,
-        "PETG": 8.89,
+        "PETG": 9.39,
         "ABS": 24.99,
         "ASA": 18.95,
         "TPU": 29.99,
@@ -162,10 +162,10 @@
     {
       "name": "Creality",
       "materials": {
-        "PLA": 7.19,
+        "PLA": 8.39,
         "PLA+": 14.99,
         "PETG": 5.99,
-        "ABS": 14.19,
+        "ABS": 6.59,
         "ASA": 19.99,
         "TPU": 21.8
       }
@@ -216,6 +216,13 @@
       "url": "https://spulenheld.de/deals/pla"
     },
     {
+      "brand": "Creality",
+      "material": "PLA",
+      "eur_per_kg": 8.39,
+      "source": "Spulenheld",
+      "url": "https://spulenheld.de/deals/pla"
+    },
+    {
       "brand": "SUNLU",
       "material": "PETG",
       "eur_per_kg": 4.99,
@@ -230,16 +237,30 @@
       "url": "https://spulenheld.de/deals/petg"
     },
     {
-      "brand": "JAYO",
+      "brand": "eSUN",
       "material": "PETG",
-      "eur_per_kg": 7.45,
+      "eur_per_kg": 8.99,
+      "source": "Spulenheld",
+      "url": "https://spulenheld.de/deals/petg"
+    },
+    {
+      "brand": "Bambu Lab",
+      "material": "PETG",
+      "eur_per_kg": 9.39,
       "source": "Spulenheld",
       "url": "https://spulenheld.de/deals/petg"
     },
     {
       "brand": "SUNLU",
       "material": "ABS",
-      "eur_per_kg": 8.04,
+      "eur_per_kg": 6.59,
+      "source": "Spulenheld",
+      "url": "https://spulenheld.de/deals/abs"
+    },
+    {
+      "brand": "Creality",
+      "material": "ABS",
+      "eur_per_kg": 6.59,
       "source": "Spulenheld",
       "url": "https://spulenheld.de/deals/abs"
     },
@@ -254,13 +275,6 @@
       "brand": "KINGROON",
       "material": "ABS",
       "eur_per_kg": 12.69,
-      "source": "Spulenheld",
-      "url": "https://spulenheld.de/deals/abs"
-    },
-    {
-      "brand": "Creality",
-      "material": "ABS",
-      "eur_per_kg": 14.19,
       "source": "Spulenheld",
       "url": "https://spulenheld.de/deals/abs"
     },
