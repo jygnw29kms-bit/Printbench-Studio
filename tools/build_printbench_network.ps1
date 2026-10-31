@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$OutputDir = '',
     [int]$Jobs = 12,
     [switch]$SkipBuild
@@ -35,11 +35,11 @@ if (-not (Test-Path (Join-Path $SourceDir '.git'))) {
 
 Push-Location $SourceDir
 try {
-    git fetch --quiet origin
+    git -c "safe.directory=$SourceDir" fetch --quiet origin
     if ($LASTEXITCODE -ne 0) { throw 'open-bamboo-networking fetch failed' }
-    git checkout --quiet --detach $Commit
+    git -c "safe.directory=$SourceDir" checkout --quiet --detach $Commit
     if ($LASTEXITCODE -ne 0) { throw 'open-bamboo-networking checkout failed' }
-    $Actual = (git rev-parse HEAD).Trim()
+    $Actual = (git -c "safe.directory=$SourceDir" rev-parse HEAD).Trim()
     if ($Actual -ne $Commit) { throw "Pinned network commit mismatch: $Actual" }
 
     if (-not $SkipBuild) {
