@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PANEL = (ROOT / 'app/orcaslicer/src/slic3r/GUI/PrintbenchNativePanel.cpp').read_text(encoding='utf-8')
@@ -17,7 +17,7 @@ def test_final_master_branding_is_native_and_visible():
 
 
 def test_final_master_keeps_dominant_p2s_hero():
-    assert 'create_scaled_bitmap("printbench_hero_p2s_ams", this, 560)' in PANEL
+    assert 'new PrintbenchHeroPanel(printer_card, hero_bitmap)' in PANEL
     assert 'hero->Add(printer_card, 42' in PANEL
 
 
@@ -25,4 +25,4 @@ def test_final_master_sidebar_uses_vector_navigation_icons():
     assert 'const std::array<const char*, 13> nav_icons' in PANEL
     for asset in ('monitor_camera', 'ams_setting_normal', 'filament', 'printer_in_lan', 'calib_sf'):
         assert asset in PANEL
-    assert 'new wxStaticBitmap(item' in PANEL
+    assert 'new PrintbenchNavRow(sidebar, nav_items[i], icon_bitmap)' in PANEL

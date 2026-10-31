@@ -1,11 +1,12 @@
-﻿from pathlib import Path
+from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 CPP=(ROOT/'app/orcaslicer/src/slic3r/GUI/PrintbenchNativePanel.cpp').read_text(encoding='utf-8')
 
 def test_master_navigation_is_readable_at_desktop_scale():
-    assert 'style_label(label, 11, i == 0, i == 0 ? *wxWHITE : PB_TEXT);' in CPP
+    assert 'class PrintbenchNavRow : public wxPanel' in CPP
+    assert 'font.SetPointSize(10);' in CPP
+    assert 'font.SetWeight(m_active ? wxFONTWEIGHT_BOLD : wxFONTWEIGHT_NORMAL);' in CPP
     assert 'style_label(label, 12, i == 0, i == 0 ? PB_ACCENT : PB_TEXT);' in CPP
-    assert 'style_label(m_nav_labels[i], 11, active' in CPP
 
 def test_master_card_typography_has_clear_hierarchy():
     assert 'style_label(heading, 12, true, PB_ACCENT);' in CPP

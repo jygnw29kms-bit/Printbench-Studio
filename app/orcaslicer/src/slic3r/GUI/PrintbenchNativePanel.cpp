@@ -891,6 +891,123 @@ private:
     bool m_hover{false};
 };
 
+class PrintbenchNavRow : public wxPanel
+{
+public:
+    PrintbenchNavRow(wxWindow* parent, const wxString& caption, const wxBitmap& bitmap)
+        : wxPanel(parent, wxID_ANY), m_caption(caption), m_bitmap(bitmap)
+    {
+        SetBackgroundStyle(wxBG_STYLE_PAINT);
+        SetMinSize(wxSize(-1, FromDIP(38)));
+        SetCursor(wxCursor(wxCURSOR_HAND));
+        Bind(wxEVT_PAINT, &PrintbenchNavRow::on_paint, this);
+        Bind(wxEVT_ENTER_WINDOW, [this](wxMouseEvent& e) { m_hover = true; Refresh(false); e.Skip(); });
+        Bind(wxEVT_LEAVE_WINDOW, [this](wxMouseEvent& e) { m_hover = false; Refresh(false); e.Skip(); });
+    }
+
+    void SetActive(bool active)
+    {
+        if (m_active == active) return;
+        m_active = active;
+        Refresh(false);
+    }
+
+private:
+    void on_paint(wxPaintEvent&)
+    {
+        wxAutoBufferedPaintDC dc(this);
+        const wxSize size = GetClientSize();
+        dc.SetBackground(wxBrush(wxColour(4, 14, 24)));
+        dc.Clear();
+        if (size.x <= 0 || size.y <= 0)
+            return;
+
+        wxColour fill = wxColour(4, 14, 24);
+        if (m_active)
+            fill = wxColour(10, 105, 231);
+        else if (m_hover)
+            fill = wxColour(8, 31, 48);
+        dc.SetPen(*wxTRANSPARENT_PEN);
+        dc.SetBrush(wxBrush(fill));
+        if (m_active || m_hover)
+            dc.DrawRoundedRectangle(0, 0, size.x - 1, size.y - 1, FromDIP(7));
+
+        const int icon_size = FromDIP(17);
+        const int icon_x = FromDIP(12);
+        const int icon_y = std::max(0, (size.y - icon_size) / 2);
+        if (m_bitmap.IsOk())
+            dc.DrawBitmap(m_bitmap, icon_x, icon_y, true);
+
+        wxFont font = GetFont();
+        font.SetPointSize(10);
+        font.SetWeight(m_active ? wxFONTWEIGHT_BOLD : wxFONTWEIGHT_NORMAL);
+        dc.SetFont(font);
+        dc.SetTextForeground(m_active ? *wxWHITE : wxColour(184, 201, 214));
+        const wxSize ext = dc.GetTextExtent(m_caption);
+        dc.DrawText(m_caption, FromDIP(42), std::max(FromDIP(4), (size.y - ext.y) / 2));
+    }
+
+    wxString m_caption;
+    wxBitmap m_bitmap;
+    bool m_active{false};
+    bool m_hover{false};
+};
+
+class PrintbenchSidebarDevice : public wxPanel
+{
+public:
+    PrintbenchSidebarDevice(wxWindow* parent, const wxString& name, const wxBitmap& bitmap)
+        : wxPanel(parent, wxID_ANY), m_name(name), m_bitmap(bitmap)
+    {
+        SetBackgroundStyle(wxBG_STYLE_PAINT);
+        SetMinSize(wxSize(-1, FromDIP(52)));
+        Bind(wxEVT_PAINT, &PrintbenchSidebarDevice::on_paint, this);
+    }
+
+    void SetState(bool online, const wxString& state)
+    {
+        m_online = online;
+        m_state = state;
+        Refresh(false);
+    }
+
+private:
+    void on_paint(wxPaintEvent&)
+    {
+        wxAutoBufferedPaintDC dc(this);
+        const wxSize size = GetClientSize();
+        dc.SetBackground(wxBrush(wxColour(4, 14, 24)));
+        dc.Clear();
+        if (size.x <= 0 || size.y <= 0)
+            return;
+
+        if (m_bitmap.IsOk())
+            dc.DrawBitmap(m_bitmap, FromDIP(8), std::max(0, (size.y - FromDIP(22)) / 2), true);
+
+        wxFont name_font = GetFont();
+        name_font.SetPointSize(9);
+        name_font.SetWeight(wxFONTWEIGHT_BOLD);
+        dc.SetFont(name_font);
+        dc.SetTextForeground(PB_TEXT);
+        dc.DrawText(m_name, FromDIP(38), FromDIP(7));
+
+        const wxColour state_colour = m_online ? PB_OK : PB_MUTED;
+        dc.SetPen(*wxTRANSPARENT_PEN);
+        dc.SetBrush(wxBrush(state_colour));
+        dc.DrawCircle(FromDIP(42), FromDIP(35), FromDIP(3));
+        wxFont state_font = GetFont();
+        state_font.SetPointSize(8);
+        dc.SetFont(state_font);
+        dc.SetTextForeground(state_colour);
+        dc.DrawText(m_state, FromDIP(50), FromDIP(27));
+    }
+
+    wxString m_name;
+    wxString m_state{"Offline"};
+    wxBitmap m_bitmap;
+    bool m_online{false};
+};
+
 class PrintbenchProgressBar : public wxPanel
 {
 public:
@@ -947,19 +1064,21 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
 
     auto* sidebar = new wxPanel(this, wxID_ANY);
     sidebar->SetBackgroundColour(wxColour(4, 14, 24));
-    sidebar->SetMinSize(wxSize(FromDIP(180), -1));
+    sidebar->SetMinSize(wxSize(FromDIP(188), -1));
     auto* side = new wxBoxSizer(wxVERTICAL);
     auto* brand_row = new wxBoxSizer(wxHORIZONTAL);
-    auto brand_icon_bitmap = create_scaled_bitmap("printbench_app_icon_32", sidebar, 18);
+    auto brand_icon_bitmap = create_scaled_bitmap("printbench_app_icon_32", sidebar, 26);
     auto* brand_icon = new wxStaticBitmap(sidebar, wxID_ANY, brand_icon_bitmap);
+    auto* brand_text = new wxBoxSizer(wxVERTICAL);
     auto* brand = new wxStaticText(sidebar, wxID_ANY, "PRINTBENCH");
-    style_label(brand, 18, true);
-    brand_row->Add(brand_icon, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(8));
-    brand_row->Add(brand, 0, wxALIGN_CENTER_VERTICAL);
-    side->Add(brand_row, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(16));
+    style_label(brand, 17, true);
     auto* brand_sub = new wxStaticText(sidebar, wxID_ANY, wxString(L"Studio  \u2022  JL1976 Software"));
-    style_label(brand_sub, 10, false, PB_ACCENT);
-    side->Add(brand_sub, 0, wxLEFT | wxRIGHT | wxTOP | wxBOTTOM, FromDIP(16));
+    style_label(brand_sub, 8, false, PB_MUTED);
+    brand_text->Add(brand, 0);
+    brand_text->Add(brand_sub, 0, wxTOP, FromDIP(1));
+    brand_row->Add(brand_icon, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(8));
+    brand_row->Add(brand_text, 1, wxALIGN_CENTER_VERTICAL);
+    side->Add(brand_row, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP | wxBOTTOM, FromDIP(14));
     const std::array<wxString, 13> nav_items{
         wxString(L"\u00DCbersicht"), L"Live Ansicht", L"Steuerung", L"AMS 2 Pro", L"Material",
         wxString(L"Druckauftr\u00E4ge"), L"Historie", L"Dateien", L"Kamera", wxString(L"Ger\u00E4te-Setup"),
@@ -971,33 +1090,20 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
         "print_control_resume", "print_info_time", "topbar_file", "camera_setting", "printer",
         "printer_in_lan", "info", "calib_sf"};
     for (size_t i = 0; i < nav_items.size(); ++i) {
-        auto* item = new wxPanel(sidebar, wxID_ANY);
-        item->SetBackgroundColour(i == 0 ? wxColour(8, 102, 218) : sidebar->GetBackgroundColour());
-        auto* item_sizer = new wxBoxSizer(wxHORIZONTAL);
-        auto icon_bitmap = create_scaled_bitmap(nav_icons[i], item, 14);
-        auto* icon = new wxStaticBitmap(item, wxID_ANY, icon_bitmap);
-        auto* label = new wxStaticText(item, wxID_ANY, nav_items[i]);
-        style_label(label, 11, i == 0, i == 0 ? *wxWHITE : PB_TEXT);
+        auto icon_bitmap = create_scaled_bitmap(nav_icons[i], sidebar, 17);
+        auto* item = new PrintbenchNavRow(sidebar, nav_items[i], icon_bitmap);
+        item->SetActive(i == 0);
         m_nav_rows[i] = item;
-        m_nav_labels[i] = label;
-        const auto nav_handler = [this, i](wxMouseEvent&) { handle_nav(i); };
-        for (wxWindow* hit_target : {static_cast<wxWindow*>(item), static_cast<wxWindow*>(icon), static_cast<wxWindow*>(label)}) {
-            hit_target->SetCursor(wxCursor(wxCURSOR_HAND));
-            hit_target->Bind(wxEVT_LEFT_UP, nav_handler);
-        }
-        item_sizer->Add(icon, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(9));
-        item_sizer->Add(label, 1, wxLEFT | wxRIGHT | wxTOP | wxBOTTOM | wxALIGN_CENTER_VERTICAL,
-                        FromDIP(8));
-        item->SetSizer(item_sizer);
+        item->Bind(wxEVT_LEFT_UP, [this, i](wxMouseEvent&) { handle_nav(i); });
         side->Add(item, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(3));
     }
     side->AddStretchSpacer();
-    auto* side_p2s = new wxStaticText(sidebar, wxID_ANY, wxString(L"\u25CF  Bambu Lab P2S"));
-    style_label(side_p2s, 10, true, PB_OK);
-    side->Add(side_p2s, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(16));
-    auto* side_ams = new wxStaticText(sidebar, wxID_ANY, wxString(L"\u25CF  AMS 2 Pro"));
-    style_label(side_ams, 10, true, PB_OK);
-    side->Add(side_ams, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(16));
+    m_sidebar_devices[0] = new PrintbenchSidebarDevice(
+        sidebar, "Bambu Lab P2S", create_scaled_bitmap("printer", sidebar, 22));
+    m_sidebar_devices[1] = new PrintbenchSidebarDevice(
+        sidebar, "AMS 2 Pro", create_scaled_bitmap("ams_setting_normal", sidebar, 22));
+    side->Add(m_sidebar_devices[0], 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
+    side->Add(m_sidebar_devices[1], 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
     auto* system_item = new wxStaticText(sidebar, wxID_ANY, wxString(L"\u2699  System"));
     style_label(system_item, 11, false, PB_TEXT);
     side->Add(system_item, 0, wxALL, FromDIP(16));
@@ -1399,6 +1505,10 @@ void PrintbenchNativePanel::apply_snapshot(const PrintbenchSnapshot& s)
         wxString(L"●  Nicht erforderlich")};
     const std::array<bool, 6> device_ok{
         s.online, s.has_camera, s.has_ams, s.online && !s.wifi_signal.empty(), true, true};
+    if (m_sidebar_devices[0])
+        m_sidebar_devices[0]->SetState(s.online, s.online ? "Online" : "Offline");
+    if (m_sidebar_devices[1])
+        m_sidebar_devices[1]->SetState(s.has_ams, s.has_ams ? "Verbunden" : "Nicht verbunden");
     for (size_t i = 0; i < m_device_status_values.size(); ++i) {
         if (!m_device_status_values[i]) continue;
         m_device_status_values[i]->SetLabel(device_values[i]);
@@ -1532,14 +1642,9 @@ void PrintbenchNativePanel::activate_nav(size_t index)
 {
     if (index >= m_nav_rows.size())
         return;
-    for (size_t i = 0; i < m_nav_rows.size(); ++i) {
-        if (!m_nav_rows[i] || !m_nav_labels[i])
-            continue;
-        const bool active = i == index;
-        m_nav_rows[i]->SetBackgroundColour(active ? wxColour(8, 102, 218) : wxColour(4, 14, 24));
-        style_label(m_nav_labels[i], 11, active, active ? *wxWHITE : PB_TEXT);
-        m_nav_rows[i]->Refresh(false);
-    }
+    for (size_t i = 0; i < m_nav_rows.size(); ++i)
+        if (m_nav_rows[i])
+            m_nav_rows[i]->SetActive(i == index);
 }
 
 void PrintbenchNativePanel::scroll_to(wxWindow* target)

@@ -25,6 +25,8 @@ class PrintbenchQuickTile;
 class PrintbenchCameraTile;
 class PrintbenchJobHeader;
 class PrintbenchHeroPanel;
+class PrintbenchNavRow;
+class PrintbenchSidebarDevice;
 class PrintbenchSpeedPill;
 class PrintbenchHistoryRow;
 
@@ -88,8 +90,8 @@ private:
     std::array<wxStaticText*, 6> m_device_status_values{};
     std::array<wxStaticText*, 6> m_printer_status_dots{};
     std::array<PrintbenchHistoryRow*, 3> m_history_rows{};
-    std::array<wxPanel*, 13> m_nav_rows{};
-    std::array<wxStaticText*, 13> m_nav_labels{};
+    std::array<PrintbenchNavRow*, 13> m_nav_rows{};
+    std::array<PrintbenchSidebarDevice*, 2> m_sidebar_devices{};
     wxWindow* m_printer_card{nullptr};
     wxWindow* m_camera_card{nullptr};
     wxWindow* m_quick_card{nullptr};
