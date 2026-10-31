@@ -25,6 +25,7 @@ class PrintbenchQuickTile;
 class PrintbenchCameraTile;
 class PrintbenchJobHeader;
 class PrintbenchHeroPanel;
+class PrintbenchTopNavItem;
 class PrintbenchNavRow;
 class PrintbenchSidebarDevice;
 class PrintbenchSpeedPill;
@@ -55,6 +56,7 @@ private:
     void update_history_ui();
     void observe_history(const PrintbenchSnapshot& snapshot);
     void append_history(const wxString& job_name, const wxString& status, int observed_seconds);
+    void activate_top_nav(size_t index);
     void activate_nav(size_t index);
     void handle_nav(size_t index);
     void scroll_to(wxWindow* target);
@@ -90,6 +92,7 @@ private:
     std::array<wxStaticText*, 6> m_device_status_values{};
     std::array<wxStaticText*, 6> m_printer_status_dots{};
     std::array<PrintbenchHistoryRow*, 3> m_history_rows{};
+    std::array<PrintbenchTopNavItem*, 6> m_top_nav{};
     std::array<PrintbenchNavRow*, 13> m_nav_rows{};
     std::array<PrintbenchSidebarDevice*, 2> m_sidebar_devices{};
     wxWindow* m_printer_card{nullptr};

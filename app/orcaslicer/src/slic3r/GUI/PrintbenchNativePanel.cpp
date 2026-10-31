@@ -891,6 +891,69 @@ private:
     bool m_hover{false};
 };
 
+class PrintbenchTopNavItem : public wxPanel
+{
+public:
+    PrintbenchTopNavItem(wxWindow* parent, const wxString& caption, const wxBitmap& bitmap)
+        : wxPanel(parent, wxID_ANY), m_caption(caption), m_bitmap(bitmap)
+    {
+        SetBackgroundStyle(wxBG_STYLE_PAINT);
+        SetMinSize(wxSize(FromDIP(92), FromDIP(42)));
+        SetCursor(wxCursor(wxCURSOR_HAND));
+        Bind(wxEVT_PAINT, &PrintbenchTopNavItem::on_paint, this);
+        Bind(wxEVT_ENTER_WINDOW, [this](wxMouseEvent& e) { m_hover = true; Refresh(false); e.Skip(); });
+        Bind(wxEVT_LEAVE_WINDOW, [this](wxMouseEvent& e) { m_hover = false; Refresh(false); e.Skip(); });
+    }
+
+    void SetActive(bool active)
+    {
+        if (m_active == active) return;
+        m_active = active;
+        Refresh(false);
+    }
+
+private:
+    void on_paint(wxPaintEvent&)
+    {
+        wxAutoBufferedPaintDC dc(this);
+        const wxSize size = GetClientSize();
+        dc.SetBackground(wxBrush(PB_BG));
+        dc.Clear();
+        if (size.x <= 0 || size.y <= 0)
+            return;
+
+        if (m_active || m_hover) {
+            dc.SetPen(*wxTRANSPARENT_PEN);
+            dc.SetBrush(wxBrush(m_active ? wxColour(10, 66, 137) : wxColour(8, 32, 48)));
+            dc.DrawRoundedRectangle(0, 0, size.x - 1, size.y - 1, FromDIP(5));
+        }
+        if (m_active) {
+            dc.SetPen(*wxTRANSPARENT_PEN);
+            dc.SetBrush(wxBrush(wxColour(20, 125, 245)));
+            dc.DrawRoundedRectangle(0, size.y - FromDIP(3), size.x - 1, FromDIP(3), FromDIP(1));
+        }
+
+        const int icon_size = FromDIP(16);
+        const int icon_x = FromDIP(10);
+        const int icon_y = std::max(0, (size.y - icon_size) / 2);
+        if (m_bitmap.IsOk())
+            dc.DrawBitmap(m_bitmap, icon_x, icon_y, true);
+
+        wxFont font = GetFont();
+        font.SetPointSize(9);
+        font.SetWeight(m_active ? wxFONTWEIGHT_BOLD : wxFONTWEIGHT_NORMAL);
+        dc.SetFont(font);
+        dc.SetTextForeground(m_active ? *wxWHITE : wxColour(181, 199, 213));
+        const wxSize ext = dc.GetTextExtent(m_caption);
+        dc.DrawText(m_caption, FromDIP(34), std::max(FromDIP(4), (size.y - ext.y) / 2));
+    }
+
+    wxString m_caption;
+    wxBitmap m_bitmap;
+    bool m_active{false};
+    bool m_hover{false};
+};
+
 class PrintbenchNavRow : public wxPanel
 {
 public:
@@ -1113,11 +1176,14 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     auto* root = new wxBoxSizer(wxVERTICAL);
     auto* header = new wxBoxSizer(wxHORIZONTAL);
     const std::array<wxString, 6> top_items{L"Drucker", L"Slicer", wxString(L"Ger\u00E4te"), L"Material", L"Historie", L"Einstellungen"};
+    const std::array<const char*, 6> top_icons{
+        "printer", "topbar_file", "printer_in_lan", "filament", "print_info_time", "ams_setting_normal"};
     for (size_t i = 0; i < top_items.size(); ++i) {
-        auto* label = new wxStaticText(this, wxID_ANY, top_items[i]);
-        style_label(label, 12, i == 0, i == 0 ? PB_ACCENT : PB_TEXT);
-        label->SetCursor(wxCursor(wxCURSOR_HAND));
-        label->Bind(wxEVT_LEFT_UP, [this, i](wxMouseEvent&) {
+        auto* item = new PrintbenchTopNavItem(this, top_items[i], create_scaled_bitmap(top_icons[i], this, 16));
+        item->SetActive(i == 0);
+        m_top_nav[i] = item;
+        item->Bind(wxEVT_LEFT_UP, [this, i](wxMouseEvent&) {
+            activate_top_nav(i);
             switch (i) {
             case 0: handle_nav(0); break;                                  // Drucker
             case 1: if (wxGetApp().mainframe) wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor); break;
@@ -1128,7 +1194,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
             default: break;
             }
         });
-        header->Add(label, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+        header->Add(item, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(4));
     }
     header->AddStretchSpacer();
     m_header_status = new wxStaticText(this, wxID_ANY, wxString(L"\u25CF  P2S Offline"));
@@ -1638,6 +1704,15 @@ void PrintbenchNativePanel::apply_snapshot(const PrintbenchSnapshot& s)
     Layout();
 }
 
+void PrintbenchNativePanel::activate_top_nav(size_t index)
+{
+    if (index >= m_top_nav.size())
+        return;
+    for (size_t i = 0; i < m_top_nav.size(); ++i)
+        if (m_top_nav[i])
+            m_top_nav[i]->SetActive(i == index);
+}
+
 void PrintbenchNativePanel::activate_nav(size_t index)
 {
     if (index >= m_nav_rows.size())
@@ -1659,6 +1734,15 @@ void PrintbenchNativePanel::scroll_to(wxWindow* target)
 void PrintbenchNativePanel::handle_nav(size_t index)
 {
     activate_nav(index);
+    switch (index) {
+    case 0: activate_top_nav(0); break;
+    case 3: case 4: activate_top_nav(3); break;
+    case 6: activate_top_nav(4); break;
+    case 7: activate_top_nav(1); break;
+    case 9: case 10: activate_top_nav(2); break;
+    case 11: activate_top_nav(5); break;
+    default: break;
+    }
     switch (index) {
     case 0: Scroll(0, 0); break;                              // Uebersicht
     case 1: scroll_to(m_camera_card); break;                  // Live Ansicht
