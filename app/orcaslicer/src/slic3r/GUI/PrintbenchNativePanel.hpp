@@ -25,6 +25,7 @@ class PrintbenchQuickTile;
 class PrintbenchCameraTile;
 class PrintbenchJobHeader;
 class PrintbenchHeroPanel;
+class PrintbenchHeaderStatus;
 class PrintbenchTopNavItem;
 class PrintbenchNavRow;
 class PrintbenchSidebarDevice;
@@ -75,7 +76,7 @@ private:
     PrintbenchCameraTile* m_camera_timelapse{nullptr};
     PrintbenchCameraTile* m_camera_resolution{nullptr};
     std::array<PrintbenchSpeedPill*, 4> m_speed_buttons{};
-    wxStaticText* m_header_status{nullptr};
+    PrintbenchHeaderStatus* m_header_status{nullptr};
     PrintbenchHeroPanel* m_hero_panel{nullptr};
     PrintbenchJobHeader* m_job_header{nullptr};
     PrintbenchProgressBar* m_progress_gauge{nullptr};

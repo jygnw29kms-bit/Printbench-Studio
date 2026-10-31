@@ -891,6 +891,60 @@ private:
     bool m_hover{false};
 };
 
+class PrintbenchHeaderStatus : public wxPanel
+{
+public:
+    explicit PrintbenchHeaderStatus(wxWindow* parent)
+        : wxPanel(parent, wxID_ANY)
+    {
+        SetBackgroundStyle(wxBG_STYLE_PAINT);
+        SetMinSize(wxSize(FromDIP(132), FromDIP(42)));
+        Bind(wxEVT_PAINT, &PrintbenchHeaderStatus::on_paint, this);
+    }
+
+    void SetSnapshot(bool online, const wxString& wifi)
+    {
+        m_online = online;
+        m_wifi = wifi;
+        Refresh(false);
+    }
+
+private:
+    void on_paint(wxPaintEvent&)
+    {
+        wxAutoBufferedPaintDC dc(this);
+        const wxSize size = GetClientSize();
+        dc.SetBackground(wxBrush(PB_BG));
+        dc.Clear();
+        if (size.x <= 0 || size.y <= 0)
+            return;
+
+        const wxColour state_colour = m_online ? PB_OK : PB_MUTED;
+        dc.SetPen(*wxTRANSPARENT_PEN);
+        dc.SetBrush(wxBrush(state_colour));
+        dc.DrawCircle(FromDIP(8), FromDIP(13), FromDIP(4));
+
+        wxFont title_font = GetFont();
+        title_font.SetPointSize(9);
+        title_font.SetWeight(wxFONTWEIGHT_BOLD);
+        dc.SetFont(title_font);
+        dc.SetTextForeground(m_online ? PB_TEXT : PB_MUTED);
+        dc.DrawText(m_online ? "P2S Online" : "P2S Offline", FromDIP(18), FromDIP(4));
+
+        wxFont meta_font = GetFont();
+        meta_font.SetPointSize(8);
+        dc.SetFont(meta_font);
+        dc.SetTextForeground(PB_MUTED);
+        const wxString meta = m_online
+            ? (m_wifi.empty() ? wxString("LAN • lokal") : wxString("LAN • ") + m_wifi)
+            : wxString("Keine LAN-Verbindung");
+        dc.DrawText(meta, FromDIP(18), FromDIP(22));
+    }
+
+    bool m_online{false};
+    wxString m_wifi;
+};
+
 class PrintbenchTopNavItem : public wxPanel
 {
 public:
@@ -1197,9 +1251,8 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
         header->Add(item, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(4));
     }
     header->AddStretchSpacer();
-    m_header_status = new wxStaticText(this, wxID_ANY, wxString(L"\u25CF  P2S Offline"));
-    style_label(m_header_status, 12, true, PB_MUTED);
-    header->Add(m_header_status, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    m_header_status = new PrintbenchHeaderStatus(this);
+    header->Add(m_header_status, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(10));
     root->Add(header, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(10));
     root->AddSpacer(FromDIP(6));
 
@@ -1550,10 +1603,8 @@ void PrintbenchNativePanel::refresh_from_machine(MachineObject* machine)
 void PrintbenchNativePanel::apply_snapshot(const PrintbenchSnapshot& s)
 {
     observe_history(s);
-    if (m_header_status) {
-        m_header_status->SetLabel(s.online ? wxString(L"\u25CF  P2S Online") : wxString(L"\u25CF  P2S Offline"));
-        m_header_status->SetForegroundColour(s.online ? PB_OK : PB_MUTED);
-    }
+    if (m_header_status)
+        m_header_status->SetSnapshot(s.online, wxString::FromUTF8(s.wifi_signal));
     if (m_hero_panel)
         m_hero_panel->SetSnapshot(s.online, wxString::FromUTF8(s.print_state));
     const bool ready = s.online && (s.print_state == "IDLE" || s.print_state == "FINISH");
