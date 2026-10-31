@@ -22,6 +22,7 @@ class PrintbenchTempChart;
 class PrintbenchProgressBar;
 class PrintbenchAmsSlotCard;
 class PrintbenchQuickTile;
+class PrintbenchHistoryRow;
 
 class PrintbenchNativePanel : public wxScrolledWindow
 {
@@ -86,7 +87,7 @@ private:
     wxStaticText* m_camera{nullptr};
     std::array<wxStaticText*, 6> m_device_status_values{};
     std::array<wxStaticText*, 6> m_printer_status_dots{};
-    std::array<wxStaticText*, 3> m_history_rows{};
+    std::array<PrintbenchHistoryRow*, 3> m_history_rows{};
     std::array<wxPanel*, 13> m_nav_rows{};
     std::array<wxStaticText*, 13> m_nav_labels{};
     wxWindow* m_printer_card{nullptr};

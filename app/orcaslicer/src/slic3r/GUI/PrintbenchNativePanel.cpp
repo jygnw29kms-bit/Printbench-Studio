@@ -213,6 +213,142 @@ private:
     int m_remain{-1};
 };
 
+class PrintbenchHistoryRow : public wxPanel
+{
+public:
+    explicit PrintbenchHistoryRow(wxWindow* parent)
+        : wxPanel(parent, wxID_ANY)
+    {
+        SetBackgroundStyle(wxBG_STYLE_PAINT);
+        SetMinSize(wxSize(FromDIP(260), FromDIP(58)));
+        Bind(wxEVT_PAINT, &PrintbenchHistoryRow::on_paint, this);
+    }
+
+    void clear()
+    {
+        m_visible = false;
+        m_empty = false;
+        Refresh(false);
+    }
+
+    void set_empty_state(const wxString& text)
+    {
+        m_visible = true;
+        m_empty = true;
+        m_name = text;
+        m_finished.clear();
+        m_duration.clear();
+        m_status.clear();
+        Refresh(false);
+    }
+
+    void set_entry(const wxString& name, const wxString& finished, const wxString& duration, const wxString& status)
+    {
+        m_visible = true;
+        m_empty = false;
+        m_name = name;
+        m_finished = finished;
+        m_duration = duration;
+        m_status = status;
+        Refresh(false);
+    }
+
+private:
+    static wxString fit_text(wxDC& dc, wxString text, int max_width)
+    {
+        if (max_width <= 0)
+            return wxEmptyString;
+        if (dc.GetTextExtent(text).x <= max_width)
+            return text;
+        const wxString ellipsis = wxString::FromUTF8("…");
+        while (!text.empty() && dc.GetTextExtent(text + ellipsis).x > max_width)
+            text.RemoveLast();
+        return text + ellipsis;
+    }
+
+    void on_paint(wxPaintEvent&)
+    {
+        wxAutoBufferedPaintDC dc(this);
+        const wxSize size = GetClientSize();
+        dc.SetBackground(wxBrush(PB_CARD));
+        dc.Clear();
+        if (!m_visible || size.x < FromDIP(80) || size.y < FromDIP(30))
+            return;
+
+        dc.SetPen(wxPen(PB_BORDER, 1));
+        dc.SetBrush(wxBrush(wxColour(8, 25, 37)));
+        dc.DrawRoundedRectangle(0, 0, size.x - 1, size.y - 1, FromDIP(6));
+
+        wxFont body_font = GetFont();
+        body_font.SetPointSize(9);
+        wxFont name_font = body_font;
+        name_font.SetPointSize(10);
+        name_font.SetWeight(wxFONTWEIGHT_BOLD);
+
+        if (m_empty) {
+            dc.SetFont(body_font);
+            dc.SetTextForeground(PB_MUTED);
+            dc.DrawText(m_name, FromDIP(12), std::max(FromDIP(8), (size.y - dc.GetTextExtent(m_name).y) / 2));
+            return;
+        }
+
+        const int thumb_x = FromDIP(8);
+        const int thumb_y = FromDIP(7);
+        const int thumb = std::min(FromDIP(44), size.y - FromDIP(14));
+        dc.SetPen(wxPen(wxColour(30, 72, 94), 1));
+        dc.SetBrush(wxBrush(wxColour(6, 33, 50)));
+        dc.DrawRoundedRectangle(thumb_x, thumb_y, thumb, thumb, FromDIP(5));
+        dc.SetPen(wxPen(PB_ACCENT, std::max(1, FromDIP(2))));
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        const int cube = FromDIP(18);
+        const int cx = thumb_x + thumb / 2;
+        const int cy = thumb_y + thumb / 2;
+        dc.DrawRectangle(cx - cube / 2, cy - cube / 2, cube, cube);
+        dc.DrawLine(cx - cube / 2, cy - cube / 2, cx, cy - cube);
+        dc.DrawLine(cx + cube / 2, cy - cube / 2, cx, cy - cube);
+        dc.DrawLine(cx, cy - cube, cx, cy);
+
+        wxString badge = m_status;
+        badge.MakeUpper();
+        if (badge.empty())
+            badge = "STATUS";
+        wxFont badge_font = body_font;
+        badge_font.SetPointSize(8);
+        badge_font.SetWeight(wxFONTWEIGHT_BOLD);
+        dc.SetFont(badge_font);
+        const wxSize badge_ext = dc.GetTextExtent(badge);
+        const int badge_w = badge_ext.x + FromDIP(16);
+        const int badge_h = badge_ext.y + FromDIP(7);
+        const int badge_x = size.x - badge_w - FromDIP(9);
+        const int badge_y = FromDIP(9);
+        const bool finished = m_status.CmpNoCase("Fertig") == 0;
+        const wxColour badge_colour = finished ? wxColour(21, 92, 70) : wxColour(103, 70, 24);
+        dc.SetPen(*wxTRANSPARENT_PEN);
+        dc.SetBrush(wxBrush(badge_colour));
+        dc.DrawRoundedRectangle(badge_x, badge_y, badge_w, badge_h, FromDIP(5));
+        dc.SetTextForeground(finished ? wxColour(117, 239, 191) : wxColour(255, 204, 117));
+        dc.DrawText(badge, badge_x + FromDIP(8), badge_y + FromDIP(3));
+
+        const int text_x = thumb_x + thumb + FromDIP(10);
+        const int text_right = badge_x - FromDIP(8);
+        dc.SetFont(name_font);
+        dc.SetTextForeground(PB_TEXT);
+        dc.DrawText(fit_text(dc, m_name, text_right - text_x), text_x, FromDIP(8));
+
+        dc.SetFont(body_font);
+        dc.SetTextForeground(PB_MUTED);
+        const wxString meta = m_finished + "  •  " + m_duration;
+        dc.DrawText(fit_text(dc, meta, size.x - text_x - FromDIP(12)), text_x, FromDIP(31));
+    }
+
+    bool m_visible{false};
+    bool m_empty{false};
+    wxString m_name;
+    wxString m_finished;
+    wxString m_duration;
+    wxString m_status;
+};
+
 class PrintbenchQuickTile : public wxPanel
 {
 public:
@@ -650,9 +786,12 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     auto* history_card = make_card(this, "LETZTE DRUCKE", body);
     m_history_card = history_card;
     for (size_t i = 0; i < m_history_rows.size(); ++i) {
-        m_history_rows[i] = new wxStaticText(history_card, wxID_ANY, i == 0 ? "Noch keine lokalen Druckabschluesse." : "");
-        style_label(m_history_rows[i], 10, i == 0, i == 0 ? PB_MUTED : PB_TEXT);
-        body->Add(m_history_rows[i], 0, wxEXPAND | wxBOTTOM, FromDIP(5));
+        m_history_rows[i] = new PrintbenchHistoryRow(history_card);
+        if (i == 0)
+            m_history_rows[i]->set_empty_state(wxString::FromUTF8("Noch keine lokalen Druckabschlüsse."));
+        else
+            m_history_rows[i]->clear();
+        body->Add(m_history_rows[i], 0, wxEXPAND | wxBOTTOM, FromDIP(6));
     }
     bottom->Add(history_card, 1, wxEXPAND | wxRIGHT, FromDIP(10));
 
@@ -1083,29 +1222,22 @@ void PrintbenchNativePanel::append_history(const wxString& job_name, const wxStr
 
 void PrintbenchNativePanel::update_history_ui()
 {
-    for (auto* row : m_history_rows) {
-        if (row) {
-            row->SetLabel("");
-            row->SetForegroundColour(PB_TEXT);
-        }
-    }
+    for (auto* row : m_history_rows)
+        if (row) row->clear();
+
     if (m_history.empty()) {
-        if (m_history_rows[0]) {
-            m_history_rows[0]->SetLabel("Noch keine lokalen Druckabschluesse.");
-            m_history_rows[0]->SetForegroundColour(PB_MUTED);
-        }
+        if (m_history_rows[0])
+            m_history_rows[0]->set_empty_state(wxString::FromUTF8("Noch keine lokalen Druckabschlüsse."));
         return;
     }
 
     for (size_t i = 0; i < std::min(m_history_rows.size(), m_history.size()); ++i) {
         const auto& entry = m_history[i];
         const int minutes = entry.observed_seconds / 60;
-        wxString duration = minutes >= 60
+        const wxString duration = minutes >= 60
             ? wxString::Format("%dh %02dm", minutes / 60, minutes % 60)
             : wxString::Format("%dm", minutes);
-        const wxString marker = entry.status == "Fertig" ? wxString(L"\u2713") : wxString(L"\u2022");
-        m_history_rows[i]->SetLabel(wxString::Format("%s  %s   %s   %s", marker, entry.job_name, entry.finished_at, duration));
-        m_history_rows[i]->SetForegroundColour(entry.status == "Fertig" ? PB_OK : PB_TEXT);
+        m_history_rows[i]->set_entry(entry.job_name, entry.finished_at, duration, entry.status);
     }
 }
 
