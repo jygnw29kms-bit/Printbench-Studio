@@ -30,3 +30,9 @@ def test_printbench_update_service_runs_instead_of_orca_update_channel():
 def test_windows_installer_uses_the_same_printbench_icon():
     assert 'assets/branding/PRINTBENCH_AppIcon.ico' in CMAKE
     assert 'resources/images\\\\OrcaSlicer.ico' not in CMAKE
+
+
+def test_printbench_editor_never_dereferences_missing_orca_menubar():
+    assert 'wxGetApp().tabs_as_menu() && m_menubar != nullptr' in MAIN
+    assert 'if (m_menubar != nullptr)\n        MenuFactory::sys_color_changed(m_menubar);' in MAIN
+    assert 'if (m_menubar != nullptr) {\n        if (int id = m_menubar->FindMenu' in MAIN

@@ -2564,7 +2564,8 @@ void MainFrame::on_sys_color_changed()
         tab->sys_color_changed();
     wxGetApp().plate_tab->sys_color_changed();
 
-    MenuFactory::sys_color_changed(m_menubar);
+    if (m_menubar != nullptr)
+        MenuFactory::sys_color_changed(m_menubar);
 
     WebView::RecreateAll();
 
@@ -3560,7 +3561,9 @@ void MainFrame::init_menubar_as_editor()
 #endif
 
 #ifdef _MSW_DARK_MODE
-    if (wxGetApp().tabs_as_menu())
+    // PRINTBENCH uses its own FINAL-MASTER shell on Windows and intentionally
+    // does not create Orca's classic wxMenuBar. Never dereference it there.
+    if (wxGetApp().tabs_as_menu() && m_menubar != nullptr)
         m_menubar->EnableTop(6, false);
 #endif
 
@@ -4287,8 +4290,10 @@ void MainFrame::technology_changed()
 {
     // update menu titles
     PrinterTechnology pt = plater()->printer_technology();
-    if (int id = m_menubar->FindMenu(pt == ptFFF ? _omitL("Material Settings") : _L("Filament Settings")); id != wxNOT_FOUND)
-        m_menubar->SetMenuLabel(id, pt == ptSLA ? _omitL("Material Settings") : _L("Filament Settings"));
+    if (m_menubar != nullptr) {
+        if (int id = m_menubar->FindMenu(pt == ptFFF ? _omitL("Material Settings") : _L("Filament Settings")); id != wxNOT_FOUND)
+            m_menubar->SetMenuLabel(id, pt == ptSLA ? _omitL("Material Settings") : _L("Filament Settings"));
+    }
 }
 
 
