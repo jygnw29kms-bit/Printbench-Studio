@@ -23,6 +23,7 @@ class PrintbenchProgressBar;
 class PrintbenchAmsSlotCard;
 class PrintbenchQuickTile;
 class PrintbenchCameraTile;
+class PrintbenchJobHeader;
 class PrintbenchSpeedPill;
 class PrintbenchHistoryRow;
 
@@ -74,7 +75,7 @@ private:
     wxStaticText* m_ready_banner{nullptr};
     wxStaticText* m_online{nullptr};
     wxStaticText* m_state{nullptr};
-    wxStaticText* m_job_name{nullptr};
+    PrintbenchJobHeader* m_job_header{nullptr};
     PrintbenchProgressBar* m_progress_gauge{nullptr};
     wxStaticText* m_progress{nullptr};
     wxStaticText* m_layers{nullptr};

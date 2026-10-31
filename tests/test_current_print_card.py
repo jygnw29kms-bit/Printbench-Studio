@@ -12,7 +12,8 @@ def test_current_print_card_uses_live_progress_gauge():
 def test_current_print_card_has_master_metric_hierarchy():
     for label in ('FORTSCHRITT', 'SCHICHTEN', 'RESTZEIT'):
         assert label in PANEL
-    assert 'create_scaled_bitmap("menu_obj_cube", print_card, 42)' in PANEL
+    assert 'm_job_header = new PrintbenchJobHeader(print_card);' in PANEL
+    assert 'class PrintbenchJobHeader : public wxPanel' in PANEL
 
 
 def test_remaining_time_formats_hours_when_needed():

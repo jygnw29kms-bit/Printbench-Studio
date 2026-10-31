@@ -246,6 +246,110 @@ private:
     int m_remain{-1};
 };
 
+class PrintbenchJobHeader : public wxPanel
+{
+public:
+    explicit PrintbenchJobHeader(wxWindow* parent)
+        : wxPanel(parent, wxID_ANY)
+    {
+        SetBackgroundStyle(wxBG_STYLE_PAINT);
+        SetMinSize(wxSize(FromDIP(260), FromDIP(62)));
+        Bind(wxEVT_PAINT, &PrintbenchJobHeader::on_paint, this);
+    }
+
+    void SetJob(const wxString& name, const wxString& print_state, bool active)
+    {
+        m_name = active && !name.empty() ? name : "Kein aktiver Druck";
+        m_state = print_state;
+        m_active = active;
+        Refresh(false);
+    }
+
+private:
+    static wxString fit_text(wxDC& dc, wxString text, int max_width)
+    {
+        if (max_width <= 0 || dc.GetTextExtent(text).x <= max_width)
+            return text;
+        const wxString ellipsis = wxString::FromUTF8("…");
+        while (!text.empty() && dc.GetTextExtent(text + ellipsis).x > max_width)
+            text.RemoveLast();
+        return text + ellipsis;
+    }
+
+    void on_paint(wxPaintEvent&)
+    {
+        wxAutoBufferedPaintDC dc(this);
+        const wxSize size = GetClientSize();
+        dc.SetBackground(wxBrush(PB_CARD));
+        dc.Clear();
+        if (size.x < FromDIP(120) || size.y < FromDIP(40))
+            return;
+
+        const int thumb = std::min(FromDIP(48), size.y - FromDIP(10));
+        const int tx = FromDIP(4);
+        const int ty = std::max(0, (size.y - thumb) / 2);
+        dc.SetPen(wxPen(wxColour(30, 80, 106), 1));
+        dc.SetBrush(wxBrush(wxColour(5, 38, 58)));
+        dc.DrawRoundedRectangle(tx, ty, thumb, thumb, FromDIP(6));
+
+        const int cx = tx + thumb / 2;
+        const int cy = ty + thumb / 2 + FromDIP(2);
+        dc.SetPen(wxPen(PB_ACCENT, std::max(1, FromDIP(2))));
+        dc.SetBrush(wxBrush(wxColour(0, 98, 137)));
+        wxPoint model[6]{{cx - FromDIP(11), cy + FromDIP(7)}, {cx - FromDIP(8), cy - FromDIP(7)},
+                         {cx, cy - FromDIP(12)}, {cx + FromDIP(10), cy - FromDIP(5)},
+                         {cx + FromDIP(8), cy + FromDIP(9)}, {cx - FromDIP(4), cy + FromDIP(12)}};
+        dc.DrawPolygon(6, model);
+
+        wxString badge = "BEREIT";
+        wxColour badge_fill(23, 55, 70);
+        wxColour badge_text = PB_MUTED;
+        if (m_active && m_state == "PAUSE") {
+            badge = "PAUSE";
+            badge_fill = wxColour(104, 72, 25);
+            badge_text = wxColour(255, 208, 122);
+        } else if (m_active) {
+            badge = "DRUCKT";
+            badge_fill = wxColour(20, 91, 70);
+            badge_text = wxColour(111, 238, 189);
+        }
+
+        wxFont badge_font = GetFont();
+        badge_font.SetPointSize(8);
+        badge_font.SetWeight(wxFONTWEIGHT_BOLD);
+        dc.SetFont(badge_font);
+        const wxSize badge_ext = dc.GetTextExtent(badge);
+        const int badge_w = badge_ext.x + FromDIP(16);
+        const int badge_h = badge_ext.y + FromDIP(7);
+        const int badge_x = size.x - badge_w - FromDIP(3);
+        const int badge_y = FromDIP(7);
+        dc.SetPen(*wxTRANSPARENT_PEN);
+        dc.SetBrush(wxBrush(badge_fill));
+        dc.DrawRoundedRectangle(badge_x, badge_y, badge_w, badge_h, FromDIP(5));
+        dc.SetTextForeground(badge_text);
+        dc.DrawText(badge, badge_x + FromDIP(8), badge_y + FromDIP(3));
+
+        const int text_x = tx + thumb + FromDIP(10);
+        const int text_right = badge_x - FromDIP(8);
+        wxFont name_font = GetFont();
+        name_font.SetPointSize(14);
+        name_font.SetWeight(wxFONTWEIGHT_BOLD);
+        dc.SetFont(name_font);
+        dc.SetTextForeground(PB_TEXT);
+        dc.DrawText(fit_text(dc, m_name, text_right - text_x), text_x, FromDIP(6));
+
+        wxFont meta_font = GetFont();
+        meta_font.SetPointSize(9);
+        dc.SetFont(meta_font);
+        dc.SetTextForeground(PB_MUTED);
+        dc.DrawText("Bambu Lab P2S  •  lokaler Druckauftrag", text_x, FromDIP(34));
+    }
+
+    wxString m_name{"Kein aktiver Druck"};
+    wxString m_state;
+    bool m_active{false};
+};
+
 class PrintbenchCameraTile : public wxPanel
 {
 public:
@@ -926,19 +1030,8 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     auto* middle = new wxBoxSizer(wxHORIZONTAL);
     auto* print_card = make_card(this, "AKTUELLER DRUCK", body);
     m_print_card = print_card;
-    auto* job_row = new wxBoxSizer(wxHORIZONTAL);
-    auto job_bitmap = create_scaled_bitmap("menu_obj_cube", print_card, 42);
-    auto* job_icon = new wxStaticBitmap(print_card, wxID_ANY, job_bitmap);
-    auto* job_text = new wxBoxSizer(wxVERTICAL);
-    m_job_name = new wxStaticText(print_card, wxID_ANY, "Kein aktiver Druck");
-    style_label(m_job_name, 14, true, PB_TEXT);
-    auto* job_meta = new wxStaticText(print_card, wxID_ANY, "Bambu Lab P2S  •  lokaler Druckauftrag");
-    style_label(job_meta, 10, false, PB_MUTED);
-    job_text->Add(m_job_name, 0, wxBOTTOM, FromDIP(3));
-    job_text->Add(job_meta, 0);
-    job_row->Add(job_icon, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(10));
-    job_row->Add(job_text, 1, wxALIGN_CENTER_VERTICAL);
-    body->Add(job_row, 0, wxEXPAND | wxBOTTOM, FromDIP(10));
+    m_job_header = new PrintbenchJobHeader(print_card);
+    body->Add(m_job_header, 0, wxEXPAND | wxBOTTOM, FromDIP(10));
 
     m_progress_gauge = new PrintbenchProgressBar(print_card);
     body->Add(m_progress_gauge, 0, wxEXPAND | wxBOTTOM, FromDIP(10));
@@ -1235,8 +1328,8 @@ void PrintbenchNativePanel::apply_snapshot(const PrintbenchSnapshot& s)
     }
 
     const bool active_print = s.print_state == "RUNNING" || s.print_state == "PAUSE";
-    if (m_job_name)
-        m_job_name->SetLabel(active_print ? (s.job_name.empty() ? "Aktiver Druck" : wxString::FromUTF8(s.job_name)) : "Kein aktiver Druck");
+    if (m_job_header)
+        m_job_header->SetJob(wxString::FromUTF8(s.job_name), wxString::FromUTF8(s.print_state), active_print);
     const int progress_value = active_print ? std::clamp(s.progress, 0, 100) : 0;
     if (m_progress_gauge)
         m_progress_gauge->SetValue(progress_value);
