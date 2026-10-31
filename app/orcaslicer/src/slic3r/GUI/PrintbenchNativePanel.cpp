@@ -246,6 +246,83 @@ private:
     int m_remain{-1};
 };
 
+class PrintbenchCameraTile : public wxPanel
+{
+public:
+    PrintbenchCameraTile(wxWindow* parent, int id, const wxString& caption)
+        : wxPanel(parent, id), m_caption(caption)
+    {
+        SetBackgroundStyle(wxBG_STYLE_PAINT);
+        SetMinSize(wxSize(FromDIP(92), FromDIP(30)));
+        SetCursor(wxCursor(wxCURSOR_HAND));
+        Bind(wxEVT_PAINT, &PrintbenchCameraTile::on_paint, this);
+        Bind(wxEVT_ENTER_WINDOW, [this](wxMouseEvent& e) { m_hover = true; Refresh(false); e.Skip(); });
+        Bind(wxEVT_LEAVE_WINDOW, [this](wxMouseEvent& e) { m_hover = false; Refresh(false); e.Skip(); });
+        Bind(wxEVT_LEFT_UP, [this](wxMouseEvent&) {
+            if (!IsEnabled()) return;
+            wxCommandEvent event(wxEVT_BUTTON, GetId());
+            event.SetEventObject(this);
+            ProcessWindowEvent(event);
+        });
+    }
+
+    bool Enable(bool enable = true)
+    {
+        const bool changed = wxPanel::Enable(enable);
+        SetCursor(wxCursor(enable ? wxCURSOR_HAND : wxCURSOR_ARROW));
+        Refresh(false);
+        return changed;
+    }
+
+    void SetCaption(const wxString& caption)
+    {
+        if (m_caption == caption) return;
+        m_caption = caption;
+        Refresh(false);
+    }
+
+    void SetAlert(bool alert)
+    {
+        if (m_alert == alert) return;
+        m_alert = alert;
+        Refresh(false);
+    }
+
+private:
+    void on_paint(wxPaintEvent&)
+    {
+        wxAutoBufferedPaintDC dc(this);
+        const wxSize size = GetClientSize();
+        dc.SetBackground(wxBrush(PB_CARD));
+        dc.Clear();
+        if (size.x <= 0 || size.y <= 0)
+            return;
+
+        wxColour fill = m_alert ? wxColour(92, 27, 42) : wxColour(8, 37, 55);
+        if (!IsEnabled())
+            fill = wxColour(18, 31, 40);
+        else if (m_hover)
+            fill = fill.ChangeLightness(115);
+        const wxColour border = m_alert && IsEnabled() ? wxColour(180, 58, 78)
+                                                       : (IsEnabled() ? wxColour(22, 91, 119) : PB_BORDER);
+        dc.SetPen(wxPen(border, 1));
+        dc.SetBrush(wxBrush(fill));
+        dc.DrawRoundedRectangle(0, 0, size.x - 1, size.y - 1, FromDIP(5));
+
+        wxFont font = GetFont();
+        font.SetPointSize(8);
+        font.SetWeight(wxFONTWEIGHT_BOLD);
+        dc.SetFont(font);
+        dc.SetTextForeground(IsEnabled() ? PB_TEXT : PB_MUTED);
+        const wxSize ext = dc.GetTextExtent(m_caption);
+        dc.DrawText(m_caption, std::max(FromDIP(4), (size.x - ext.x) / 2), std::max(FromDIP(3), (size.y - ext.y) / 2));
+    }
+
+    wxString m_caption;
+    bool m_alert{false};
+    bool m_hover{false};
+};
+
 class PrintbenchSpeedPill : public wxPanel
 {
 public:
@@ -799,17 +876,10 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     body->Add(m_media_play_ctrl, 0, wxEXPAND | wxTOP, FromDIP(4));
 
     auto* camera_actions = new wxBoxSizer(wxHORIZONTAL);
-    m_camera_record = new wxButton(camera_card, ID_PB_CAMERA_RECORD, "AUFNAHME");
-    m_camera_timelapse = new wxButton(camera_card, ID_PB_CAMERA_TIMELAPSE, "TIMELAPSE");
-    m_camera_resolution = new wxButton(camera_card, ID_PB_CAMERA_RESOLUTION, "AUFLOESUNG");
+    m_camera_record = new PrintbenchCameraTile(camera_card, ID_PB_CAMERA_RECORD, "AUFNAHME");
+    m_camera_timelapse = new PrintbenchCameraTile(camera_card, ID_PB_CAMERA_TIMELAPSE, "TIMELAPSE");
+    m_camera_resolution = new PrintbenchCameraTile(camera_card, ID_PB_CAMERA_RESOLUTION, "AUFLOESUNG");
     for (auto* button : {m_camera_record, m_camera_timelapse, m_camera_resolution}) {
-        button->SetMinSize(wxSize(FromDIP(92), FromDIP(30)));
-        button->SetBackgroundColour(wxColour(8, 37, 55));
-        button->SetForegroundColour(PB_TEXT);
-        wxFont font = button->GetFont();
-        font.SetPointSize(8);
-        font.SetWeight(wxFONTWEIGHT_BOLD);
-        button->SetFont(font);
         button->Enable(false);
         camera_actions->Add(button, 1, button == m_camera_resolution ? 0 : wxRIGHT, FromDIP(5));
     }
@@ -1225,13 +1295,15 @@ void PrintbenchNativePanel::apply_snapshot(const PrintbenchSnapshot& s)
     const bool camera_connected = m_machine != nullptr && m_machine->is_connected() && s.has_camera;
     if (m_camera_record) {
         m_camera_record->Enable(camera_connected);
-        m_camera_record->SetLabel(s.camera_recording ? "STOP AUFNAHME" : "AUFNAHME");
+        m_camera_record->SetCaption(s.camera_recording ? "STOP AUFNAHME" : "AUFNAHME");
+        m_camera_record->SetAlert(s.camera_recording);
         m_camera_record->SetBackgroundColour(s.camera_recording ? wxColour("#651B2A") : wxColour(8, 37, 55));
     }
     if (m_camera_timelapse) {
         const bool timelapse_control = camera_connected && s.camera_timelapse_control_supported;
         m_camera_timelapse->Enable(timelapse_control);
-        m_camera_timelapse->SetLabel(s.camera_timelapse ? "TIMELAPSE AUS" : "TIMELAPSE");
+        m_camera_timelapse->SetCaption(s.camera_timelapse ? "TIMELAPSE AUS" : "TIMELAPSE");
+        m_camera_timelapse->SetAlert(s.camera_timelapse);
         m_camera_timelapse->SetBackgroundColour(s.camera_timelapse ? wxColour("#0A63D8") : wxColour(8, 37, 55));
         m_camera_timelapse->SetToolTip(timelapse_control
             ? "Timelapse am Drucker umschalten"
@@ -1242,7 +1314,7 @@ void PrintbenchNativePanel::apply_snapshot(const PrintbenchSnapshot& s)
         const bool has_modes = camera_connected && m_machine && m_machine->camera_resolution_supported.size() > 1;
         m_camera_resolution->Enable(has_modes);
         const wxString resolution = s.camera_resolution.empty() ? "AUFLOESUNG" : wxString::FromUTF8(s.camera_resolution);
-        m_camera_resolution->SetLabel(resolution);
+        m_camera_resolution->SetCaption(resolution);
     }
 
     if (s.has_ams)

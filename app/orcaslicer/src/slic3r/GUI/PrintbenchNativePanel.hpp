@@ -22,6 +22,7 @@ class PrintbenchTempChart;
 class PrintbenchProgressBar;
 class PrintbenchAmsSlotCard;
 class PrintbenchQuickTile;
+class PrintbenchCameraTile;
 class PrintbenchSpeedPill;
 class PrintbenchHistoryRow;
 
@@ -64,9 +65,9 @@ private:
     PrintbenchQuickTile* m_pause_resume{nullptr};
     PrintbenchQuickTile* m_stop{nullptr};
     PrintbenchQuickTile* m_light{nullptr};
-    wxButton* m_camera_record{nullptr};
-    wxButton* m_camera_timelapse{nullptr};
-    wxButton* m_camera_resolution{nullptr};
+    PrintbenchCameraTile* m_camera_record{nullptr};
+    PrintbenchCameraTile* m_camera_timelapse{nullptr};
+    PrintbenchCameraTile* m_camera_resolution{nullptr};
     std::array<PrintbenchSpeedPill*, 4> m_speed_buttons{};
     wxStaticText* m_printer_name{nullptr};
     wxStaticText* m_header_status{nullptr};

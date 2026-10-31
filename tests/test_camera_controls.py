@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 PANEL=(ROOT/"app/orcaslicer/src/slic3r/GUI/PrintbenchNativePanel.cpp").read_text(encoding="utf-8")
@@ -39,3 +39,10 @@ def test_p2s_n7_does_not_expose_dead_direct_timelapse_switch():
     assert 'machine->is_support_timelapse && machine->printer_type != "N7"' in collector
     assert 's.camera_timelapse_control_supported' in PANEL
     assert 'P2S-Firmware meldet Timelapse, lehnt direkte LAN-Steuerung jedoch ab' in PANEL
+
+def test_camera_controls_use_final_master_native_tiles_not_windows_buttons():
+    assert 'class PrintbenchCameraTile : public wxPanel' in PANEL
+    assert 'PrintbenchCameraTile* m_camera_record' in HEADER
+    assert 'new PrintbenchCameraTile(camera_card, ID_PB_CAMERA_RECORD' in PANEL
+    assert 'new wxButton(camera_card, ID_PB_CAMERA_RECORD' not in PANEL
+    assert 'm_camera_record->SetAlert(s.camera_recording);' in PANEL
