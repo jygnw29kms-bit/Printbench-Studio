@@ -213,6 +213,100 @@ private:
     int m_remain{-1};
 };
 
+class PrintbenchQuickTile : public wxPanel
+{
+public:
+    enum class Kind { Print, Pause, Stop, Light };
+
+    PrintbenchQuickTile(wxWindow* parent, Kind kind, const wxString& caption, const wxColour& colour)
+        : wxPanel(parent, wxID_ANY), m_kind(kind), m_caption(caption), m_colour(colour)
+    {
+        SetBackgroundStyle(wxBG_STYLE_PAINT);
+        SetMinSize(wxSize(FromDIP(76), FromDIP(68)));
+        SetCursor(wxCursor(wxCURSOR_HAND));
+        Bind(wxEVT_PAINT, &PrintbenchQuickTile::on_paint, this);
+        Bind(wxEVT_ENTER_WINDOW, [this](wxMouseEvent& e) { m_hover = true; Refresh(false); e.Skip(); });
+        Bind(wxEVT_LEAVE_WINDOW, [this](wxMouseEvent& e) { m_hover = false; Refresh(false); e.Skip(); });
+        Bind(wxEVT_LEFT_UP, [this](wxMouseEvent&) {
+            if (!IsEnabled()) return;
+            wxCommandEvent event(wxEVT_BUTTON, GetId());
+            event.SetEventObject(this);
+            ProcessWindowEvent(event);
+        });
+    }
+
+    bool Enable(bool enable = true)
+    {
+        const bool changed = wxPanel::Enable(enable);
+        Refresh(false);
+        return changed;
+    }
+
+    void SetCaption(const wxString& caption)
+    {
+        if (m_caption == caption) return;
+        m_caption = caption;
+        Refresh(false);
+    }
+
+private:
+    void on_paint(wxPaintEvent&)
+    {
+        wxAutoBufferedPaintDC dc(this);
+        const wxSize size = GetClientSize();
+        dc.SetBackground(wxBrush(PB_CARD));
+        dc.Clear();
+
+        wxColour fill = IsEnabled() ? m_colour : wxColour(25, 43, 55);
+        if (IsEnabled() && m_hover)
+            fill = fill.ChangeLightness(116);
+        dc.SetPen(wxPen(IsEnabled() ? fill.ChangeLightness(132) : PB_BORDER, 1));
+        dc.SetBrush(wxBrush(fill));
+        dc.DrawRoundedRectangle(0, 0, size.x - 1, size.y - 1, FromDIP(7));
+
+        const int cx = size.x / 2;
+        const int cy = FromDIP(24);
+        const wxColour icon = IsEnabled() ? *wxWHITE : PB_MUTED;
+        dc.SetPen(wxPen(icon, std::max(1, FromDIP(2))));
+        dc.SetBrush(wxBrush(icon));
+        switch (m_kind) {
+        case Kind::Print: {
+            wxPoint pts[3]{{cx - FromDIP(6), cy - FromDIP(8)}, {cx - FromDIP(6), cy + FromDIP(8)}, {cx + FromDIP(8), cy}};
+            dc.DrawPolygon(3, pts);
+            break;
+        }
+        case Kind::Pause:
+            dc.DrawRoundedRectangle(cx - FromDIP(8), cy - FromDIP(8), FromDIP(5), FromDIP(16), FromDIP(1));
+            dc.DrawRoundedRectangle(cx + FromDIP(3), cy - FromDIP(8), FromDIP(5), FromDIP(16), FromDIP(1));
+            break;
+        case Kind::Stop:
+            dc.DrawRoundedRectangle(cx - FromDIP(7), cy - FromDIP(7), FromDIP(14), FromDIP(14), FromDIP(2));
+            break;
+        case Kind::Light:
+            dc.SetBrush(*wxTRANSPARENT_BRUSH);
+            dc.DrawCircle(cx, cy - FromDIP(2), FromDIP(7));
+            dc.DrawLine(cx - FromDIP(4), cy + FromDIP(6), cx + FromDIP(4), cy + FromDIP(6));
+            dc.DrawLine(cx - FromDIP(3), cy + FromDIP(9), cx + FromDIP(3), cy + FromDIP(9));
+            for (int dx : {-12, 0, 12})
+                dc.DrawLine(cx + FromDIP(dx), cy - FromDIP(14), cx + FromDIP(dx == 0 ? 0 : (dx < 0 ? -9 : 9)), cy - FromDIP(11));
+            break;
+        }
+
+        wxFont font = GetFont();
+        font.SetPointSize(9);
+        font.SetWeight(wxFONTWEIGHT_BOLD);
+        dc.SetFont(font);
+        dc.SetTextForeground(IsEnabled() ? *wxWHITE : PB_MUTED);
+        const wxSize ext = dc.GetTextExtent(m_caption);
+        dc.DrawText(m_caption, std::max(FromDIP(4), (size.x - ext.x) / 2), size.y - ext.y - FromDIP(8));
+    }
+
+    Kind m_kind;
+    wxString m_caption;
+    wxColour m_colour;
+    bool m_hover{false};
+};
+
 class PrintbenchProgressBar : public wxPanel
 {
 public:
@@ -422,22 +516,10 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     auto* quick_card = make_card(this, "SCHNELLSTEUERUNG", body);
     m_quick_card = quick_card;
     auto* controls = new wxBoxSizer(wxHORIZONTAL);
-    m_print = new wxButton(quick_card, wxID_ANY, wxString(L"\u25B6\nDRUCKEN"));
-    m_pause_resume = new wxButton(quick_card, wxID_ANY, wxString(L"\u2161\nPAUSE"));
-    m_stop = new wxButton(quick_card, wxID_ANY, wxString(L"\u25A0\nSTOP"));
-    m_light = new wxButton(quick_card, wxID_ANY, wxString(L"\u25CF\nLICHT"));
-    for (auto* button : {m_print, m_pause_resume, m_stop, m_light}) {
-        button->SetMinSize(wxSize(FromDIP(72), FromDIP(54)));
-        wxFont button_font = button->GetFont();
-        button_font.SetPointSize(9);
-        button_font.SetWeight(wxFONTWEIGHT_BOLD);
-        button->SetFont(button_font);
-        button->SetForegroundColour(*wxWHITE);
-    }
-    m_print->SetBackgroundColour(wxColour("#075C46"));
-    m_pause_resume->SetBackgroundColour(wxColour("#6A4512"));
-    m_stop->SetBackgroundColour(wxColour("#651B2A"));
-    m_light->SetBackgroundColour(wxColour("#0A4C92"));
+    m_print = new PrintbenchQuickTile(quick_card, PrintbenchQuickTile::Kind::Print, "DRUCKEN", wxColour("#075C46"));
+    m_pause_resume = new PrintbenchQuickTile(quick_card, PrintbenchQuickTile::Kind::Pause, "PAUSE", wxColour("#6A4512"));
+    m_stop = new PrintbenchQuickTile(quick_card, PrintbenchQuickTile::Kind::Stop, "STOP", wxColour("#651B2A"));
+    m_light = new PrintbenchQuickTile(quick_card, PrintbenchQuickTile::Kind::Light, "LICHT", wxColour("#0A4C92"));
     m_pause_resume->Enable(false);
     m_stop->Enable(false);
     m_light->Enable(false);
@@ -844,7 +926,7 @@ void PrintbenchNativePanel::apply_snapshot(const PrintbenchSnapshot& s)
     const bool pausable = connected && (s.print_state == "RUNNING" || s.print_state == "PAUSE");
     if (m_pause_resume) {
         m_pause_resume->Enable(pausable);
-        m_pause_resume->SetLabel(s.print_state == "PAUSE" ? "FORTSETZEN" : "PAUSE");
+        m_pause_resume->SetCaption(s.print_state == "PAUSE" ? "FORTSETZEN" : "PAUSE");
     }
     if (m_stop)
         m_stop->Enable(connected && (s.print_state == "RUNNING" || s.print_state == "PAUSE"));
@@ -858,7 +940,7 @@ void PrintbenchNativePanel::apply_snapshot(const PrintbenchSnapshot& s)
     if (m_light) {
         auto* lamp = connected && m_machine != nullptr ? m_machine->GetLamp() : nullptr;
         m_light->Enable(lamp != nullptr);
-        m_light->SetLabel(lamp != nullptr && lamp->IsChamberLightOn() ? "LICHT AUS" : "LICHT AN");
+        m_light->SetCaption(lamp != nullptr && lamp->IsChamberLightOn() ? "LICHT AUS" : "LICHT AN");
     }
 
     for (size_t i = 0; i < m_ams_slots.size(); ++i) {

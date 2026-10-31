@@ -21,6 +21,7 @@ class MediaPlayCtrl;
 class PrintbenchTempChart;
 class PrintbenchProgressBar;
 class PrintbenchAmsSlotCard;
+class PrintbenchQuickTile;
 
 class PrintbenchNativePanel : public wxScrolledWindow
 {
@@ -56,10 +57,10 @@ private:
     wxMediaCtrl2* m_media_ctrl{nullptr};
     MediaPlayCtrl* m_media_play_ctrl{nullptr};
     PrintbenchTempChart* m_temp_chart{nullptr};
-    wxButton* m_print{nullptr};
-    wxButton* m_pause_resume{nullptr};
-    wxButton* m_stop{nullptr};
-    wxButton* m_light{nullptr};
+    PrintbenchQuickTile* m_print{nullptr};
+    PrintbenchQuickTile* m_pause_resume{nullptr};
+    PrintbenchQuickTile* m_stop{nullptr};
+    PrintbenchQuickTile* m_light{nullptr};
     wxButton* m_camera_record{nullptr};
     wxButton* m_camera_timelapse{nullptr};
     wxButton* m_camera_resolution{nullptr};
