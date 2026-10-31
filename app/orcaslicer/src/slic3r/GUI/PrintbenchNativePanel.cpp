@@ -88,35 +88,68 @@ private:
         if (size.x < 20 || size.y < 20)
             return;
 
+        const int left = FromDIP(28);
+        const int right = FromDIP(8);
+        const int top = FromDIP(8);
+        const int bottom = FromDIP(18);
+        const int graph_w = std::max(1, size.x - left - right);
+        const int graph_h = std::max(1, size.y - top - bottom);
+
         dc.SetPen(wxPen(wxColour(24, 51, 67), 1));
-        for (int i = 1; i < 4; ++i) {
-            const int y = (size.y * i) / 4;
-            dc.DrawLine(0, y, size.x, y);
+        for (int i = 0; i <= 4; ++i) {
+            const int y = top + (graph_h * i) / 4;
+            dc.DrawLine(left, y, left + graph_w, y);
         }
-        if (m_samples.size() < 2)
-            return;
+        for (int i = 0; i <= 6; ++i) {
+            const int x = left + (graph_w * i) / 6;
+            dc.DrawLine(x, top, x, top + graph_h);
+        }
 
         double max_value = 40.0;
         for (const auto& sample : m_samples)
             max_value = std::max({max_value, sample[0], sample[1], sample[2]});
-        max_value = std::min(320.0, max_value + 10.0);
+        max_value = std::min(320.0, std::ceil((max_value + 10.0) / 10.0) * 10.0);
+
+        wxFont axis_font = GetFont();
+        axis_font.SetPointSize(7);
+        dc.SetFont(axis_font);
+        dc.SetTextForeground(wxColour(85, 115, 132));
+        for (int i = 0; i <= 4; ++i) {
+            const int value = static_cast<int>(std::lround(max_value * (4 - i) / 4.0));
+            const wxString label = wxString::Format("%d°", value);
+            const wxSize ext = dc.GetTextExtent(label);
+            dc.DrawText(label, std::max(0, left - ext.x - FromDIP(5)), top + (graph_h * i) / 4 - ext.y / 2);
+        }
+        const wxString older = "ALT";
+        const wxString live = "LIVE";
+        dc.DrawText(older, left, top + graph_h + FromDIP(3));
+        const wxSize live_ext = dc.GetTextExtent(live);
+        dc.DrawText(live, left + graph_w - live_ext.x, top + graph_h + FromDIP(3));
+
+        if (m_samples.size() < 2)
+            return;
 
         const std::array<wxColour, 3> colours{
             wxColour(0, 188, 230), wxColour(210, 222, 231), wxColour(90, 145, 165)};
         for (size_t series = 0; series < 3; ++series) {
-            dc.SetPen(wxPen(colours[series], series == 0 ? 2 : 1));
+            dc.SetPen(wxPen(colours[series], series == 0 ? std::max(2, FromDIP(2)) : 1));
             wxPoint previous;
             bool have_previous = false;
+            wxPoint last;
             for (size_t i = 0; i < m_samples.size(); ++i) {
-                const int x = static_cast<int>((static_cast<double>(i) / (m_samples.size() - 1)) * (size.x - 1));
+                const int x = left + static_cast<int>((static_cast<double>(i) / (m_samples.size() - 1)) * graph_w);
                 const double normalized = std::clamp(m_samples[i][series] / max_value, 0.0, 1.0);
-                const int y = size.y - 1 - static_cast<int>(normalized * (size.y - 8));
+                const int y = top + graph_h - static_cast<int>(normalized * graph_h);
                 const wxPoint point(x, y);
                 if (have_previous)
                     dc.DrawLine(previous, point);
                 previous = point;
+                last = point;
                 have_previous = true;
             }
+            dc.SetPen(wxPen(colours[series], 1));
+            dc.SetBrush(wxBrush(colours[series]));
+            dc.DrawCircle(last, series == 0 ? FromDIP(3) : FromDIP(2));
         }
     }
 
