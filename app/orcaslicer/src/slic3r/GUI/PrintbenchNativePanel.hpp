@@ -22,6 +22,7 @@ class PrintbenchTempChart;
 class PrintbenchProgressBar;
 class PrintbenchAmsSlotCard;
 class PrintbenchQuickTile;
+class PrintbenchSpeedPill;
 class PrintbenchHistoryRow;
 
 class PrintbenchNativePanel : public wxScrolledWindow
@@ -66,7 +67,7 @@ private:
     wxButton* m_camera_record{nullptr};
     wxButton* m_camera_timelapse{nullptr};
     wxButton* m_camera_resolution{nullptr};
-    std::array<wxButton*, 4> m_speed_buttons{};
+    std::array<PrintbenchSpeedPill*, 4> m_speed_buttons{};
     wxStaticText* m_printer_name{nullptr};
     wxStaticText* m_header_status{nullptr};
     wxStaticText* m_ready_banner{nullptr};

@@ -213,6 +213,75 @@ private:
     int m_remain{-1};
 };
 
+class PrintbenchSpeedPill : public wxPanel
+{
+public:
+    PrintbenchSpeedPill(wxWindow* parent, const wxString& caption)
+        : wxPanel(parent, wxID_ANY), m_caption(caption)
+    {
+        SetBackgroundStyle(wxBG_STYLE_PAINT);
+        SetMinSize(wxSize(FromDIP(76), FromDIP(32)));
+        SetCursor(wxCursor(wxCURSOR_HAND));
+        Bind(wxEVT_PAINT, &PrintbenchSpeedPill::on_paint, this);
+        Bind(wxEVT_ENTER_WINDOW, [this](wxMouseEvent& e) { m_hover = true; Refresh(false); e.Skip(); });
+        Bind(wxEVT_LEAVE_WINDOW, [this](wxMouseEvent& e) { m_hover = false; Refresh(false); e.Skip(); });
+        Bind(wxEVT_LEFT_UP, [this](wxMouseEvent&) {
+            if (!IsEnabled()) return;
+            wxCommandEvent event(wxEVT_BUTTON, GetId());
+            event.SetEventObject(this);
+            ProcessWindowEvent(event);
+        });
+    }
+
+    bool Enable(bool enable = true)
+    {
+        const bool changed = wxPanel::Enable(enable);
+        SetCursor(wxCursor(enable ? wxCURSOR_HAND : wxCURSOR_ARROW));
+        Refresh(false);
+        return changed;
+    }
+
+    void SetActive(bool active)
+    {
+        if (m_active == active) return;
+        m_active = active;
+        Refresh(false);
+    }
+
+private:
+    void on_paint(wxPaintEvent&)
+    {
+        wxAutoBufferedPaintDC dc(this);
+        const wxSize size = GetClientSize();
+        dc.SetBackground(wxBrush(PB_CARD));
+        dc.Clear();
+        if (size.x <= 0 || size.y <= 0)
+            return;
+
+        wxColour fill = m_active ? wxColour(10, 99, 216) : wxColour(8, 37, 55);
+        if (!IsEnabled())
+            fill = wxColour(18, 31, 40);
+        else if (m_hover)
+            fill = fill.ChangeLightness(115);
+        const wxColour border = m_active && IsEnabled() ? wxColour(38, 142, 255) : PB_BORDER;
+        dc.SetPen(wxPen(border, 1));
+        dc.SetBrush(wxBrush(fill));
+        dc.DrawRoundedRectangle(0, 0, size.x - 1, size.y - 1, FromDIP(6));
+
+        wxFont font = GetFont();
+        font.SetPointSize(8);
+        font.SetWeight(m_active ? wxFONTWEIGHT_BOLD : wxFONTWEIGHT_NORMAL);
+        dc.SetFont(font);
+        dc.SetTextForeground(IsEnabled() ? *wxWHITE : PB_MUTED);
+        const wxSize ext = dc.GetTextExtent(m_caption);
+        dc.DrawText(m_caption, std::max(FromDIP(4), (size.x - ext.x) / 2), std::max(FromDIP(3), (size.y - ext.y) / 2));
+    }
+
+    wxString m_caption;
+    bool m_active{false};
+    bool m_hover{false};
+};
+
 class PrintbenchActionTile : public wxPanel
 {
 public:
@@ -735,8 +804,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     auto* speed_modes = new wxBoxSizer(wxHORIZONTAL);
     const std::array<wxString, 4> speed_names{L"Leise", L"Standard", L"Sport", L"Ludicrous"};
     for (size_t i = 0; i < m_speed_buttons.size(); ++i) {
-        m_speed_buttons[i] = new wxButton(quick_card, wxID_ANY, speed_names[i]);
-        m_speed_buttons[i]->SetMinSize(wxSize(FromDIP(76), FromDIP(34)));
+        m_speed_buttons[i] = new PrintbenchSpeedPill(quick_card, speed_names[i]);
         m_speed_buttons[i]->Enable(false);
         const auto level = static_cast<DevPrintingSpeedLevel>(static_cast<int>(i) + 1);
         m_speed_buttons[i]->Bind(wxEVT_BUTTON, [this, level](wxCommandEvent&) {
@@ -1161,8 +1229,7 @@ void PrintbenchNativePanel::apply_snapshot(const PrintbenchSnapshot& s)
         if (!m_speed_buttons[i]) continue;
         const bool active = static_cast<int>(i) + 1 == s.speed_level;
         m_speed_buttons[i]->Enable(connected && (s.print_state == "RUNNING" || s.print_state == "PAUSE"));
-        m_speed_buttons[i]->SetBackgroundColour(active ? wxColour("#0A63D8") : wxColour("#0B2639"));
-        m_speed_buttons[i]->SetForegroundColour(*wxWHITE);
+        m_speed_buttons[i]->SetActive(active);
     }
     if (m_light) {
         auto* lamp = connected && m_machine != nullptr ? m_machine->GetLamp() : nullptr;
