@@ -470,12 +470,12 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     hero->Add(printer_card, 42, wxEXPAND | wxRIGHT, FromDIP(8));
 
     auto* status_card = make_card(this, "DRUCKERSTATUS", body);
-    m_status_ready = add_value(status_card, body, "Status");
-    m_nozzle = add_value(status_card, body, wxString(L"D\u00FCse"));
-    m_bed = add_value(status_card, body, "Druckbett");
-    m_chamber = add_value(status_card, body, "Kammer");
-    m_speed = add_value(status_card, body, "Geschwindigkeit");
-    m_ams_summary = add_value(status_card, body, "AMS 2 Pro");
+    m_status_ready = add_status_value(status_card, body, "Status", m_printer_status_dots[0]);
+    m_nozzle = add_status_value(status_card, body, wxString(L"D\u00FCse"), m_printer_status_dots[1]);
+    m_bed = add_status_value(status_card, body, "Druckbett", m_printer_status_dots[2]);
+    m_chamber = add_status_value(status_card, body, "Kammer", m_printer_status_dots[3]);
+    m_speed = add_status_value(status_card, body, "Geschwindigkeit", m_printer_status_dots[4]);
+    m_ams_summary = add_status_value(status_card, body, "AMS 2 Pro", m_printer_status_dots[5]);
     status_card->SetMinSize(wxSize(FromDIP(230), FromDIP(330)));
     hero->Add(status_card, 24, wxEXPAND | wxRIGHT, FromDIP(8));
 
@@ -766,6 +766,26 @@ wxStaticText* PrintbenchNativePanel::add_value(wxWindow* parent, wxSizer* sizer,
     return value;
 }
 
+wxStaticText* PrintbenchNativePanel::add_status_value(wxWindow* parent, wxSizer* sizer, const wxString& caption, wxStaticText*& dot)
+{
+    auto* row_panel = new wxPanel(parent, wxID_ANY);
+    row_panel->SetBackgroundColour(wxColour(8, 25, 37));
+    auto* row = new wxBoxSizer(wxHORIZONTAL);
+    dot = new wxStaticText(row_panel, wxID_ANY, wxString(L"\u25CF"));
+    style_label(dot, 9, true, PB_MUTED);
+    auto* name = new wxStaticText(row_panel, wxID_ANY, caption);
+    style_label(name, 10, false, PB_MUTED);
+    auto* value = new wxStaticText(row_panel, wxID_ANY, "--");
+    style_label(value, 11, true, PB_TEXT);
+    row->Add(dot, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(7));
+    row->Add(name, 1, wxALIGN_CENTER_VERTICAL);
+    row->Add(value, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(7));
+    row_panel->SetSizer(row);
+    row_panel->SetMinSize(wxSize(-1, FromDIP(34)));
+    sizer->Add(row_panel, 0, wxEXPAND | wxBOTTOM, FromDIP(5));
+    return value;
+}
+
 void PrintbenchNativePanel::on_camera_action(wxCommandEvent& event)
 {
     if (!m_machine || !m_machine->is_connected() || !m_machine->has_ipcam)
@@ -879,6 +899,17 @@ void PrintbenchNativePanel::apply_snapshot(const PrintbenchSnapshot& s)
         int loaded = 0;
         for (const auto& slot : s.ams_slots) loaded += slot.present ? 1 : 0;
         m_ams_summary->SetLabel(s.has_ams ? wxString::Format("%d/4 Slots geladen", loaded) : "Nicht verbunden");
+    }
+    const std::array<wxColour, 6> printer_status_colours{
+        ready ? PB_OK : (s.online ? PB_ACCENT : PB_MUTED),
+        s.online ? PB_ACCENT : PB_MUTED,
+        s.online ? PB_ACCENT : PB_MUTED,
+        s.online ? PB_ACCENT : PB_MUTED,
+        active_print ? PB_OK : (s.online ? PB_ACCENT : PB_MUTED),
+        s.has_ams ? PB_OK : PB_MUTED};
+    for (size_t i = 0; i < m_printer_status_dots.size(); ++i) {
+        if (m_printer_status_dots[i])
+            m_printer_status_dots[i]->SetForegroundColour(printer_status_colours[i]);
     }
     if (m_temp_values[0]) m_temp_values[0]->SetLabel(wxString::Format("%d C", s.nozzle_c));
     if (m_temp_values[1]) m_temp_values[1]->SetLabel(wxString::Format("%d C", s.bed_c));

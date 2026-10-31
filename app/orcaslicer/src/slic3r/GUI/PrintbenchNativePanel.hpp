@@ -32,6 +32,7 @@ public:
 private:
     wxPanel* make_card(wxWindow* parent, const wxString& title, wxBoxSizer*& body);
     wxStaticText* add_value(wxWindow* parent, wxSizer* sizer, const wxString& caption);
+    wxStaticText* add_status_value(wxWindow* parent, wxSizer* sizer, const wxString& caption, wxStaticText*& dot);
     void apply_snapshot(const PrintbenchSnapshot& snapshot);
 
     struct HistoryEntry
@@ -84,6 +85,7 @@ private:
     wxStaticText* m_wifi{nullptr};
     wxStaticText* m_camera{nullptr};
     std::array<wxStaticText*, 6> m_device_status_values{};
+    std::array<wxStaticText*, 6> m_printer_status_dots{};
     std::array<wxStaticText*, 3> m_history_rows{};
     std::array<wxPanel*, 13> m_nav_rows{};
     std::array<wxStaticText*, 13> m_nav_labels{};
