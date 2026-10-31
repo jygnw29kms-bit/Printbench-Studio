@@ -213,6 +213,74 @@ private:
     int m_remain{-1};
 };
 
+class PrintbenchActionTile : public wxPanel
+{
+public:
+    PrintbenchActionTile(wxWindow* parent, const wxString& caption, const wxBitmap& bitmap)
+        : wxPanel(parent, wxID_ANY), m_caption(caption), m_bitmap(bitmap)
+    {
+        SetBackgroundStyle(wxBG_STYLE_PAINT);
+        SetMinSize(wxSize(FromDIP(118), FromDIP(46)));
+        SetCursor(wxCursor(wxCURSOR_HAND));
+        Bind(wxEVT_PAINT, &PrintbenchActionTile::on_paint, this);
+        Bind(wxEVT_ENTER_WINDOW, [this](wxMouseEvent& e) { m_hover = true; Refresh(false); e.Skip(); });
+        Bind(wxEVT_LEAVE_WINDOW, [this](wxMouseEvent& e) { m_hover = false; Refresh(false); e.Skip(); });
+        Bind(wxEVT_LEFT_UP, [this](wxMouseEvent&) {
+            if (!IsEnabled()) return;
+            wxCommandEvent event(wxEVT_BUTTON, GetId());
+            event.SetEventObject(this);
+            ProcessWindowEvent(event);
+        });
+    }
+
+    bool Enable(bool enable = true)
+    {
+        const bool changed = wxPanel::Enable(enable);
+        SetCursor(wxCursor(enable ? wxCURSOR_HAND : wxCURSOR_ARROW));
+        Refresh(false);
+        return changed;
+    }
+
+private:
+    void on_paint(wxPaintEvent&)
+    {
+        wxAutoBufferedPaintDC dc(this);
+        const wxSize size = GetClientSize();
+        dc.SetBackground(wxBrush(PB_CARD));
+        dc.Clear();
+        if (size.x <= 0 || size.y <= 0)
+            return;
+
+        wxColour fill = IsEnabled() ? wxColour(8, 37, 55) : wxColour(17, 31, 41);
+        if (IsEnabled() && m_hover)
+            fill = wxColour(10, 50, 70);
+        const wxColour border = IsEnabled() ? wxColour(20, 98, 126) : PB_BORDER;
+        dc.SetPen(wxPen(border, 1));
+        dc.SetBrush(wxBrush(fill));
+        dc.DrawRoundedRectangle(0, 0, size.x - 1, size.y - 1, FromDIP(6));
+
+        const int icon_size = FromDIP(16);
+        const int icon_x = FromDIP(10);
+        const int icon_y = std::max(0, (size.y - icon_size) / 2);
+        if (m_bitmap.IsOk())
+            dc.DrawBitmap(m_bitmap, icon_x, icon_y, true);
+
+        wxFont font = GetFont();
+        font.SetPointSize(9);
+        font.SetWeight(wxFONTWEIGHT_BOLD);
+        dc.SetFont(font);
+        dc.SetTextForeground(IsEnabled() ? PB_TEXT : PB_MUTED);
+        const int text_x = FromDIP(34);
+        const wxSize ext = dc.GetTextExtent(m_caption);
+        const int text_y = std::max(FromDIP(4), (size.y - ext.y) / 2);
+        dc.DrawText(m_caption, text_x, text_y);
+    }
+
+    wxString m_caption;
+    wxBitmap m_bitmap;
+    bool m_hover{false};
+};
+
 class PrintbenchHistoryRow : public wxPanel
 {
 public:
@@ -803,31 +871,20 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
         L"Datei senden", L"Kalibrieren", L"Neustart", L"AMS trocknen", L"Firmware", L"Logs anzeigen"};
     const std::array<const char*, 6> action_icons{
         "topbar_file", "calib_sf", "refresh", "ams_setting_normal", "printer_sync", "info"};
-    std::array<wxButton*, 6> action_buttons{};
+    std::array<PrintbenchActionTile*, 6> action_buttons{};
     for (size_t i = 0; i < action_buttons.size(); ++i) {
-        action_buttons[i] = new wxButton(action_card, wxID_ANY, action_names[i]);
-        action_buttons[i]->SetMinSize(wxSize(FromDIP(118), FromDIP(42)));
-        action_buttons[i]->SetBackgroundColour(wxColour(8, 37, 55));
-        action_buttons[i]->SetForegroundColour(PB_TEXT);
-        action_buttons[i]->SetBitmap(create_scaled_bitmap(action_icons[i], action_buttons[i], 14));
-        action_buttons[i]->SetBitmapMargins(FromDIP(7), 0);
-        wxFont action_font = action_buttons[i]->GetFont();
-        action_font.SetPointSize(9);
-        action_font.SetWeight(wxFONTWEIGHT_BOLD);
-        action_buttons[i]->SetFont(action_font);
+        action_buttons[i] = new PrintbenchActionTile(
+            action_card, action_names[i], create_scaled_bitmap(action_icons[i], action_card, 16));
         action_grid->Add(action_buttons[i], 1, wxEXPAND);
     }
-    action_buttons[0]->SetBackgroundColour(wxColour("#0A4C70"));
     action_buttons[0]->Bind(wxEVT_BUTTON, [](wxCommandEvent&) {
         if (wxGetApp().mainframe)
             wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
     });
-    action_buttons[1]->SetBackgroundColour(wxColour("#0A4C70"));
     action_buttons[1]->Bind(wxEVT_BUTTON, [](wxCommandEvent&) {
         if (wxGetApp().mainframe)
             wxGetApp().mainframe->select_tab(MainFrame::tpCalibration);
     });
-    action_buttons[5]->SetBackgroundColour(wxColour("#0A4C70"));
     action_buttons[5]->Bind(wxEVT_BUTTON, [](wxCommandEvent&) {
         if (wxGetApp().mainframe)
             wxGetApp().mainframe->show_log_window();
