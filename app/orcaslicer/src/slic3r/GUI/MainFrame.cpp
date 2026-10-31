@@ -3092,12 +3092,16 @@ void MainFrame::init_menubar_as_editor()
                 wxGetApp().app_config->set_bool("use_perspective_camera", false);
                 wxGetApp().update_ui_from_settings();
             }, nullptr);
-        this->Bind(wxEVT_UPDATE_UI, [viewMenu, camera_id_base](wxUpdateUIEvent& evt) {
-                if (wxGetApp().app_config->get("use_perspective_camera").compare("true") == 0)
-                    viewMenu->Check(wxID_CAMERA_PERSPECTIVE + camera_id_base, true);
-                else
-                    viewMenu->Check(wxID_CAMERA_ORTHOGONAL + camera_id_base, true);
-            }, perspective_item->GetId());
+        // PRINTBENCH: the classic Orca View menu is not part of the FINAL-MASTER shell.
+        // append_menu_radio_item may therefore return no native menu item; never dereference it.
+        if (perspective_item != nullptr) {
+            this->Bind(wxEVT_UPDATE_UI, [viewMenu, camera_id_base](wxUpdateUIEvent& evt) {
+                    if (wxGetApp().app_config->get("use_perspective_camera").compare("true") == 0)
+                        viewMenu->Check(wxID_CAMERA_PERSPECTIVE + camera_id_base, true);
+                    else
+                        viewMenu->Check(wxID_CAMERA_ORTHOGONAL + camera_id_base, true);
+                }, perspective_item->GetId());
+        }
         append_menu_check_item(viewMenu, wxID_ANY, _L("Auto Perspective"), _L("Automatically switch between orthographic and perspective when changing from top/bottom/side views."),
             [this](wxCommandEvent&) {
                 wxGetApp().app_config->set_bool("auto_perspective", !wxGetApp().app_config->get_bool("auto_perspective"));

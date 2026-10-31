@@ -36,3 +36,8 @@ def test_printbench_editor_never_dereferences_missing_orca_menubar():
     assert 'wxGetApp().tabs_as_menu() && m_menubar != nullptr' in MAIN
     assert 'if (m_menubar != nullptr)\n        MenuFactory::sys_color_changed(m_menubar);' in MAIN
     assert 'if (m_menubar != nullptr) {\n        if (int id = m_menubar->FindMenu' in MAIN
+
+
+def test_printbench_editor_guards_optional_view_menu_item():
+    assert 'if (perspective_item != nullptr)' in MAIN
+    assert 'perspective_item->GetId()' in MAIN
