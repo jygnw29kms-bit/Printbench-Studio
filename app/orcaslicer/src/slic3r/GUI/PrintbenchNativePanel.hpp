@@ -24,6 +24,7 @@ class PrintbenchAmsSlotCard;
 class PrintbenchQuickTile;
 class PrintbenchCameraTile;
 class PrintbenchJobHeader;
+class PrintbenchHeroPanel;
 class PrintbenchSpeedPill;
 class PrintbenchHistoryRow;
 
@@ -70,11 +71,8 @@ private:
     PrintbenchCameraTile* m_camera_timelapse{nullptr};
     PrintbenchCameraTile* m_camera_resolution{nullptr};
     std::array<PrintbenchSpeedPill*, 4> m_speed_buttons{};
-    wxStaticText* m_printer_name{nullptr};
     wxStaticText* m_header_status{nullptr};
-    wxStaticText* m_ready_banner{nullptr};
-    wxStaticText* m_online{nullptr};
-    wxStaticText* m_state{nullptr};
+    PrintbenchHeroPanel* m_hero_panel{nullptr};
     PrintbenchJobHeader* m_job_header{nullptr};
     PrintbenchProgressBar* m_progress_gauge{nullptr};
     wxStaticText* m_progress{nullptr};
@@ -86,7 +84,6 @@ private:
     wxStaticText* m_status_ready{nullptr};
     wxStaticText* m_speed{nullptr};
     wxStaticText* m_ams_summary{nullptr};
-    wxStaticText* m_wifi{nullptr};
     wxStaticText* m_camera{nullptr};
     std::array<wxStaticText*, 6> m_device_status_values{};
     std::array<wxStaticText*, 6> m_printer_status_dots{};

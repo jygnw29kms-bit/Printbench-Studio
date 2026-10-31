@@ -246,6 +246,103 @@ private:
     int m_remain{-1};
 };
 
+class PrintbenchHeroPanel : public wxPanel
+{
+public:
+    PrintbenchHeroPanel(wxWindow* parent, const wxBitmap& bitmap)
+        : wxPanel(parent, wxID_ANY), m_source(bitmap.ConvertToImage())
+    {
+        SetBackgroundStyle(wxBG_STYLE_PAINT);
+        SetBackgroundColour(PB_CARD);
+        SetMinSize(wxSize(FromDIP(390), FromDIP(278)));
+        Bind(wxEVT_PAINT, &PrintbenchHeroPanel::on_paint, this);
+    }
+
+    void SetSnapshot(bool online, const wxString& state)
+    {
+        const bool ready = online && (state == "IDLE" || state == "FINISH");
+        const bool printing = online && state == "RUNNING";
+        const bool paused = online && state == "PAUSE";
+        m_online = online;
+        m_state = state;
+        m_pill = ready ? "BEREIT" : (printing ? "DRUCKT" : (paused ? "PAUSE" : (online ? "ONLINE" : "OFFLINE")));
+        m_status = ready ? "Bereit zum Drucken"
+                         : (online ? (state.empty() ? "Verbunden im LAN" : state) : "Nicht verbunden");
+        Refresh(false);
+    }
+
+private:
+    void on_paint(wxPaintEvent&)
+    {
+        wxAutoBufferedPaintDC dc(this);
+        const wxSize size = GetClientSize();
+        dc.SetBackground(wxBrush(PB_CARD));
+        dc.Clear();
+        if (!m_source.IsOk() || size.x < 20 || size.y < 20)
+            return;
+
+        const double aspect = static_cast<double>(m_source.GetWidth()) / std::max(1, m_source.GetHeight());
+        int draw_w = size.x;
+        int draw_h = static_cast<int>(draw_w / aspect);
+        if (draw_h > size.y) {
+            draw_h = size.y;
+            draw_w = static_cast<int>(draw_h * aspect);
+        }
+        const int ox = (size.x - draw_w) / 2;
+        const int oy = (size.y - draw_h) / 2;
+        if (!m_cache.IsOk() || m_cache_size != wxSize(draw_w, draw_h)) {
+            m_cache = wxBitmap(m_source.Scale(draw_w, draw_h, wxIMAGE_QUALITY_HIGH));
+            m_cache_size = wxSize(draw_w, draw_h);
+        }
+        dc.DrawBitmap(m_cache, ox, oy, false);
+
+        const auto px = [&](double fraction) { return ox + static_cast<int>(fraction * draw_w); };
+        const auto py = [&](double fraction) { return oy + static_cast<int>(fraction * draw_h); };
+
+        wxFont title = GetFont();
+        title.SetPointSize(18);
+        title.SetWeight(wxFONTWEIGHT_BOLD);
+        dc.SetFont(title);
+        dc.SetTextForeground(PB_TEXT);
+        dc.DrawText("Bambu Lab P2S", px(0.025), py(0.025));
+
+        wxFont pill_font = GetFont();
+        pill_font.SetPointSize(8);
+        pill_font.SetWeight(wxFONTWEIGHT_BOLD);
+        dc.SetFont(pill_font);
+        const wxSize pill_ext = dc.GetTextExtent(m_pill);
+        const int pill_x = px(0.40);
+        const int pill_y = py(0.035);
+        const int pill_w = pill_ext.x + FromDIP(14);
+        const int pill_h = pill_ext.y + FromDIP(6);
+        const wxColour pill_fill = !m_online ? wxColour(35, 48, 58)
+                                : (m_state == "PAUSE" ? wxColour(103, 70, 24) : wxColour(18, 91, 68));
+        const wxColour pill_text = !m_online ? PB_MUTED
+                                : (m_state == "PAUSE" ? wxColour(255, 207, 117) : wxColour(112, 239, 190));
+        dc.SetPen(*wxTRANSPARENT_PEN);
+        dc.SetBrush(wxBrush(pill_fill));
+        dc.DrawRoundedRectangle(pill_x, pill_y, pill_w, pill_h, FromDIP(5));
+        dc.SetTextForeground(pill_text);
+        dc.DrawText(m_pill, pill_x + FromDIP(7), pill_y + FromDIP(3));
+
+        wxFont state_font = GetFont();
+        state_font.SetPointSize(9);
+        state_font.SetWeight(wxFONTWEIGHT_BOLD);
+        dc.SetFont(state_font);
+        dc.SetTextForeground(m_online ? PB_OK : PB_MUTED);
+        const wxString bullet = wxString(L"\u25CF  ") + m_status;
+        dc.DrawText(bullet, px(0.025), py(0.17));
+    }
+
+    wxImage m_source;
+    wxBitmap m_cache;
+    wxSize m_cache_size;
+    bool m_online{false};
+    wxString m_state;
+    wxString m_pill{"OFFLINE"};
+    wxString m_status{"Nicht verbunden"};
+};
+
 class PrintbenchJobHeader : public wxPanel
 {
 public:
@@ -937,23 +1034,15 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     auto* hero = new wxBoxSizer(wxHORIZONTAL);
     wxBoxSizer* body = nullptr;
 
-    auto* printer_card = make_card(this, "BAMBU LAB P2S", body);
+    auto* printer_card = new wxPanel(this, wxID_ANY);
     m_printer_card = printer_card;
+    printer_card->SetBackgroundColour(PB_CARD);
     printer_card->SetMinSize(wxSize(FromDIP(390), FromDIP(330)));
-    m_printer_name = new wxStaticText(printer_card, wxID_ANY, "Bambu Lab P2S");
-    style_label(m_printer_name, 20, true);
-    body->Add(m_printer_name, 0, wxBOTTOM, FromDIP(4));
-    m_ready_banner = new wxStaticText(printer_card, wxID_ANY, wxString(L"\u25CF  Offline"));
-    style_label(m_ready_banner, 12, true, PB_MUTED);
-    body->Add(m_ready_banner, 0, wxBOTTOM, FromDIP(8));
+    auto* printer_body = new wxBoxSizer(wxVERTICAL);
     auto hero_bitmap = create_scaled_bitmap("printbench_hero_p2s_ams", this, 560);
-    auto* hero_image = new wxStaticBitmap(printer_card, wxID_ANY, hero_bitmap);
-    body->Add(hero_image, 1, wxALIGN_CENTER_HORIZONTAL | wxTOP | wxBOTTOM, FromDIP(4));
-    auto* hero_state = new wxBoxSizer(wxHORIZONTAL);
-    m_state = add_value(printer_card, hero_state, "Druckstatus");
-    m_online = add_value(printer_card, hero_state, "Verbindung");
-    m_wifi = add_value(printer_card, hero_state, "WLAN");
-    body->Add(hero_state, 0, wxEXPAND | wxTOP, FromDIP(6));
+    m_hero_panel = new PrintbenchHeroPanel(printer_card, hero_bitmap);
+    printer_body->Add(m_hero_panel, 1, wxEXPAND | wxALL, FromDIP(6));
+    printer_card->SetSizer(printer_body);
     hero->Add(printer_card, 42, wxEXPAND | wxRIGHT, FromDIP(8));
 
     auto* status_card = make_card(this, "DRUCKERSTATUS", body);
@@ -1289,28 +1378,17 @@ void PrintbenchNativePanel::refresh_from_machine(MachineObject* machine)
 void PrintbenchNativePanel::apply_snapshot(const PrintbenchSnapshot& s)
 {
     observe_history(s);
-    // Binding FINAL-MASTER keeps the model name dominant; the live collector
-    // still supplies the connection/state data below it.
-    m_printer_name->SetLabel("Bambu Lab P2S");
     if (m_header_status) {
         m_header_status->SetLabel(s.online ? wxString(L"\u25CF  P2S Online") : wxString(L"\u25CF  P2S Offline"));
         m_header_status->SetForegroundColour(s.online ? PB_OK : PB_MUTED);
     }
-    m_online->SetLabel(s.online ? "ONLINE / LAN" : "OFFLINE");
-    m_online->SetForegroundColour(s.online ? PB_OK : PB_MUTED);
-    m_state->SetLabel(wxString::FromUTF8(s.print_state));
-    const bool ready = s.online && (s.print_state == "IDLE" || s.print_state == "FINISH" || s.print_state == "RUNNING" || s.print_state == "PAUSE");
+    if (m_hero_panel)
+        m_hero_panel->SetSnapshot(s.online, wxString::FromUTF8(s.print_state));
+    const bool ready = s.online && (s.print_state == "IDLE" || s.print_state == "FINISH");
     if (m_status_ready) {
         m_status_ready->SetLabel(ready ? L"Bereit" : (s.online ? wxString::FromUTF8(s.print_state) : L"Offline"));
         m_status_ready->SetForegroundColour(ready ? PB_OK : (s.online ? PB_TEXT : PB_MUTED));
     }
-    if (m_ready_banner) {
-        const wxString banner = ready ? wxString(L"\u25CF  Bereit zum Drucken")
-                                      : (s.online ? wxString(L"\u25CF  ") + wxString::FromUTF8(s.print_state) : wxString(L"\u25CF  Offline"));
-        m_ready_banner->SetLabel(banner);
-        m_ready_banner->SetForegroundColour(ready ? PB_OK : (s.online ? PB_TEXT : PB_MUTED));
-    }
-    m_wifi->SetLabel(s.wifi_signal.empty() ? "--" : wxString::FromUTF8(s.wifi_signal));
     const wxString wifi = s.wifi_signal.empty() ? "--" : wxString::FromUTF8(s.wifi_signal);
     const std::array<wxString, 6> device_values{
         s.online ? wxString(L"●  Verbunden") : wxString(L"●  Offline"),
