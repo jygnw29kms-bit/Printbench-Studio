@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0f14" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="PRINTBENCH" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="stylesheet" href="./styles.css" />
+  <title>PRINTBENCH Mobile</title>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">PRINTBENCH MOBILE</p>
+        <h1 id="printerName">135er-Melti</h1>
+      </div>
+      <div class="status-pill" id="connectionState"><span class="dot"></span><span>Verbinde…</span></div>
+    </header>
+
+    <section class="hero card">
+      <div class="hero-copy">
+        <p class="label">Aktueller Druck</p>
+        <h2 id="jobName">Kein aktiver Druck</h2>
+        <div class="progress-track"><div id="progressBar" class="progress-bar"></div></div>
+        <div class="hero-meta">
+          <strong id="progressText">0 %</strong>
+          <span id="remainingTime">Bereit</span>
+        </div>
+      </div>
+      <div class="preview" id="preview"><span>3MF</span></div>
+    </section>
+
+    <section class="metrics-grid">
+      <article class="metric card"><span>Düse</span><strong id="nozzleTemp">--°</strong><small id="nozzleTarget">Soll --°</small></article>
+      <article class="metric card"><span>Bett</span><strong id="bedTemp">--°</strong><small id="bedTarget">Soll --°</small></article>
+      <article class="metric card"><span>Kammer</span><strong id="chamberTemp">--°</strong><small>Live</small></article>
+      <article class="metric card"><span>Speed</span><strong id="speedLevel">--</strong><small id="speedPercent">-- %</small></article>
+    </section>
+
+    <section class="card section-card">
+      <div class="section-head"><div><p class="label">AMS 2 Pro</p><h3>Material</h3></div><span id="amsStatus" class="muted">–</span></div>
+      <div id="amsSlots" class="ams-grid"></div>
+    </section>
+
+    <section class="card section-card camera-card">
+      <div class="section-head"><div><p class="label">Kamera</p><h3>Livebild</h3></div><button id="cameraToggle" class="ghost-button" type="button">Starten</button></div>
+      <div id="cameraViewport" class="camera-viewport"><span>Kamera aus</span></div>
+    </section>
+
+    <section class="actions">
+      <button id="pauseButton" class="action secondary" type="button">Pause</button>
+      <button id="resumeButton" class="action secondary" type="button">Fortsetzen</button>
+      <button id="stopButton" class="action danger" type="button">Abbrechen</button>
+    </section>
+
+    <footer class="footer">
+      <span>LOCAL FIRST</span>
+      <span id="gatewayLabel">PRINTBENCH Gateway</span>
+    </footer>
+  </main>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
