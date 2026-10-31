@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-30T11:27:15+00:00",
+  "updated": "2026-10-31T10:58:07+00:00",
   "sources": [
     {
       "name": "3D Filament Profiles",
@@ -230,13 +230,6 @@
       "url": "https://spulenheld.de/deals/petg"
     },
     {
-      "brand": "Creality",
-      "material": "PETG",
-      "eur_per_kg": 6.0,
-      "source": "Spulenheld",
-      "url": "https://spulenheld.de/deals/petg"
-    },
-    {
       "brand": "GEEETECH",
       "material": "PETG",
       "eur_per_kg": 7.25,
@@ -296,13 +289,6 @@
       "brand": "GEEETECH",
       "material": "TPU",
       "eur_per_kg": 9.99,
-      "source": "Spulenheld",
-      "url": "https://spulenheld.de/deals/tpu"
-    },
-    {
-      "brand": "Elegoo",
-      "material": "TPU",
-      "eur_per_kg": 16.59,
       "source": "Spulenheld",
       "url": "https://spulenheld.de/deals/tpu"
     }
