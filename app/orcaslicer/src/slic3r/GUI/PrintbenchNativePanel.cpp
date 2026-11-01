@@ -1096,6 +1096,31 @@ private:
     bool m_hover{false};
 };
 
+class PrintbenchStatusRowPanel : public wxPanel
+{
+public:
+    explicit PrintbenchStatusRowPanel(wxWindow* parent)
+        : wxPanel(parent, wxID_ANY)
+    {
+        SetBackgroundStyle(wxBG_STYLE_PAINT);
+        Bind(wxEVT_PAINT, &PrintbenchStatusRowPanel::on_paint, this);
+    }
+
+private:
+    void on_paint(wxPaintEvent&)
+    {
+        wxAutoBufferedPaintDC dc(this);
+        const wxSize size = GetClientSize();
+        dc.SetBackground(wxBrush(PB_CARD));
+        dc.Clear();
+        if (size.x <= 0 || size.y <= 0)
+            return;
+        dc.SetPen(wxPen(wxColour(23, 56, 74), 1));
+        dc.SetBrush(wxBrush(wxColour(8, 25, 37)));
+        dc.DrawRoundedRectangle(0, 0, size.x - 1, size.y - 1, FromDIP(5));
+    }
+};
+
 class PrintbenchDeviceStatusCell : public wxPanel
 {
 public:
@@ -1613,8 +1638,7 @@ wxStaticText* PrintbenchNativePanel::add_value(wxWindow* parent, wxSizer* sizer,
 
 wxStaticText* PrintbenchNativePanel::add_status_value(wxWindow* parent, wxSizer* sizer, const wxString& caption, wxStaticText*& dot)
 {
-    auto* row_panel = new wxPanel(parent, wxID_ANY);
-    row_panel->SetBackgroundColour(wxColour(8, 25, 37));
+    auto* row_panel = new PrintbenchStatusRowPanel(parent);
     auto* row = new wxBoxSizer(wxHORIZONTAL);
     dot = new wxStaticText(row_panel, wxID_ANY, wxString(L"\u25CF"));
     style_label(dot, 9, true, PB_MUTED);
