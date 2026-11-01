@@ -6,7 +6,7 @@ HEADER=(ROOT/"app/orcaslicer/src/slic3r/GUI/PrintbenchNativePanel.hpp").read_tex
 
 
 def test_master_sidebar_rows_are_interactive():
-    assert 'std::array<PrintbenchNavRow*, 13> m_nav_rows' in HEADER
+    assert 'std::array<PrintbenchNavRow*, 14> m_nav_rows' in HEADER
     assert 'item->Bind(wxEVT_LEFT_UP, [this, i](wxMouseEvent&) { handle_nav(i); });' in PANEL
     assert 'activate_nav(index);' in PANEL
 

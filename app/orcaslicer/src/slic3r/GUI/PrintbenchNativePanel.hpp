@@ -94,7 +94,7 @@ private:
     std::array<wxStaticText*, 6> m_printer_status_dots{};
     std::array<PrintbenchHistoryRow*, 3> m_history_rows{};
     std::array<PrintbenchTopNavItem*, 6> m_top_nav{};
-    std::array<PrintbenchNavRow*, 13> m_nav_rows{};
+    std::array<PrintbenchNavRow*, 14> m_nav_rows{};
     std::array<PrintbenchSidebarDevice*, 2> m_sidebar_devices{};
     wxWindow* m_printer_card{nullptr};
     wxWindow* m_camera_card{nullptr};
@@ -102,6 +102,7 @@ private:
     wxWindow* m_print_card{nullptr};
     wxWindow* m_ams_card{nullptr};
     wxWindow* m_history_card{nullptr};
+    wxWindow* m_action_card{nullptr};
     std::deque<HistoryEntry> m_history;
     bool m_history_tracking{false};
     wxString m_history_job_name;

@@ -1196,16 +1196,16 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     brand_row->Add(brand_icon, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(8));
     brand_row->Add(brand_text, 1, wxALIGN_CENTER_VERTICAL);
     side->Add(brand_row, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP | wxBOTTOM, FromDIP(14));
-    const std::array<wxString, 13> nav_items{
+    const std::array<wxString, 14> nav_items{
         wxString(L"\u00DCbersicht"), L"Live Ansicht", L"Steuerung", L"AMS 2 Pro", L"Material",
         wxString(L"Druckauftr\u00E4ge"), L"Historie", L"Dateien", L"Kamera", wxString(L"Ger\u00E4te-Setup"),
-        L"Netzwerk", L"Sicherheit", L"Diagnose"};
+        L"Netzwerk", L"Sicherheit", L"Diagnose", L"System"};
     // Reuse Orca's native vector resources so the FINAL-MASTER rail stays crisp
     // at every Windows scaling level instead of falling back to text glyphs.
-    const std::array<const char*, 13> nav_icons{
+    const std::array<const char*, 14> nav_icons{
         "monitor", "monitor_camera", "monitor_axis_home_icon", "ams_setting_normal", "filament",
         "print_control_resume", "print_info_time", "topbar_file", "camera_setting", "printer",
-        "printer_in_lan", "info", "calib_sf"};
+        "printer_in_lan", "info", "calib_sf", "settings"};
     for (size_t i = 0; i < nav_items.size(); ++i) {
         auto icon_bitmap = create_scaled_bitmap(nav_icons[i], sidebar, 17);
         auto* item = new PrintbenchNavRow(sidebar, nav_items[i], icon_bitmap);
@@ -1221,9 +1221,6 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
         sidebar, "AMS 2 Pro", create_scaled_bitmap("ams_setting_normal", sidebar, 22));
     side->Add(m_sidebar_devices[0], 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
     side->Add(m_sidebar_devices[1], 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
-    auto* system_item = new wxStaticText(sidebar, wxID_ANY, wxString(L"\u2699  System"));
-    style_label(system_item, 11, false, PB_TEXT);
-    side->Add(system_item, 0, wxALL, FromDIP(16));
     sidebar->SetSizer(side);
     shell->Add(sidebar, 0, wxEXPAND);
 
@@ -1442,6 +1439,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     bottom->Add(history_card, 1, wxEXPAND | wxRIGHT, FromDIP(10));
 
     auto* action_card = make_card(this, "SYSTEM & AKTIONEN", body);
+    m_action_card = action_card;
     auto* action_grid = new wxFlexGridSizer(2, 3, FromDIP(6), FromDIP(6));
     for (int col = 0; col < 3; ++col)
         action_grid->AddGrowableCol(col, 1);
@@ -1791,7 +1789,7 @@ void PrintbenchNativePanel::handle_nav(size_t index)
     case 6: activate_top_nav(4); break;
     case 7: activate_top_nav(1); break;
     case 9: case 10: activate_top_nav(2); break;
-    case 11: activate_top_nav(5); break;
+    case 11: case 13: activate_top_nav(5); break;
     default: break;
     }
     switch (index) {
@@ -1808,6 +1806,7 @@ void PrintbenchNativePanel::handle_nav(size_t index)
     case 10: if (wxGetApp().mainframe) wxGetApp().mainframe->select_tab(MainFrame::tpMultiDevice); break;
     case 11: wxGetApp().open_preferences(); break;            // Sicherheit / Einstellungen
     case 12: if (wxGetApp().mainframe) wxGetApp().mainframe->show_log_window(); break;
+    case 13: scroll_to(m_action_card); break;                     // System
     default: break;
     }
 }

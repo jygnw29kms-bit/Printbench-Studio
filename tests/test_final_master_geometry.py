@@ -22,7 +22,7 @@ def test_final_master_keeps_dominant_p2s_hero():
 
 
 def test_final_master_sidebar_uses_vector_navigation_icons():
-    assert 'const std::array<const char*, 13> nav_icons' in PANEL
+    assert 'const std::array<const char*, 14> nav_icons' in PANEL
     for asset in ('monitor_camera', 'ams_setting_normal', 'filament', 'printer_in_lan', 'calib_sf'):
         assert asset in PANEL
     assert 'new PrintbenchNavRow(sidebar, nav_items[i], icon_bitmap)' in PANEL
