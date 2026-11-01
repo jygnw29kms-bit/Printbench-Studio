@@ -1096,6 +1096,63 @@ private:
     bool m_hover{false};
 };
 
+class PrintbenchDeviceStatusCell : public wxPanel
+{
+public:
+    PrintbenchDeviceStatusCell(wxWindow* parent, const wxString& caption)
+        : wxPanel(parent, wxID_ANY), m_caption(caption)
+    {
+        SetBackgroundStyle(wxBG_STYLE_PAINT);
+        SetMinSize(wxSize(FromDIP(115), FromDIP(54)));
+        Bind(wxEVT_PAINT, &PrintbenchDeviceStatusCell::on_paint, this);
+    }
+
+    void SetState(const wxString& value, bool ok)
+    {
+        m_value = value;
+        m_ok = ok;
+        Refresh(false);
+    }
+
+private:
+    void on_paint(wxPaintEvent&)
+    {
+        wxAutoBufferedPaintDC dc(this);
+        const wxSize size = GetClientSize();
+        dc.SetBackground(wxBrush(PB_CARD));
+        dc.Clear();
+        if (size.x <= 0 || size.y <= 0)
+            return;
+
+        dc.SetPen(wxPen(wxColour(24, 58, 76), 1));
+        dc.SetBrush(wxBrush(wxColour(8, 25, 37)));
+        dc.DrawRoundedRectangle(0, 0, size.x - 1, size.y - 1, FromDIP(6));
+
+        wxFont caption_font = GetFont();
+        caption_font.SetPointSize(8);
+        caption_font.SetWeight(wxFONTWEIGHT_BOLD);
+        dc.SetFont(caption_font);
+        dc.SetTextForeground(PB_MUTED);
+        dc.DrawText(m_caption, FromDIP(10), FromDIP(7));
+
+        const wxColour state_colour = m_ok ? PB_OK : PB_MUTED;
+        dc.SetPen(*wxTRANSPARENT_PEN);
+        dc.SetBrush(wxBrush(state_colour));
+        dc.DrawCircle(FromDIP(13), FromDIP(35), FromDIP(3));
+
+        wxFont value_font = GetFont();
+        value_font.SetPointSize(10);
+        value_font.SetWeight(wxFONTWEIGHT_BOLD);
+        dc.SetFont(value_font);
+        dc.SetTextForeground(m_ok ? PB_TEXT : PB_MUTED);
+        dc.DrawText(m_value, FromDIP(22), FromDIP(27));
+    }
+
+    wxString m_caption;
+    wxString m_value{"--"};
+    bool m_ok{false};
+};
+
 class PrintbenchSidebarDevice : public wxPanel
 {
 public:
@@ -1433,20 +1490,12 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
         device_grid->AddGrowableCol(col, 1);
     const std::array<wxString, 6> status_names{
         L"P2S", L"KAMERA", L"AMS 2 PRO", L"WLAN", L"LOKALBETRIEB", L"CLOUD"};
-    const std::array<wxString, 6> status_initial{
-        L"●  Offline", L"●  --", L"●  --", L"●  --", L"●  Aktiv", L"●  Nicht erforderlich"};
     for (size_t i = 0; i < status_names.size(); ++i) {
-        auto* cell = new wxPanel(device_card, wxID_ANY);
-        cell->SetBackgroundColour(wxColour(8, 25, 37));
-        auto* cell_sizer = new wxBoxSizer(wxVERTICAL);
-        auto* caption = new wxStaticText(cell, wxID_ANY, status_names[i]);
-        style_label(caption, 9, true, PB_MUTED);
-        m_device_status_values[i] = new wxStaticText(cell, wxID_ANY, status_initial[i]);
-        style_label(m_device_status_values[i], 11, true, i >= 4 ? PB_OK : PB_MUTED);
-        cell_sizer->Add(caption, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(8));
-        cell_sizer->Add(m_device_status_values[i], 0, wxLEFT | wxRIGHT | wxTOP | wxBOTTOM, FromDIP(8));
-        cell->SetSizer(cell_sizer);
-        device_grid->Add(cell, 1, wxEXPAND);
+        m_device_status_cells[i] = new PrintbenchDeviceStatusCell(device_card, status_names[i]);
+        const bool initial_ok = i >= 4;
+        const wxString initial_value = i == 4 ? L"Aktiv" : (i == 5 ? L"Nicht erforderlich" : L"--");
+        m_device_status_cells[i]->SetState(initial_value, initial_ok);
+        device_grid->Add(m_device_status_cells[i], 1, wxEXPAND);
     }
     body->Add(device_grid, 0, wxEXPAND | wxTOP, FromDIP(4));
     bottom->Add(device_card, 1, wxEXPAND | wxRIGHT, FromDIP(10));
@@ -1648,10 +1697,11 @@ void PrintbenchNativePanel::apply_snapshot(const PrintbenchSnapshot& s)
         m_sidebar_devices[0]->SetState(s.online, s.online ? "Online" : "Offline");
     if (m_sidebar_devices[1])
         m_sidebar_devices[1]->SetState(s.has_ams, s.has_ams ? "Verbunden" : "Nicht verbunden");
-    for (size_t i = 0; i < m_device_status_values.size(); ++i) {
-        if (!m_device_status_values[i]) continue;
-        m_device_status_values[i]->SetLabel(device_values[i]);
-        m_device_status_values[i]->SetForegroundColour(device_ok[i] ? PB_OK : PB_MUTED);
+    for (size_t i = 0; i < m_device_status_cells.size(); ++i) {
+        if (!m_device_status_cells[i]) continue;
+        wxString value = device_values[i];
+        value.Replace(L"●  ", wxEmptyString);
+        m_device_status_cells[i]->SetState(value, device_ok[i]);
     }
 
     const bool active_print = s.print_state == "RUNNING" || s.print_state == "PAUSE";

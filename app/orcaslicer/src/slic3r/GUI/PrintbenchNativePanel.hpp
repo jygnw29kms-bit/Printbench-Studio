@@ -29,6 +29,7 @@ class PrintbenchHeaderStatus;
 class PrintbenchTopNavItem;
 class PrintbenchNavRow;
 class PrintbenchSidebarDevice;
+class PrintbenchDeviceStatusCell;
 class PrintbenchSpeedPill;
 class PrintbenchHistoryRow;
 
@@ -90,7 +91,7 @@ private:
     wxStaticText* m_speed{nullptr};
     wxStaticText* m_ams_summary{nullptr};
     wxStaticText* m_camera{nullptr};
-    std::array<wxStaticText*, 6> m_device_status_values{};
+    std::array<PrintbenchDeviceStatusCell*, 6> m_device_status_cells{};
     std::array<wxStaticText*, 6> m_printer_status_dots{};
     std::array<PrintbenchHistoryRow*, 3> m_history_rows{};
     std::array<PrintbenchTopNavItem*, 6> m_top_nav{};

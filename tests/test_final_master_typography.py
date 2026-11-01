@@ -14,4 +14,5 @@ def test_master_card_typography_has_clear_hierarchy():
     assert 'name_font.SetPointSize(14);' in CPP
     assert 'class PrintbenchJobHeader : public wxPanel' in CPP
     assert 'style_label(value, 13, true, PB_TEXT);' in CPP
-    assert 'style_label(m_device_status_values[i], 11, true' in CPP
+    assert 'class PrintbenchDeviceStatusCell : public wxPanel' in CPP
+    assert 'value_font.SetPointSize(10);' in CPP
