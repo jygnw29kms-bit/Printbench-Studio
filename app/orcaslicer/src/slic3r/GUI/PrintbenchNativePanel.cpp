@@ -1096,6 +1096,62 @@ private:
     bool m_hover{false};
 };
 
+class PrintbenchAmsEnvironmentBar : public wxPanel
+{
+public:
+    explicit PrintbenchAmsEnvironmentBar(wxWindow* parent)
+        : wxPanel(parent, wxID_ANY)
+    {
+        SetBackgroundStyle(wxBG_STYLE_PAINT);
+        SetMinSize(wxSize(-1, FromDIP(32)));
+        Bind(wxEVT_PAINT, &PrintbenchAmsEnvironmentBar::on_paint, this);
+    }
+
+    void SetEnvironment(bool connected, float temp_c, int humidity)
+    {
+        m_connected = connected;
+        m_temp_c = temp_c;
+        m_humidity = humidity;
+        Refresh(false);
+    }
+
+private:
+    void on_paint(wxPaintEvent&)
+    {
+        wxAutoBufferedPaintDC dc(this);
+        const wxSize size = GetClientSize();
+        dc.SetBackground(wxBrush(PB_CARD));
+        dc.Clear();
+        if (size.x <= 0 || size.y <= 0)
+            return;
+        dc.SetPen(wxPen(wxColour(23, 56, 74), 1));
+        dc.SetBrush(wxBrush(wxColour(8, 25, 37)));
+        dc.DrawRoundedRectangle(0, 0, size.x - 1, size.y - 1, FromDIP(5));
+
+        wxFont label_font = GetFont();
+        label_font.SetPointSize(8);
+        label_font.SetWeight(wxFONTWEIGHT_BOLD);
+        dc.SetFont(label_font);
+        dc.SetTextForeground(PB_MUTED);
+        dc.DrawText("AMS ENV", FromDIP(9), FromDIP(8));
+
+        wxFont value_font = GetFont();
+        value_font.SetPointSize(9);
+        value_font.SetWeight(wxFONTWEIGHT_BOLD);
+        dc.SetFont(value_font);
+        const wxString value = m_connected
+            ? wxString::Format("%.1f °C     %d %% RH", m_temp_c, m_humidity)
+            : wxString("NICHT VERBUNDEN");
+        dc.SetTextForeground(m_connected ? PB_OK : PB_MUTED);
+        const wxSize ext = dc.GetTextExtent(value);
+        dc.DrawText(value, std::max(FromDIP(72), size.x - ext.x - FromDIP(9)), FromDIP(7));
+    }
+
+    bool m_connected{false};
+    float m_temp_c{0.0f};
+    int m_humidity{-1};
+};
+
 class PrintbenchStatusRowPanel : public wxPanel
 {
 public:
@@ -1494,7 +1550,8 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     auto* ams_card = make_card(this, "AMS 2 PRO", body);
     m_ams_card = ams_card;
     ams_card->SetMinSize(wxSize(FromDIP(300), FromDIP(190)));
-    m_ams_environment = add_value(ams_card, body, "Environment");
+    m_ams_environment = new PrintbenchAmsEnvironmentBar(ams_card);
+    body->Add(m_ams_environment, 0, wxEXPAND | wxBOTTOM, FromDIP(7));
     auto* slot_grid = new wxFlexGridSizer(1, 4, FromDIP(8), FromDIP(8));
     for (int col = 0; col < 4; ++col)
         slot_grid->AddGrowableCol(col, 1);
@@ -1791,14 +1848,12 @@ void PrintbenchNativePanel::apply_snapshot(const PrintbenchSnapshot& s)
         m_camera_record->Enable(camera_connected);
         m_camera_record->SetCaption(s.camera_recording ? "STOP AUFNAHME" : "AUFNAHME");
         m_camera_record->SetAlert(s.camera_recording);
-        m_camera_record->SetBackgroundColour(s.camera_recording ? wxColour("#651B2A") : wxColour(8, 37, 55));
     }
     if (m_camera_timelapse) {
         const bool timelapse_control = camera_connected && s.camera_timelapse_control_supported;
         m_camera_timelapse->Enable(timelapse_control);
         m_camera_timelapse->SetCaption(s.camera_timelapse ? "TIMELAPSE AUS" : "TIMELAPSE");
         m_camera_timelapse->SetAlert(s.camera_timelapse);
-        m_camera_timelapse->SetBackgroundColour(s.camera_timelapse ? wxColour("#0A63D8") : wxColour(8, 37, 55));
         m_camera_timelapse->SetToolTip(timelapse_control
             ? "Timelapse am Drucker umschalten"
             : (camera_connected ? "P2S-Firmware meldet Timelapse, lehnt direkte LAN-Steuerung jedoch ab"
@@ -1811,10 +1866,8 @@ void PrintbenchNativePanel::apply_snapshot(const PrintbenchSnapshot& s)
         m_camera_resolution->SetCaption(resolution);
     }
 
-    if (s.has_ams)
-        m_ams_environment->SetLabel(wxString::Format("%.1f C  |  Humidity %d", s.ams_temp_c, s.ams_humidity));
-    else
-        m_ams_environment->SetLabel("NOT CONNECTED");
+    if (m_ams_environment)
+        m_ams_environment->SetEnvironment(s.has_ams, s.ams_temp_c, s.ams_humidity);
 
     const bool connected = m_machine != nullptr && m_machine->is_connected();
     const bool pausable = connected && (s.print_state == "RUNNING" || s.print_state == "PAUSE");

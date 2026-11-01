@@ -30,6 +30,7 @@ class PrintbenchTopNavItem;
 class PrintbenchNavRow;
 class PrintbenchSidebarDevice;
 class PrintbenchDeviceStatusCell;
+class PrintbenchAmsEnvironmentBar;
 class PrintbenchSpeedPill;
 class PrintbenchHistoryRow;
 
@@ -110,7 +111,7 @@ private:
     std::chrono::steady_clock::time_point m_history_started{};
     std::string m_previous_print_state;
     std::array<wxStaticText*, 3> m_temp_values{};
-    wxStaticText* m_ams_environment{nullptr};
+    PrintbenchAmsEnvironmentBar* m_ams_environment{nullptr};
     std::array<PrintbenchAmsSlotCard*, 4> m_ams_slots{};
 };
 
