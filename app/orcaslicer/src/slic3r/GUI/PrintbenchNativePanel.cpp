@@ -891,6 +891,32 @@ private:
     bool m_hover{false};
 };
 
+class PrintbenchCardPanel : public wxPanel
+{
+public:
+    explicit PrintbenchCardPanel(wxWindow* parent)
+        : wxPanel(parent, wxID_ANY)
+    {
+        SetBackgroundStyle(wxBG_STYLE_PAINT);
+        Bind(wxEVT_PAINT, &PrintbenchCardPanel::on_paint, this);
+        Bind(wxEVT_SIZE, [this](wxSizeEvent& e) { Refresh(false); e.Skip(); });
+    }
+
+private:
+    void on_paint(wxPaintEvent&)
+    {
+        wxAutoBufferedPaintDC dc(this);
+        const wxSize size = GetClientSize();
+        dc.SetBackground(wxBrush(PB_BG));
+        dc.Clear();
+        if (size.x <= 0 || size.y <= 0)
+            return;
+        dc.SetPen(wxPen(wxColour(24, 59, 78), 1));
+        dc.SetBrush(wxBrush(PB_CARD));
+        dc.DrawRoundedRectangle(0, 0, size.x - 1, size.y - 1, FromDIP(8));
+    }
+};
+
 class PrintbenchHeaderStatus : public wxPanel
 {
 public:
@@ -1256,9 +1282,8 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     auto* hero = new wxBoxSizer(wxHORIZONTAL);
     wxBoxSizer* body = nullptr;
 
-    auto* printer_card = new wxPanel(this, wxID_ANY);
+    auto* printer_card = new PrintbenchCardPanel(this);
     m_printer_card = printer_card;
-    printer_card->SetBackgroundColour(PB_CARD);
     printer_card->SetMinSize(wxSize(FromDIP(390), FromDIP(330)));
     auto* printer_body = new wxBoxSizer(wxVERTICAL);
     auto hero_bitmap = create_scaled_bitmap("printbench_hero_p2s_ams", this, 560);
@@ -1509,14 +1534,13 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
 
 wxPanel* PrintbenchNativePanel::make_card(wxWindow* parent, const wxString& title, wxBoxSizer*& body)
 {
-    auto* card = new wxPanel(parent, wxID_ANY);
-    card->SetBackgroundColour(PB_CARD);
+    auto* card = new PrintbenchCardPanel(parent);
     auto* outer = new wxBoxSizer(wxVERTICAL);
     auto* heading = new wxStaticText(card, wxID_ANY, title);
     style_label(heading, 12, true, PB_ACCENT);
     outer->Add(heading, 0, wxALL, FromDIP(10));
     auto* line = new wxStaticLine(card, wxID_ANY);
-    line->SetForegroundColour(PB_BORDER);
+    line->SetForegroundColour(wxColour(20, 50, 67));
     outer->Add(line, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(10));
     body = new wxBoxSizer(wxVERTICAL);
     outer->Add(body, 1, wxEXPAND | wxALL, FromDIP(10));
