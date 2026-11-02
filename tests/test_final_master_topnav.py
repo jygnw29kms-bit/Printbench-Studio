@@ -17,6 +17,12 @@ def test_top_navigation_tracks_active_section_and_sidebar_routes():
     assert 'case 9: case 10: activate_top_nav(2); break;' in CPP
 
 def test_top_navigation_has_master_active_underline_and_hover():
-    assert 'm_active ? wxColour(10, 66, 137)' in CPP
-    assert 'wxColour(20, 125, 245)' in CPP
+    assert 'm_active ? wxColour(7, 54, 114)' in CPP
+    assert 'dc.DrawRoundedRectangle(FromDIP(6), size.y - FromDIP(2)' in CPP
     assert 'm_hover = true; Refresh(false)' in CPP
+
+def test_top_navigation_matches_compact_master_density():
+    assert 'SetMinSize(wxSize(FromDIP(82), FromDIP(36)))' in CPP
+    assert 'create_scaled_bitmap(top_icons[i], this, 14)' in CPP
+    assert 'font.SetPointSize(8);' in CPP
+    assert 'header->Add(item, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(2));' in CPP

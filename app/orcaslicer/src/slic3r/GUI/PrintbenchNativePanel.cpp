@@ -978,7 +978,7 @@ public:
         : wxPanel(parent, wxID_ANY), m_caption(caption), m_bitmap(bitmap)
     {
         SetBackgroundStyle(wxBG_STYLE_PAINT);
-        SetMinSize(wxSize(FromDIP(92), FromDIP(42)));
+        SetMinSize(wxSize(FromDIP(82), FromDIP(36)));
         SetCursor(wxCursor(wxCURSOR_HAND));
         Bind(wxEVT_PAINT, &PrintbenchTopNavItem::on_paint, this);
         Bind(wxEVT_ENTER_WINDOW, [this](wxMouseEvent& e) { m_hover = true; Refresh(false); e.Skip(); });
@@ -1004,28 +1004,28 @@ private:
 
         if (m_active || m_hover) {
             dc.SetPen(*wxTRANSPARENT_PEN);
-            dc.SetBrush(wxBrush(m_active ? wxColour(10, 66, 137) : wxColour(8, 32, 48)));
-            dc.DrawRoundedRectangle(0, 0, size.x - 1, size.y - 1, FromDIP(5));
+            dc.SetBrush(wxBrush(m_active ? wxColour(7, 54, 114) : wxColour(7, 28, 43)));
+            dc.DrawRoundedRectangle(0, 0, size.x - 1, size.y - 1, FromDIP(4));
         }
         if (m_active) {
             dc.SetPen(*wxTRANSPARENT_PEN);
-            dc.SetBrush(wxBrush(wxColour(20, 125, 245)));
-            dc.DrawRoundedRectangle(0, size.y - FromDIP(3), size.x - 1, FromDIP(3), FromDIP(1));
+            dc.SetBrush(wxBrush(PB_ACCENT));
+            dc.DrawRoundedRectangle(FromDIP(6), size.y - FromDIP(2), size.x - FromDIP(12), FromDIP(2), FromDIP(1));
         }
 
-        const int icon_size = FromDIP(16);
-        const int icon_x = FromDIP(10);
+        const int icon_size = FromDIP(14);
+        const int icon_x = FromDIP(8);
         const int icon_y = std::max(0, (size.y - icon_size) / 2);
         if (m_bitmap.IsOk())
             dc.DrawBitmap(m_bitmap, icon_x, icon_y, true);
 
         wxFont font = GetFont();
-        font.SetPointSize(9);
+        font.SetPointSize(8);
         font.SetWeight(m_active ? wxFONTWEIGHT_BOLD : wxFONTWEIGHT_NORMAL);
         dc.SetFont(font);
         dc.SetTextForeground(m_active ? *wxWHITE : wxColour(181, 199, 213));
         const wxSize ext = dc.GetTextExtent(m_caption);
-        dc.DrawText(m_caption, FromDIP(34), std::max(FromDIP(4), (size.y - ext.y) / 2));
+        dc.DrawText(m_caption, FromDIP(29), std::max(FromDIP(4), (size.y - ext.y) / 2));
     }
 
     wxString m_caption;
@@ -1405,7 +1405,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     const std::array<const char*, 6> top_icons{
         "printer", "topbar_file", "printer_in_lan", "filament", "print_info_time", "ams_setting_normal"};
     for (size_t i = 0; i < top_items.size(); ++i) {
-        auto* item = new PrintbenchTopNavItem(this, top_items[i], create_scaled_bitmap(top_icons[i], this, 16));
+        auto* item = new PrintbenchTopNavItem(this, top_items[i], create_scaled_bitmap(top_icons[i], this, 14));
         item->SetActive(i == 0);
         m_top_nav[i] = item;
         item->Bind(wxEVT_LEFT_UP, [this, i](wxMouseEvent&) {
@@ -1420,13 +1420,13 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
             default: break;
             }
         });
-        header->Add(item, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(4));
+        header->Add(item, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     }
     header->AddStretchSpacer();
     m_header_status = new PrintbenchHeaderStatus(this);
-    header->Add(m_header_status, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(10));
-    root->Add(header, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(10));
-    root->AddSpacer(FromDIP(6));
+    header->Add(m_header_status, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(8));
+    root->Add(header, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(8));
+    root->AddSpacer(FromDIP(4));
 
     auto* hero = new wxBoxSizer(wxHORIZONTAL);
     wxBoxSizer* body = nullptr;
