@@ -924,7 +924,7 @@ public:
         : wxPanel(parent, wxID_ANY)
     {
         SetBackgroundStyle(wxBG_STYLE_PAINT);
-        SetMinSize(wxSize(FromDIP(132), FromDIP(42)));
+        SetMinSize(wxSize(FromDIP(118), FromDIP(36)));
         Bind(wxEVT_PAINT, &PrintbenchHeaderStatus::on_paint, this);
     }
 
@@ -948,23 +948,23 @@ private:
         const wxColour state_colour = m_online ? PB_OK : PB_MUTED;
         dc.SetPen(*wxTRANSPARENT_PEN);
         dc.SetBrush(wxBrush(state_colour));
-        dc.DrawCircle(FromDIP(8), FromDIP(13), FromDIP(4));
+        dc.DrawCircle(FromDIP(7), FromDIP(11), FromDIP(3));
 
         wxFont title_font = GetFont();
-        title_font.SetPointSize(9);
+        title_font.SetPointSize(8);
         title_font.SetWeight(wxFONTWEIGHT_BOLD);
         dc.SetFont(title_font);
         dc.SetTextForeground(m_online ? PB_TEXT : PB_MUTED);
-        dc.DrawText(m_online ? "P2S Online" : "P2S Offline", FromDIP(18), FromDIP(4));
+        dc.DrawText(m_online ? "P2S Online" : "P2S Offline", FromDIP(15), FromDIP(3));
 
         wxFont meta_font = GetFont();
-        meta_font.SetPointSize(8);
+        meta_font.SetPointSize(7);
         dc.SetFont(meta_font);
         dc.SetTextForeground(PB_MUTED);
         const wxString meta = m_online
-            ? (m_wifi.empty() ? wxString("LAN • lokal") : wxString("LAN • ") + m_wifi)
+            ? (m_wifi.empty() ? wxString(L"LAN \u2022 lokal") : wxString(L"LAN \u2022 ") + m_wifi)
             : wxString("Keine LAN-Verbindung");
-        dc.DrawText(meta, FromDIP(18), FromDIP(22));
+        dc.DrawText(meta, FromDIP(15), FromDIP(19));
     }
 
     bool m_online{false};
