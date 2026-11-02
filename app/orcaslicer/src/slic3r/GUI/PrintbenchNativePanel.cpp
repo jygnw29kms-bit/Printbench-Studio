@@ -1680,14 +1680,14 @@ wxPanel* PrintbenchNativePanel::make_card(wxWindow* parent, const wxString& titl
     auto* outer = new wxBoxSizer(wxVERTICAL);
     auto* heading = new wxStaticText(card, wxID_ANY, title);
     style_label(heading, 12, true, PB_ACCENT);
-    outer->Add(heading, 0, wxALL, FromDIP(10));
+    outer->Add(heading, 0, wxALL, FromDIP(8));
     auto* line = new wxStaticLine(card, wxID_ANY);
     line->SetForegroundColour(wxColour(20, 50, 67));
-    outer->Add(line, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(10));
+    outer->Add(line, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(8));
     body = new wxBoxSizer(wxVERTICAL);
-    outer->Add(body, 1, wxEXPAND | wxALL, FromDIP(10));
+    outer->Add(body, 1, wxEXPAND | wxALL, FromDIP(8));
     card->SetSizer(outer);
-    card->SetMinSize(wxSize(FromDIP(180), FromDIP(120)));
+    card->SetMinSize(wxSize(FromDIP(170), FromDIP(112)));
     return card;
 }
 
