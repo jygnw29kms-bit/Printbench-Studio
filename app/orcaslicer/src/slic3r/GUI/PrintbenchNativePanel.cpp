@@ -1467,7 +1467,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     auto* camera_actions = new wxBoxSizer(wxHORIZONTAL);
     m_camera_record = new PrintbenchCameraTile(camera_card, ID_PB_CAMERA_RECORD, "AUFNAHME");
     m_camera_timelapse = new PrintbenchCameraTile(camera_card, ID_PB_CAMERA_TIMELAPSE, "TIMELAPSE");
-    m_camera_resolution = new PrintbenchCameraTile(camera_card, ID_PB_CAMERA_RESOLUTION, "AUFLOESUNG");
+    m_camera_resolution = new PrintbenchCameraTile(camera_card, ID_PB_CAMERA_RESOLUTION, wxString::FromUTF8("AUFLÖSUNG"));
     for (auto* button : {m_camera_record, m_camera_timelapse, m_camera_resolution}) {
         button->Enable(false);
         camera_actions->Add(button, 1, button == m_camera_resolution ? 0 : wxRIGHT, FromDIP(5));
@@ -1577,7 +1577,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     root->AddSpacer(FromDIP(6));
 
     auto* bottom = new wxBoxSizer(wxHORIZONTAL);
-    auto* device_card = make_card(this, "GERAETESTATUS", body);
+    auto* device_card = make_card(this, wxString::FromUTF8("GERÄTESTATUS"), body);
     auto* device_grid = new wxFlexGridSizer(2, 3, FromDIP(8), FromDIP(8));
     for (int col = 0; col < 3; ++col)
         device_grid->AddGrowableCol(col, 1);
@@ -1635,7 +1635,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     action_buttons[2]->Enable(false);
     action_buttons[2]->SetToolTip("Kein verifizierter P2S-Neustartbefehl im aktuellen LAN-Pfad");
     action_buttons[3]->Enable(false);
-    action_buttons[3]->SetToolTip("AMS-Trocknen benoetigt Material-, Temperatur- und Zeitparameter");
+    action_buttons[3]->SetToolTip(wxString::FromUTF8("AMS-Trocknen benötigt Material-, Temperatur- und Zeitparameter"));
     action_buttons[4]->Enable(false);
     action_buttons[4]->SetToolTip("Firmware-Verwaltung wird erst nach verifiziertem P2S-Updatepfad aktiviert");
     body->Add(action_grid, 0, wxEXPAND | wxTOP, FromDIP(4));
@@ -1873,7 +1873,7 @@ void PrintbenchNativePanel::apply_snapshot(const PrintbenchSnapshot& s)
     if (m_camera_resolution) {
         const bool has_modes = camera_connected && m_machine && m_machine->camera_resolution_supported.size() > 1;
         m_camera_resolution->Enable(has_modes);
-        const wxString resolution = s.camera_resolution.empty() ? "AUFLOESUNG" : wxString::FromUTF8(s.camera_resolution);
+        const wxString resolution = s.camera_resolution.empty() ? wxString::FromUTF8("AUFLÖSUNG") : wxString::FromUTF8(s.camera_resolution);
         m_camera_resolution->SetCaption(resolution);
     }
 

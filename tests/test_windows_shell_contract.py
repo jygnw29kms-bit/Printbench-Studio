@@ -32,6 +32,18 @@ def test_windows_installer_uses_the_same_printbench_icon():
     assert 'resources/images\\\\OrcaSlicer.ico' not in CMAKE
 
 
+def test_windows_shell_and_installer_use_printbench_executable_name():
+    src_cmake = (ROOT / 'app/orcaslicer/src/CMakeLists.txt').read_text(encoding='utf-8')
+    process_cpp = (ROOT / 'app/orcaslicer/src/slic3r/Utils/Process.cpp').read_text(encoding='utf-8')
+    plugin_cpp = (ROOT / 'app/orcaslicer/src/slic3r/Utils/BBLNetworkPlugin.cpp').read_text(encoding='utf-8')
+    assert 'OUTPUT_NAME "135er-PRINTBENCH"' in src_cmake
+    assert '135er-PRINTBENCH.exe' in RC
+    assert '135er-PRINTBENCH.exe' in process_cpp
+    assert '135er-PRINTBENCH.exe' in plugin_cpp
+    assert 'CPACK_NSIS_INSTALLED_ICON_NAME  "$INSTDIR\\\\\\\\135er-PRINTBENCH.exe"' in CMAKE
+    assert 'CPACK_CREATE_DESKTOP_LINKS "135er-PRINTBENCH"' in CMAKE
+
+
 def test_printbench_editor_never_dereferences_missing_orca_menubar():
     assert 'wxGetApp().tabs_as_menu() && m_menubar != nullptr' in MAIN
     assert 'if (m_menubar != nullptr)\n        MenuFactory::sys_color_changed(m_menubar);' in MAIN

@@ -17,5 +17,5 @@ def test_verified_system_actions_are_wired():
 
 def test_unverified_device_actions_stay_disabled_with_reason():
     assert 'Kein verifizierter P2S-Neustartbefehl' in CPP
-    assert 'AMS-Trocknen benoetigt Material-, Temperatur- und Zeitparameter' in CPP
+    assert 'AMS-Trocknen benötigt Material-, Temperatur- und Zeitparameter' in CPP
     assert 'Firmware-Verwaltung wird erst nach verifiziertem P2S-Updatepfad aktiviert' in CPP

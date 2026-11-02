@@ -30,7 +30,7 @@ def test_native_panel_covers_final_master_primary_regions():
         'AKTUELLER DRUCK',
         'TEMPERATUREN (LIVE)',
         'AMS 2 PRO',
-        'GERAETESTATUS',
+        'GERÄTESTATUS',
         'LETZTE DRUCKE',
         'SYSTEM & AKTIONEN',
     ]
