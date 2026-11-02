@@ -8,6 +8,6 @@ def test_vertical_master_regions_match_dashboard_weighting():
     assert 'root->Add(bottom, 5,' in CPP
 
 def test_middle_row_matches_master_print_temperature_ams_widths():
-    assert 'middle->Add(print_card, 40,' in CPP
-    assert 'middle->Add(temp_card, 30,' in CPP
-    assert 'middle->Add(ams_card, 30,' in CPP
+    assert 'middle->Add(print_card, 31,' in CPP
+    assert 'middle->Add(temp_card, 35,' in CPP
+    assert 'middle->Add(ams_card, 34,' in CPP

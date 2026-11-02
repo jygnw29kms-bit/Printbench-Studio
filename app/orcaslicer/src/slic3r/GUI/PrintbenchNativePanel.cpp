@@ -1536,7 +1536,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     add_metric("SCHICHTEN", m_layers);
     add_metric("RESTZEIT", m_remaining);
     body->Add(print_metrics, 0, wxEXPAND);
-    middle->Add(print_card, 40, wxEXPAND | wxRIGHT, FromDIP(10));
+    middle->Add(print_card, 31, wxEXPAND | wxRIGHT, FromDIP(8));
 
     auto* temp_card = make_card(this, "TEMPERATUREN (LIVE)", body);
     temp_card->SetMinSize(wxSize(FromDIP(280), FromDIP(190)));
@@ -1556,7 +1556,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     body->Add(temp_values, 0, wxEXPAND | wxBOTTOM, FromDIP(8));
     m_temp_chart = new PrintbenchTempChart(temp_card);
     body->Add(m_temp_chart, 1, wxEXPAND | wxTOP, FromDIP(4));
-    middle->Add(temp_card, 30, wxEXPAND | wxRIGHT, FromDIP(10));
+    middle->Add(temp_card, 35, wxEXPAND | wxRIGHT, FromDIP(8));
 
     auto* ams_card = make_card(this, "AMS 2 PRO", body);
     m_ams_card = ams_card;
@@ -1571,10 +1571,10 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
         slot_grid->Add(m_ams_slots[i], 1, wxEXPAND);
     }
     body->Add(slot_grid, 0, wxEXPAND | wxTOP, FromDIP(10));
-    middle->Add(ams_card, 30, wxEXPAND);
+    middle->Add(ams_card, 34, wxEXPAND);
 
     root->Add(middle, 6, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(12));
-    root->AddSpacer(FromDIP(8));
+    root->AddSpacer(FromDIP(6));
 
     auto* bottom = new wxBoxSizer(wxHORIZONTAL);
     auto* device_card = make_card(this, "GERAETESTATUS", body);
@@ -1591,7 +1591,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
         device_grid->Add(m_device_status_cells[i], 1, wxEXPAND);
     }
     body->Add(device_grid, 0, wxEXPAND | wxTOP, FromDIP(4));
-    bottom->Add(device_card, 1, wxEXPAND | wxRIGHT, FromDIP(10));
+    bottom->Add(device_card, 1, wxEXPAND | wxRIGHT, FromDIP(8));
 
     auto* history_card = make_card(this, "LETZTE DRUCKE", body);
     m_history_card = history_card;
@@ -1603,7 +1603,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
             m_history_rows[i]->clear();
         body->Add(m_history_rows[i], 0, wxEXPAND | wxBOTTOM, FromDIP(6));
     }
-    bottom->Add(history_card, 1, wxEXPAND | wxRIGHT, FromDIP(10));
+    bottom->Add(history_card, 1, wxEXPAND | wxRIGHT, FromDIP(8));
 
     auto* action_card = make_card(this, "SYSTEM & AKTIONEN", body);
     m_action_card = action_card;
@@ -1666,7 +1666,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
         lamp->CtrlSetChamberLight(lamp->IsChamberLightOn() ? DevLamp::LIGHT_EFFECT_OFF : DevLamp::LIGHT_EFFECT_ON);
     });
 
-    root->Add(bottom, 5, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
+    root->Add(bottom, 5, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
     shell->Add(root, 1, wxEXPAND);
     SetSizer(shell);
     load_history();
