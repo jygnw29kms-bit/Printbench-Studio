@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 CPP=(ROOT/'app/orcaslicer/src/slic3r/GUI/PrintbenchNativePanel.cpp').read_text(encoding='utf-8')
@@ -19,3 +19,11 @@ def test_sidebar_branding_keeps_jl1976_and_compact_two_line_master_layout():
     assert 'printbench_app_icon_32' in CPP
     assert 'JL1976 Software' in CPP
     assert 'brand_text->Add(brand_sub' in CPP
+
+def test_sidebar_matches_compact_final_master_density():
+    assert 'sidebar->SetMinSize(wxSize(FromDIP(174), -1));' in CPP
+    assert 'SetMinSize(wxSize(-1, FromDIP(34)))' in CPP
+    assert 'create_scaled_bitmap(nav_icons[i], sidebar, 15)' in CPP
+    assert 'dc.DrawRoundedRectangle(0, FromDIP(5), FromDIP(3), size.y - FromDIP(10), FromDIP(2));' in CPP
+    assert 'style_label(device_caption, 7, true, PB_MUTED);' in CPP
+    assert 'brand_rule->SetMinSize(wxSize(-1, FromDIP(1)));' in CPP

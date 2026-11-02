@@ -1041,7 +1041,7 @@ public:
         : wxPanel(parent, wxID_ANY), m_caption(caption), m_bitmap(bitmap)
     {
         SetBackgroundStyle(wxBG_STYLE_PAINT);
-        SetMinSize(wxSize(-1, FromDIP(38)));
+        SetMinSize(wxSize(-1, FromDIP(34)));
         SetCursor(wxCursor(wxCURSOR_HAND));
         Bind(wxEVT_PAINT, &PrintbenchNavRow::on_paint, this);
         Bind(wxEVT_ENTER_WINDOW, [this](wxMouseEvent& e) { m_hover = true; Refresh(false); e.Skip(); });
@@ -1067,27 +1067,31 @@ private:
 
         wxColour fill = wxColour(4, 14, 24);
         if (m_active)
-            fill = wxColour(10, 105, 231);
+            fill = wxColour(7, 72, 155);
         else if (m_hover)
-            fill = wxColour(8, 31, 48);
+            fill = wxColour(7, 28, 43);
         dc.SetPen(*wxTRANSPARENT_PEN);
         dc.SetBrush(wxBrush(fill));
         if (m_active || m_hover)
-            dc.DrawRoundedRectangle(0, 0, size.x - 1, size.y - 1, FromDIP(7));
+            dc.DrawRoundedRectangle(0, 0, size.x - 1, size.y - 1, FromDIP(5));
+        if (m_active) {
+            dc.SetBrush(wxBrush(PB_ACCENT));
+            dc.DrawRoundedRectangle(0, FromDIP(5), FromDIP(3), size.y - FromDIP(10), FromDIP(2));
+        }
 
-        const int icon_size = FromDIP(17);
-        const int icon_x = FromDIP(12);
+        const int icon_size = FromDIP(15);
+        const int icon_x = FromDIP(10);
         const int icon_y = std::max(0, (size.y - icon_size) / 2);
         if (m_bitmap.IsOk())
             dc.DrawBitmap(m_bitmap, icon_x, icon_y, true);
 
         wxFont font = GetFont();
-        font.SetPointSize(10);
+        font.SetPointSize(9);
         font.SetWeight(m_active ? wxFONTWEIGHT_BOLD : wxFONTWEIGHT_NORMAL);
         dc.SetFont(font);
         dc.SetTextForeground(m_active ? *wxWHITE : wxColour(184, 201, 214));
         const wxSize ext = dc.GetTextExtent(m_caption);
-        dc.DrawText(m_caption, FromDIP(42), std::max(FromDIP(4), (size.y - ext.y) / 2));
+        dc.DrawText(m_caption, FromDIP(35), std::max(FromDIP(4), (size.y - ext.y) / 2));
     }
 
     wxString m_caption;
@@ -1241,7 +1245,7 @@ public:
         : wxPanel(parent, wxID_ANY), m_name(name), m_bitmap(bitmap)
     {
         SetBackgroundStyle(wxBG_STYLE_PAINT);
-        SetMinSize(wxSize(-1, FromDIP(52)));
+        SetMinSize(wxSize(-1, FromDIP(44)));
         Bind(wxEVT_PAINT, &PrintbenchSidebarDevice::on_paint, this);
     }
 
@@ -1263,24 +1267,24 @@ private:
             return;
 
         if (m_bitmap.IsOk())
-            dc.DrawBitmap(m_bitmap, FromDIP(8), std::max(0, (size.y - FromDIP(22)) / 2), true);
+            dc.DrawBitmap(m_bitmap, FromDIP(7), std::max(0, (size.y - FromDIP(18)) / 2), true);
 
         wxFont name_font = GetFont();
-        name_font.SetPointSize(9);
+        name_font.SetPointSize(8);
         name_font.SetWeight(wxFONTWEIGHT_BOLD);
         dc.SetFont(name_font);
         dc.SetTextForeground(PB_TEXT);
-        dc.DrawText(m_name, FromDIP(38), FromDIP(7));
+        dc.DrawText(m_name, FromDIP(33), FromDIP(5));
 
         const wxColour state_colour = m_online ? PB_OK : PB_MUTED;
         dc.SetPen(*wxTRANSPARENT_PEN);
         dc.SetBrush(wxBrush(state_colour));
-        dc.DrawCircle(FromDIP(42), FromDIP(35), FromDIP(3));
+        dc.DrawCircle(FromDIP(37), FromDIP(29), FromDIP(3));
         wxFont state_font = GetFont();
         state_font.SetPointSize(8);
         dc.SetFont(state_font);
         dc.SetTextForeground(state_colour);
-        dc.DrawText(m_state, FromDIP(50), FromDIP(27));
+        dc.DrawText(m_state, FromDIP(45), FromDIP(21));
     }
 
     wxString m_name;
@@ -1345,21 +1349,25 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
 
     auto* sidebar = new wxPanel(this, wxID_ANY);
     sidebar->SetBackgroundColour(wxColour(4, 14, 24));
-    sidebar->SetMinSize(wxSize(FromDIP(188), -1));
+    sidebar->SetMinSize(wxSize(FromDIP(174), -1));
     auto* side = new wxBoxSizer(wxVERTICAL);
     auto* brand_row = new wxBoxSizer(wxHORIZONTAL);
-    auto brand_icon_bitmap = create_scaled_bitmap("printbench_app_icon_32", sidebar, 26);
+    auto brand_icon_bitmap = create_scaled_bitmap("printbench_app_icon_32", sidebar, 22);
     auto* brand_icon = new wxStaticBitmap(sidebar, wxID_ANY, brand_icon_bitmap);
     auto* brand_text = new wxBoxSizer(wxVERTICAL);
     auto* brand = new wxStaticText(sidebar, wxID_ANY, "PRINTBENCH");
-    style_label(brand, 17, true);
+    style_label(brand, 14, true);
     auto* brand_sub = new wxStaticText(sidebar, wxID_ANY, wxString(L"Studio  \u2022  JL1976 Software"));
-    style_label(brand_sub, 8, false, PB_MUTED);
+    style_label(brand_sub, 7, false, PB_MUTED);
     brand_text->Add(brand, 0);
     brand_text->Add(brand_sub, 0, wxTOP, FromDIP(1));
-    brand_row->Add(brand_icon, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(8));
+    brand_row->Add(brand_icon, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(7));
     brand_row->Add(brand_text, 1, wxALIGN_CENTER_VERTICAL);
-    side->Add(brand_row, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP | wxBOTTOM, FromDIP(14));
+    side->Add(brand_row, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP | wxBOTTOM, FromDIP(10));
+    auto* brand_rule = new wxPanel(sidebar, wxID_ANY);
+    brand_rule->SetBackgroundColour(wxColour(19, 47, 64));
+    brand_rule->SetMinSize(wxSize(-1, FromDIP(1)));
+    side->Add(brand_rule, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(9));
     const std::array<wxString, 14> nav_items{
         wxString(L"\u00DCbersicht"), L"Live Ansicht", L"Steuerung", L"AMS 2 Pro", L"Material",
         wxString(L"Druckauftr\u00E4ge"), L"Historie", L"Dateien", L"Kamera", wxString(L"Ger\u00E4te-Setup"),
@@ -1371,20 +1379,23 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
         "print_control_resume", "print_info_time", "topbar_file", "camera_setting", "printer",
         "printer_in_lan", "info", "calib_sf", "settings"};
     for (size_t i = 0; i < nav_items.size(); ++i) {
-        auto icon_bitmap = create_scaled_bitmap(nav_icons[i], sidebar, 17);
+        auto icon_bitmap = create_scaled_bitmap(nav_icons[i], sidebar, 15);
         auto* item = new PrintbenchNavRow(sidebar, nav_items[i], icon_bitmap);
         item->SetActive(i == 0);
         m_nav_rows[i] = item;
         item->Bind(wxEVT_LEFT_UP, [this, i](wxMouseEvent&) { handle_nav(i); });
-        side->Add(item, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(3));
+        side->Add(item, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(2));
     }
     side->AddStretchSpacer();
+    auto* device_caption = new wxStaticText(sidebar, wxID_ANY, "GERÄTE");
+    style_label(device_caption, 7, true, PB_MUTED);
+    side->Add(device_caption, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(7));
     m_sidebar_devices[0] = new PrintbenchSidebarDevice(
-        sidebar, "Bambu Lab P2S", create_scaled_bitmap("printer", sidebar, 22));
+        sidebar, "Bambu Lab P2S", create_scaled_bitmap("printer", sidebar, 18));
     m_sidebar_devices[1] = new PrintbenchSidebarDevice(
-        sidebar, "AMS 2 Pro", create_scaled_bitmap("ams_setting_normal", sidebar, 22));
-    side->Add(m_sidebar_devices[0], 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
-    side->Add(m_sidebar_devices[1], 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
+        sidebar, "AMS 2 Pro", create_scaled_bitmap("ams_setting_normal", sidebar, 18));
+    side->Add(m_sidebar_devices[0], 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(6));
+    side->Add(m_sidebar_devices[1], 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(9));
     sidebar->SetSizer(side);
     shell->Add(sidebar, 0, wxEXPAND);
 
