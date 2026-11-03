@@ -26,11 +26,11 @@ namespace Slic3r {
 namespace GUI {
 
 namespace {
-const wxColour PB_BG(6, 16, 24);
-const wxColour PB_CARD(11, 29, 42);
-const wxColour PB_BORDER(25, 57, 77);
-const wxColour PB_TEXT(226, 238, 247);
-const wxColour PB_MUTED(122, 151, 170);
+const wxColour PB_BG(2, 10, 20);
+const wxColour PB_CARD(6, 20, 33);
+const wxColour PB_BORDER(20, 52, 76);
+const wxColour PB_TEXT(236, 245, 252);
+const wxColour PB_MUTED(111, 137, 158);
 const wxColour PB_ACCENT(0, 188, 230);
 const wxColour PB_OK(68, 214, 151);
 
@@ -989,7 +989,7 @@ public:
         : wxPanel(parent, wxID_ANY), m_caption(caption), m_bitmap(bitmap)
     {
         SetBackgroundStyle(wxBG_STYLE_PAINT);
-        SetMinSize(wxSize(FromDIP(82), FromDIP(36)));
+        SetMinSize(wxSize(FromDIP(92), FromDIP(42)));
         SetCursor(wxCursor(wxCURSOR_HAND));
         Bind(wxEVT_PAINT, &PrintbenchTopNavItem::on_paint, this);
         Bind(wxEVT_ENTER_WINDOW, [this](wxMouseEvent& e) { m_hover = true; Refresh(false); e.Skip(); });
@@ -1015,8 +1015,8 @@ private:
 
         if (m_active || m_hover) {
             dc.SetPen(*wxTRANSPARENT_PEN);
-            dc.SetBrush(wxBrush(m_active ? wxColour(7, 54, 114) : wxColour(7, 28, 43)));
-            dc.DrawRoundedRectangle(0, 0, size.x - 1, size.y - 1, FromDIP(4));
+            dc.SetBrush(wxBrush(m_active ? wxColour(5, 46, 103) : wxColour(5, 24, 40)));
+            dc.DrawRoundedRectangle(0, 0, size.x - 1, size.y - 1, FromDIP(7));
         }
         if (m_active) {
             dc.SetPen(*wxTRANSPARENT_PEN);
@@ -1024,19 +1024,19 @@ private:
             dc.DrawRoundedRectangle(FromDIP(6), size.y - FromDIP(2), size.x - FromDIP(12), FromDIP(2), FromDIP(1));
         }
 
-        const int icon_size = FromDIP(14);
+        const int icon_size = FromDIP(16);
         const int icon_x = FromDIP(8);
         const int icon_y = std::max(0, (size.y - icon_size) / 2);
         if (m_bitmap.IsOk())
             dc.DrawBitmap(m_bitmap, icon_x, icon_y, true);
 
         wxFont font = GetFont();
-        font.SetPointSize(8);
+        font.SetPointSize(9);
         font.SetWeight(m_active ? wxFONTWEIGHT_BOLD : wxFONTWEIGHT_NORMAL);
         dc.SetFont(font);
         dc.SetTextForeground(m_active ? *wxWHITE : wxColour(181, 199, 213));
         const wxSize ext = dc.GetTextExtent(m_caption);
-        dc.DrawText(m_caption, FromDIP(29), std::max(FromDIP(4), (size.y - ext.y) / 2));
+        dc.DrawText(m_caption, FromDIP(31), std::max(FromDIP(4), (size.y - ext.y) / 2));
     }
 
     wxString m_caption;
@@ -1052,7 +1052,7 @@ public:
         : wxPanel(parent, wxID_ANY), m_caption(caption), m_bitmap(bitmap)
     {
         SetBackgroundStyle(wxBG_STYLE_PAINT);
-        SetMinSize(wxSize(-1, FromDIP(34)));
+        SetMinSize(wxSize(-1, FromDIP(42)));
         SetCursor(wxCursor(wxCURSOR_HAND));
         Bind(wxEVT_PAINT, &PrintbenchNavRow::on_paint, this);
         Bind(wxEVT_ENTER_WINDOW, [this](wxMouseEvent& e) { m_hover = true; Refresh(false); e.Skip(); });
@@ -1071,27 +1071,27 @@ private:
     {
         wxAutoBufferedPaintDC dc(this);
         const wxSize size = GetClientSize();
-        dc.SetBackground(wxBrush(wxColour(4, 14, 24)));
+        dc.SetBackground(wxBrush(wxColour(2, 11, 22)));
         dc.Clear();
         if (size.x <= 0 || size.y <= 0)
             return;
 
-        wxColour fill = wxColour(4, 14, 24);
+        wxColour fill = wxColour(2, 11, 22);
         if (m_active)
-            fill = wxColour(7, 72, 155);
+            fill = wxColour(13, 112, 238);
         else if (m_hover)
-            fill = wxColour(7, 28, 43);
+            fill = wxColour(6, 29, 48);
         dc.SetPen(*wxTRANSPARENT_PEN);
         dc.SetBrush(wxBrush(fill));
         if (m_active || m_hover)
-            dc.DrawRoundedRectangle(0, 0, size.x - 1, size.y - 1, FromDIP(5));
+            dc.DrawRoundedRectangle(0, 0, size.x - 1, size.y - 1, FromDIP(8));
         if (m_active) {
             dc.SetBrush(wxBrush(PB_ACCENT));
-            dc.DrawRoundedRectangle(0, FromDIP(5), FromDIP(3), size.y - FromDIP(10), FromDIP(2));
+            dc.DrawRoundedRectangle(FromDIP(5), size.y - FromDIP(3), size.x - FromDIP(10), FromDIP(3), FromDIP(2));
         }
 
-        const int icon_size = FromDIP(15);
-        const int icon_x = FromDIP(10);
+        const int icon_size = FromDIP(18);
+        const int icon_x = FromDIP(13);
         const int icon_y = std::max(0, (size.y - icon_size) / 2);
         if (m_bitmap.IsOk())
             dc.DrawBitmap(m_bitmap, icon_x, icon_y, true);
@@ -1102,7 +1102,7 @@ private:
         dc.SetFont(font);
         dc.SetTextForeground(m_active ? *wxWHITE : wxColour(184, 201, 214));
         const wxSize ext = dc.GetTextExtent(m_caption);
-        dc.DrawText(m_caption, FromDIP(35), std::max(FromDIP(4), (size.y - ext.y) / 2));
+        dc.DrawText(m_caption, FromDIP(42), std::max(FromDIP(4), (size.y - ext.y) / 2));
     }
 
     wxString m_caption;
@@ -1359,17 +1359,17 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     // FINAL-MASTER fills the available desktop viewport edge-to-edge.
 
     auto* sidebar = new wxPanel(this, wxID_ANY);
-    sidebar->SetBackgroundColour(wxColour(4, 14, 24));
-    sidebar->SetMinSize(wxSize(FromDIP(174), -1));
+    sidebar->SetBackgroundColour(wxColour(2, 11, 22));
+    sidebar->SetMinSize(wxSize(FromDIP(208), -1));
     auto* side = new wxBoxSizer(wxVERTICAL);
     auto* brand_row = new wxBoxSizer(wxHORIZONTAL);
-    auto brand_icon_bitmap = create_scaled_bitmap("printbench_app_icon_32", sidebar, 22);
+    auto brand_icon_bitmap = create_scaled_bitmap("printbench_app_icon_32", sidebar, 30);
     auto* brand_icon = new wxStaticBitmap(sidebar, wxID_ANY, brand_icon_bitmap);
     auto* brand_text = new wxBoxSizer(wxVERTICAL);
     auto* brand = new wxStaticText(sidebar, wxID_ANY, "PRINTBENCH");
-    style_label(brand, 14, true);
+    style_label(brand, 17, true);
     auto* brand_sub = new wxStaticText(sidebar, wxID_ANY, wxString(L"Studio  \u2022  JL1976 Software"));
-    style_label(brand_sub, 7, false, PB_MUTED);
+    style_label(brand_sub, 8, false, PB_MUTED);
     brand_text->Add(brand, 0);
     brand_text->Add(brand_sub, 0, wxTOP, FromDIP(1));
     brand_row->Add(brand_icon, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(7));
@@ -1390,7 +1390,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
         "print_control_resume", "print_info_time", "topbar_file", "camera_setting", "printer",
         "printer_in_lan", "info", "calib_sf", "settings"};
     for (size_t i = 0; i < nav_items.size(); ++i) {
-        auto icon_bitmap = create_scaled_bitmap(nav_icons[i], sidebar, 15);
+        auto icon_bitmap = create_scaled_bitmap(nav_icons[i], sidebar, 18);
         auto* item = new PrintbenchNavRow(sidebar, nav_items[i], icon_bitmap);
         item->SetActive(i == 0);
         m_nav_rows[i] = item;
@@ -1431,12 +1431,12 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
             default: break;
             }
         });
-        header->Add(item, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+        header->Add(item, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(4));
     }
     header->AddStretchSpacer();
     m_header_status = new PrintbenchHeaderStatus(this);
     header->Add(m_header_status, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(8));
-    root->Add(header, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(8));
+    root->Add(header, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(10));
     root->AddSpacer(FromDIP(4));
 
     auto* hero = new wxBoxSizer(wxHORIZONTAL);
