@@ -54,13 +54,13 @@ For an already completed dependency tree, use:
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/build_printbench_orca.ps1 -SkipDependencies
 ```
 
-The script bootstraps the local Windows toolchain, configures the dependency and main build trees, builds the Release GUI target, verifies that both `orca-slicer.exe` and `OrcaSlicer.dll` were freshly generated, and then stages the native LAN module unless `-SkipNetwork` is used.
+The script bootstraps the local Windows toolchain, configures the dependency and main build trees, builds the Release GUI target, verifies that both `135er-PRINTBENCH.exe` and `OrcaSlicer.dll` were freshly generated, and then stages the native LAN module unless `-SkipNetwork` is used.
 
 ## Fresh-output rule
 
 A pre-existing EXE or DLL is **never** accepted as proof of a successful build.
 
-Immediately before the GUI build, `tools/build_printbench_orca.ps1` removes the old `orca-slicer.exe` and `OrcaSlicer.dll`. If a running PRINTBENCH/Orca process prevents cleanup, the script fails explicitly and instructs the operator to close the application.
+Immediately before the GUI build, `tools/build_printbench_orca.ps1` removes the old `135er-PRINTBENCH.exe` and `OrcaSlicer.dll`. If a running PRINTBENCH/Orca process prevents cleanup, the script fails explicitly and instructs the operator to close the application.
 
 After linking, both outputs must:
 
@@ -75,7 +75,7 @@ This rule was added after an interrupted build left an old executable in place a
 The main OrcaSlicer tree configures successfully against the local dependency prefix with Visual Studio 18 2026. The following Release targets have been built successfully on the target Windows machine:
 
 - `OrcaSlicer` -> `build-printbench-check/src/Release/OrcaSlicer.dll`
-- `OrcaSlicer_app_gui` -> `build-printbench-check/src/Release/orca-slicer.exe`
+- `OrcaSlicer_app_gui` -> `build-printbench-check/src/Release/135er-PRINTBENCH.exe`
 
 This compile includes `libslic3r_gui` and therefore verifies the PRINTBENCH native Device integration at C++ build level for the last completed build. The current FINAL-MASTER checkpoint must still be rebuilt on the Windows target after the next pull; the fresh-output rule above prevents an older executable from being mistaken for that verification.
 

@@ -80,7 +80,7 @@ Write-Host '== Configure PRINTBENCH Orca =='
     -DCMAKE_BUILD_TYPE=Release
 if ($LASTEXITCODE -ne 0) { throw 'PRINTBENCH Orca configure failed' }
 
-$Exe = Join-Path $MainBuild 'src\Release\orca-slicer.exe'
+$Exe = Join-Path $MainBuild 'src\Release\135er-PRINTBENCH.exe'
 $Dll = Join-Path $MainBuild 'src\Release\OrcaSlicer.dll'
 $BuildStartedUtc = [DateTime]::UtcNow
 
