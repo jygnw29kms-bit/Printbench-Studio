@@ -10,7 +10,7 @@ def test_master_navigation_is_readable_at_desktop_scale():
     assert 'font.SetPointSize(9);' in CPP
 
 def test_master_card_typography_has_clear_hierarchy():
-    assert 'style_label(heading, 12, true, PB_ACCENT);' in CPP
+    assert 'style_label(heading, 10, true, PB_ACCENT);' in CPP
     assert 'name_font.SetPointSize(14);' in CPP
     assert 'class PrintbenchJobHeader : public wxPanel' in CPP
     assert 'style_label(value, 13, true, PB_TEXT);' in CPP
