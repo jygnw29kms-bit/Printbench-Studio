@@ -902,7 +902,19 @@ endif()
 
 # Resources install target, configure fhs.hpp on UNIX
 if (WIN32)
-    install(DIRECTORY "${SLIC3R_RESOURCES_DIR}/" DESTINATION "./resources")
+    # PRINTBENCH is a P2S/AMS product. Keep the Windows package focused on
+    # Bambu profiles plus the shared filament library instead of shipping
+    # every Orca vendor profile tree (which also exceeds legacy NSIS paths).
+    install(DIRECTORY "${SLIC3R_RESOURCES_DIR}/" DESTINATION "./resources"
+        PATTERN "profiles" EXCLUDE)
+    install(DIRECTORY "${SLIC3R_RESOURCES_DIR}/profiles/BBL" DESTINATION "./resources/profiles")
+    install(FILES
+        "${SLIC3R_RESOURCES_DIR}/profiles/BBL.json"
+        "${SLIC3R_RESOURCES_DIR}/profiles/blacklist.json"
+        "${SLIC3R_RESOURCES_DIR}/profiles/hotend.stl"
+        DESTINATION "./resources/profiles")
+    install(DIRECTORY "${SLIC3R_RESOURCES_DIR}/profiles/OrcaFilamentLibrary" DESTINATION "./resources/profiles")
+    install(FILES "${SLIC3R_RESOURCES_DIR}/profiles/OrcaFilamentLibrary.json" DESTINATION "./resources/profiles")
     set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
     include(InstallRequiredSystemLibraries)
     install (PROGRAMS ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION ".")
@@ -944,6 +956,13 @@ if (WIN32)
         string (APPEND CPACK_PACKAGE_FILE_NAME "_x64")
     endif ()
 endif ()
+# Keep NSIS' temporary package tree short. Bambu profile filenames are long
+# enough to exceed legacy Win32 path limits when staged inside the build tree.
+if (WIN32 AND DEFINED ENV{LOCALAPPDATA} AND NOT "$ENV{LOCALAPPDATA}" STREQUAL "")
+    file(TO_CMAKE_PATH "$ENV{LOCALAPPDATA}/PB/pkg" PRINTBENCH_CPACK_DIR)
+    set(CPACK_PACKAGE_DIRECTORY "${PRINTBENCH_CPACK_DIR}")
+endif()
+
 set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "135er-PRINTBENCH by JL1976 Software - native P2S/AMS desktop slicer and device control")
 set (CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/jygnw29kms-bit/Printbench-Studio")
 set (CPACK_PACKAGE_INSTALL_DIRECTORY ${CPACK_PACKAGE_NAME})
