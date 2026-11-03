@@ -1442,12 +1442,20 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     hero->Add(printer_card, 42, wxEXPAND | wxRIGHT, FromDIP(8));
 
     auto* status_card = make_card(this, "DRUCKERSTATUS", body);
+    auto add_status_section = [&](const wxString& caption) {
+        auto* label = new wxStaticText(status_card, wxID_ANY, caption);
+        style_label(label, 8, true, PB_MUTED);
+        body->Add(label, 0, wxLEFT | wxRIGHT | wxTOP | wxBOTTOM, FromDIP(4));
+    };
     m_status_ready = add_status_value(status_card, body, "Status", m_printer_status_dots[0]);
+    add_status_section("AKTUELLE TEMPERATUR");
     m_nozzle = add_status_value(status_card, body, wxString(L"D\u00FCse"), m_printer_status_dots[1]);
     m_bed = add_status_value(status_card, body, "Druckbett", m_printer_status_dots[2]);
     m_chamber = add_status_value(status_card, body, "Kammer", m_printer_status_dots[3]);
-    m_speed = add_status_value(status_card, body, "Geschwindigkeit", m_printer_status_dots[4]);
-    m_ams_summary = add_status_value(status_card, body, "AMS 2 Pro", m_printer_status_dots[5]);
+    add_status_section("GESCHWINDIGKEIT");
+    m_speed = add_status_value(status_card, body, "Modus", m_printer_status_dots[4]);
+    add_status_section("AMS 2 PRO");
+    m_ams_summary = add_status_value(status_card, body, "Status", m_printer_status_dots[5]);
     status_card->SetMinSize(wxSize(FromDIP(230), FromDIP(330)));
     hero->Add(status_card, 24, wxEXPAND | wxRIGHT, FromDIP(8));
 
