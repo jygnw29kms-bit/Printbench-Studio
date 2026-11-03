@@ -164,7 +164,7 @@ public:
     {
         SetBackgroundStyle(wxBG_STYLE_PAINT);
         SetBackgroundColour(wxColour(7, 21, 31));
-        SetMinSize(wxSize(FromDIP(112), FromDIP(92)));
+        SetMinSize(wxSize(FromDIP(86), FromDIP(112)));
         Bind(wxEVT_PAINT, &PrintbenchAmsSlotCard::on_paint, this);
     }
 
@@ -202,10 +202,10 @@ private:
             dc.DrawText(pct, size.x - ext.x - FromDIP(8), FromDIP(6));
         }
 
-        const int cx = FromDIP(31);
-        const int cy = FromDIP(52);
-        const int outer = FromDIP(23);
-        const int inner = FromDIP(9);
+        const int cx = size.x / 2;
+        const int cy = FromDIP(45);
+        const int outer = FromDIP(22);
+        const int inner = FromDIP(8);
         if (m_present) {
             dc.SetPen(wxPen(m_colour.ChangeLightness(78), std::max(1, FromDIP(2))));
             dc.SetBrush(wxBrush(m_colour));
@@ -223,14 +223,25 @@ private:
         }
 
         wxFont material_font = GetFont();
-        material_font.SetPointSize(10); material_font.SetWeight(wxFONTWEIGHT_BOLD);
+        material_font.SetPointSize(9); material_font.SetWeight(wxFONTWEIGHT_BOLD);
         dc.SetFont(material_font);
         dc.SetTextForeground(m_present ? PB_TEXT : PB_MUTED);
-        const int text_x = FromDIP(62);
-        dc.DrawText(m_material, text_x, FromDIP(38));
+        wxString material = m_material;
+        while (!material.empty() && dc.GetTextExtent(material).x > size.x - FromDIP(12))
+            material.RemoveLast();
+        if (material != m_material && material.length() > 1) {
+            material.RemoveLast();
+            material += wxString::FromUTF8("…");
+        }
+        wxSize material_ext = dc.GetTextExtent(material);
+        dc.DrawText(material, std::max(FromDIP(5), (size.x - material_ext.x) / 2), FromDIP(72));
         dc.SetFont(tiny);
         dc.SetTextForeground(PB_MUTED);
-        dc.DrawText(m_present ? "AMS 2 Pro" : "Kein Filament", text_x, FromDIP(58));
+        const wxString detail = m_present
+            ? (m_remain >= 0 ? wxString::Format("%d %% Rest", m_remain) : wxString("AMS 2 Pro"))
+            : wxString("Kein Filament");
+        wxSize detail_ext = dc.GetTextExtent(detail);
+        dc.DrawText(detail, std::max(FromDIP(5), (size.x - detail_ext.x) / 2), FromDIP(89));
 
         if (m_present) {
             dc.SetPen(*wxTRANSPARENT_PEN);
