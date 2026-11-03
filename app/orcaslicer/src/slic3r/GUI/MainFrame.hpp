@@ -13,6 +13,7 @@
 
 #include <string>
 #include <map>
+#include <array>
 
 #include "GUI_Utils.hpp"
 #include "Event.hpp"
@@ -114,6 +115,9 @@ class MainFrame : public DPIFrame
 #endif
     wxMenuItem* m_menu_item_reslice_now { nullptr };
     wxSizer*    m_main_sizer{ nullptr };
+    wxPanel*    m_printbench_global_nav{ nullptr };
+    std::array<wxPanel*, 6> m_printbench_global_nav_items{};
+    std::array<wxStaticText*, 6> m_printbench_global_nav_labels{};
 
     size_t      m_last_selected_tab;
 
@@ -325,6 +329,7 @@ public:
     // Select tab in m_tabpanel
     // When tab == -1, will be selected last selected tab
     //BBS: GUI refactor
+    void        update_printbench_global_nav(size_t tab);
     void        select_tab(wxPanel* panel);
     void        select_tab(size_t tab = size_t(-1));
     void        request_select_tab(TabPosition pos);
