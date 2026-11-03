@@ -10,6 +10,14 @@ def test_build_contract_tracks_branded_windows_executable():
     assert "src\\Release\\orca-slicer.exe" not in BUILD
     assert '135er-PRINTBENCH.exe' in DOC
 
+def test_windows_resource_icons_are_the_final_printbench_icon():
+    branded = (ROOT/'assets/branding/PRINTBENCH_AppIcon.ico').read_bytes()
+    images = ROOT/'app/orcaslicer/resources/images'
+    assert (images/'OrcaSlicer.ico').read_bytes() == branded
+    assert (images/'OrcaSlicerTitle.ico').read_bytes() == branded
+    assert (images/'OrcaSlicer-mac_256px.ico').read_bytes() == branded
+
+
 def test_msix_visible_surface_uses_printbench_branding():
     assert "'135er-PRINTBENCH.exe'" in MSIX
     assert '135er-PRINTBENCH_Windows_MSIX.msix' in MSIX
