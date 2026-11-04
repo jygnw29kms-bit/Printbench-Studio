@@ -1358,7 +1358,11 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     auto* shell = new wxBoxSizer(wxHORIZONTAL);
     // FINAL-MASTER fills the available desktop viewport edge-to-edge.
 
-    auto* sidebar = new wxPanel(this, wxID_ANY);
+    // Keep all fourteen master navigation rows and the connected-device cards
+    // reachable on shorter Windows desktops, without scrolling the dashboard.
+    auto* sidebar = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition,
+                                         wxDefaultSize, wxVSCROLL | wxTAB_TRAVERSAL);
+    sidebar->SetScrollRate(0, FromDIP(12));
     sidebar->SetBackgroundColour(wxColour(2, 11, 22));
     sidebar->SetMinSize(wxSize(FromDIP(208), -1));
     auto* side = new wxBoxSizer(wxVERTICAL);

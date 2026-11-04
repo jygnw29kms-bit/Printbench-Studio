@@ -20,6 +20,11 @@ def test_sidebar_branding_keeps_jl1976_and_compact_two_line_master_layout():
     assert 'JL1976 Software' in CPP
     assert 'brand_text->Add(brand_sub' in CPP
 
+def test_sidebar_remains_scrollable_on_short_desktops():
+    assert 'auto* sidebar = new wxScrolledWindow(this, wxID_ANY' in CPP
+    assert 'sidebar->SetScrollRate(0, FromDIP(12));' in CPP
+    assert 'side->Add(m_sidebar_devices[1]' in CPP
+
 def test_sidebar_matches_compact_final_master_density():
     assert 'sidebar->SetMinSize(wxSize(FromDIP(208), -1));' in CPP
     assert 'SetMinSize(wxSize(-1, FromDIP(42)))' in CPP
