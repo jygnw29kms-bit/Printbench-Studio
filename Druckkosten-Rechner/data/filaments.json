@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-04T13:04:12+00:00",
+  "updated": "2026-11-05T13:17:34+00:00",
   "sources": [
     {
       "name": "3D Filament Profiles",
@@ -46,7 +46,7 @@
         "PLA": 12.0,
         "PLA+": 10.79,
         "HS-PLA": 11.99,
-        "PETG": 4.99,
+        "PETG": 12.0,
         "ABS": 8.04,
         "ASA": 12.0,
         "TPU": 9.99
@@ -59,7 +59,7 @@
         "PLA+": 9.49,
         "HS-PLA": 9.99,
         "PETG": 7.45,
-        "ABS": 14.43,
+        "ABS": 13.66,
         "ASA": 14.99,
         "TPU": 18.9
       }
@@ -78,9 +78,9 @@
     {
       "name": "GEEETECH",
       "materials": {
-        "PLA": 4.34,
+        "PLA": 4.33,
         "PLA+": 10.99,
-        "PETG": 7.09,
+        "PETG": 4.99,
         "ABS": 8.04,
         "TPU": 9.99
       }
@@ -110,7 +110,7 @@
     {
       "name": "Bambu Lab",
       "materials": {
-        "PLA": 6.99,
+        "PLA": 6.89,
         "PETG": 8.89,
         "ABS": 14.75,
         "ASA": 18.95,
@@ -197,7 +197,7 @@
     {
       "brand": "GEEETECH",
       "material": "PLA",
-      "eur_per_kg": 4.34,
+      "eur_per_kg": 4.33,
       "source": "Spulenheld",
       "url": "https://spulenheld.de/deals/pla"
     },
@@ -205,6 +205,13 @@
       "brand": "Extrudr",
       "material": "PLA",
       "eur_per_kg": 6.0,
+      "source": "Spulenheld",
+      "url": "https://spulenheld.de/deals/pla"
+    },
+    {
+      "brand": "Bambu Lab",
+      "material": "PLA",
+      "eur_per_kg": 6.89,
       "source": "Spulenheld",
       "url": "https://spulenheld.de/deals/pla"
     },
@@ -218,14 +225,14 @@
     {
       "brand": "SUNLU",
       "material": "PETG",
-      "eur_per_kg": 4.99,
+      "eur_per_kg": 12.0,
       "source": "Spulenheld",
       "url": "https://spulenheld.de/deals/petg"
     },
     {
       "brand": "GEEETECH",
       "material": "PETG",
-      "eur_per_kg": 7.09,
+      "eur_per_kg": 4.99,
       "source": "Spulenheld",
       "url": "https://spulenheld.de/deals/petg"
     },
@@ -253,7 +260,7 @@
     {
       "brand": "JAYO",
       "material": "ABS",
-      "eur_per_kg": 14.43,
+      "eur_per_kg": 13.66,
       "source": "Spulenheld",
       "url": "https://spulenheld.de/deals/abs"
     },
@@ -261,6 +268,13 @@
       "brand": "Bambu Lab",
       "material": "ABS",
       "eur_per_kg": 14.75,
+      "source": "Spulenheld",
+      "url": "https://spulenheld.de/deals/abs"
+    },
+    {
+      "brand": "Polymaker",
+      "material": "ABS",
+      "eur_per_kg": 25.0,
       "source": "Spulenheld",
       "url": "https://spulenheld.de/deals/abs"
     },
