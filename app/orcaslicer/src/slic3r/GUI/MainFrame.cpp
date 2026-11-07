@@ -629,6 +629,13 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     update_layout();
     update_printbench_global_nav(m_tabpanel ? static_cast<size_t>(m_tabpanel->GetSelection()) : tp3DEditor);
     sizer->SetSizeHints(this);
+    // Hiding Orca's notebook tab strip must not collapse the native frame
+    // to the notebook's 1x1 placeholder while presets and pages initialize.
+    const wxSize printbench_min_window(FromDIP(1100), FromDIP(720));
+    SetMinSize(printbench_min_window);
+    if (GetSize().x < printbench_min_window.x || GetSize().y < printbench_min_window.y)
+        SetSize(wxSize(FromDIP(1440), FromDIP(900)));
+    Layout();
 
     #if 0 && defined(__WXMSW__)
     // Legacy Orca borderless-frame workaround disabled for native PRINTBENCH chrome.
