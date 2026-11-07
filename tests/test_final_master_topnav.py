@@ -1,28 +1,25 @@
-﻿from pathlib import Path
-ROOT=Path(__file__).resolve().parents[1]
-CPP=(ROOT/'app/orcaslicer/src/slic3r/GUI/PrintbenchNativePanel.cpp').read_text(encoding='utf-8')
-HPP=(ROOT/'app/orcaslicer/src/slic3r/GUI/PrintbenchNativePanel.hpp').read_text(encoding='utf-8')
+from pathlib import Path
+ROOT = Path(__file__).resolve().parents[1]
+GUI = ROOT / "app/orcaslicer/src/slic3r/GUI"
+PANEL = (GUI/"PrintbenchNativePanel.cpp").read_text(encoding="utf-8")
+SHELL = (GUI/"MainFrame.cpp").read_text(encoding="utf-8")
+HEADER = (GUI/"MainFrame.hpp").read_text(encoding="utf-8")
 
-def test_top_navigation_uses_native_master_items_with_icons():
-    assert 'class PrintbenchTopNavItem : public wxPanel' in CPP
-    assert 'std::array<PrintbenchTopNavItem*, 6> m_top_nav' in HPP
-    assert 'const std::array<const char*, 6> top_icons' in CPP
-    assert 'new PrintbenchTopNavItem(this, top_items[i]' in CPP
+def test_master_has_one_sidebar_and_no_duplicate_top_menu():
+    assert 'const std::array<wxString, 14> nav_items' in PANEL
+    assert 'const std::array<wxString, 14> pb_nav_names' in SHELL
+    assert 'const std::array<wxString, 6> top_items' not in PANEL
+    assert 'new PrintbenchTopNavItem(this, top_items[i]' not in PANEL
+    assert 'header->AddStretchSpacer();' in PANEL
 
-def test_top_navigation_tracks_active_section_and_sidebar_routes():
-    assert 'void PrintbenchNativePanel::activate_top_nav(size_t index)' in CPP
-    assert 'activate_top_nav(i);' in CPP
-    assert 'case 3: case 4: activate_top_nav(3); break;' in CPP
-    assert 'case 6: activate_top_nav(4); break;' in CPP
-    assert 'case 9: case 10: activate_top_nav(2); break;' in CPP
+def test_all_pages_have_same_single_left_navigation():
+    assert 'std::array<wxPanel*, 14> m_printbench_global_nav_items' in HEADER
+    assert 'pb_workspace->Add(m_printbench_global_nav, 0, wxEXPAND);' in SHELL
+    assert 'pb_workspace->Add(m_main_sizer, 1, wxEXPAND);' in SHELL
+    assert 'const bool show_global = tab != tpMonitor;' in SHELL
+    assert 'm_printbench_global_nav->Show(show_global);' in SHELL
 
-def test_top_navigation_has_master_active_underline_and_hover():
-    assert 'm_active ? wxColour(5, 46, 103)' in CPP
-    assert 'dc.DrawRoundedRectangle(FromDIP(6), size.y - FromDIP(2)' in CPP
-    assert 'm_hover = true; Refresh(false)' in CPP
-
-def test_top_navigation_matches_compact_master_density():
-    assert 'SetMinSize(wxSize(FromDIP(92), FromDIP(42)))' in CPP
-    assert 'create_scaled_bitmap(top_icons[i], this, 14)' in CPP
-    assert 'font.SetPointSize(9);' in CPP
-    assert 'header->Add(item, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(4));' in CPP
+def test_master_nav_tracks_selection_without_a_top_tabbar():
+    assert 'void MainFrame::update_printbench_global_nav(size_t tab)' in SHELL
+    assert 'm_printbench_global_nav_items[i]->SetBackgroundColour' in SHELL
+    assert 'activate_nav(index);' in PANEL

@@ -116,8 +116,8 @@ class MainFrame : public DPIFrame
     wxMenuItem* m_menu_item_reslice_now { nullptr };
     wxSizer*    m_main_sizer{ nullptr };
     wxPanel*    m_printbench_global_nav{ nullptr };
-    std::array<wxPanel*, 6> m_printbench_global_nav_items{};
-    std::array<wxStaticText*, 6> m_printbench_global_nav_labels{};
+    std::array<wxPanel*, 14> m_printbench_global_nav_items{};
+    std::array<wxStaticText*, 14> m_printbench_global_nav_labels{};
 
     size_t      m_last_selected_tab;
 

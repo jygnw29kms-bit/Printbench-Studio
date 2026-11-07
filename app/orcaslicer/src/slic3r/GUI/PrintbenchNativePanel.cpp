@@ -1416,27 +1416,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
 
     auto* root = new wxBoxSizer(wxVERTICAL);
     auto* header = new wxBoxSizer(wxHORIZONTAL);
-    const std::array<wxString, 6> top_items{L"Drucker", L"Slicer", wxString(L"Ger\u00E4te"), L"Material", L"Historie", L"Einstellungen"};
-    const std::array<const char*, 6> top_icons{
-        "printer", "topbar_file", "printer_in_lan", "filament", "print_info_time", "ams_setting_normal"};
-    for (size_t i = 0; i < top_items.size(); ++i) {
-        auto* item = new PrintbenchTopNavItem(this, top_items[i], create_scaled_bitmap(top_icons[i], this, 14));
-        item->SetActive(i == 0);
-        m_top_nav[i] = item;
-        item->Bind(wxEVT_LEFT_UP, [this, i](wxMouseEvent&) {
-            activate_top_nav(i);
-            switch (i) {
-            case 0: handle_nav(0); break;                                  // Drucker
-            case 1: if (wxGetApp().mainframe) wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor); break;
-            case 2: if (wxGetApp().mainframe) wxGetApp().mainframe->select_tab(MainFrame::tpMultiDevice); break;
-            case 3: handle_nav(3); break;                                  // Material / AMS
-            case 4: handle_nav(6); break;                                  // Historie
-            case 5: wxGetApp().open_preferences(); break;
-            default: break;
-            }
-        });
-        header->Add(item, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(4));
-    }
+    // FINAL MASTER: no duplicate top navigation. The header is status-only.
     header->AddStretchSpacer();
     m_header_status = new PrintbenchHeaderStatus(this);
     header->Add(m_header_status, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(8));

@@ -531,42 +531,59 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
      sizer->Add(m_topbar, 0, wxEXPAND);
      m_topbar->Hide();
 
+     // ONE master navigation rail on the left for every non-dashboard page.
+     // Dashboard already has its identical left rail; never stack two menus.
      m_printbench_global_nav = new wxPanel(this, wxID_ANY);
      m_printbench_global_nav->SetBackgroundColour(wxColour(2, 11, 22));
-     auto* pb_nav_sizer = new wxBoxSizer(wxHORIZONTAL);
+     m_printbench_global_nav->SetMinSize(wxSize(FromDIP(208), -1));
+     auto* pb_nav_sizer = new wxBoxSizer(wxVERTICAL);
+     auto* pb_brand_row = new wxBoxSizer(wxHORIZONTAL);
      auto* pb_brand_icon = new wxStaticBitmap(m_printbench_global_nav, wxID_ANY,
          ScalableBitmap(m_printbench_global_nav, "printbench_app_icon_32", 30).bmp());
+     auto* pb_brand_text = new wxBoxSizer(wxVERTICAL);
      auto* pb_brand = new wxStaticText(m_printbench_global_nav, wxID_ANY, "PRINTBENCH");
      wxFont pb_brand_font = pb_brand->GetFont();
      pb_brand_font.SetPointSize(17);
      pb_brand_font.SetWeight(wxFONTWEIGHT_BOLD);
      pb_brand->SetFont(pb_brand_font);
      pb_brand->SetForegroundColour(wxColour(236, 245, 252));
-     auto* pb_brand_stack = new wxBoxSizer(wxVERTICAL);
-     auto* pb_brand_subtitle = new wxStaticText(m_printbench_global_nav, wxID_ANY, "STUDIO / DEVICE");
-     wxFont pb_subtitle_font = pb_brand_subtitle->GetFont();
-     pb_subtitle_font.SetPointSize(7);
-     pb_brand_subtitle->SetFont(pb_subtitle_font);
-     pb_brand_subtitle->SetForegroundColour(wxColour(111, 137, 158));
-     pb_brand_stack->Add(pb_brand, 0);
-     pb_brand_stack->Add(pb_brand_subtitle, 0, wxTOP, FromDIP(1));
-     pb_nav_sizer->Add(pb_brand_icon, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(10));
-     pb_nav_sizer->Add(pb_brand_stack, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(18));
+     auto* pb_subtitle = new wxStaticText(m_printbench_global_nav, wxID_ANY, "Studio  /  JL1976 Software");
+     wxFont pb_subtitle_font = pb_subtitle->GetFont();
+     pb_subtitle_font.SetPointSize(8);
+     pb_subtitle->SetFont(pb_subtitle_font);
+     pb_subtitle->SetForegroundColour(wxColour(111, 137, 158));
+     pb_brand_text->Add(pb_brand, 0);
+     pb_brand_text->Add(pb_subtitle, 0, wxTOP, FromDIP(1));
+     pb_brand_row->Add(pb_brand_icon, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(7));
+     pb_brand_row->Add(pb_brand_text, 1, wxALIGN_CENTER_VERTICAL);
+     pb_nav_sizer->Add(pb_brand_row, 0, wxEXPAND | wxALL, FromDIP(10));
 
-     const std::array<wxString, 6> pb_nav_names{L"Drucker", L"Slicer", wxString(L"Ger\u00E4te"), L"Material", L"Historie", L"Einstellungen"};
-     const std::array<const char*, 6> pb_nav_icons{"printer", "topbar_file", "printer_in_lan", "filament", "print_info_time", "settings"};
+     auto* pb_brand_rule = new wxPanel(m_printbench_global_nav, wxID_ANY);
+     pb_brand_rule->SetBackgroundColour(wxColour(19, 47, 64));
+     pb_brand_rule->SetMinSize(wxSize(-1, FromDIP(1)));
+     pb_nav_sizer->Add(pb_brand_rule, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(9));
+
+     const std::array<wxString, 14> pb_nav_names{
+         wxString(L"\u00DCbersicht"), L"Live Ansicht", L"Steuerung", L"AMS 2 Pro", L"Material",
+         wxString(L"Druckauftr\u00E4ge"), L"Historie", L"Dateien", L"Kamera",
+         wxString(L"Ger\u00E4te-Setup"), L"Netzwerk", L"Sicherheit", L"Diagnose", L"System"};
+     const std::array<const char*, 14> pb_nav_icons{
+         "monitor", "monitor_camera", "monitor_axis_home_icon", "ams_setting_normal",
+         "filament", "print_control_resume", "print_info_time", "topbar_file",
+         "camera_setting", "printer", "printer_in_lan", "info", "calib_sf", "settings"};
      for (size_t i = 0; i < pb_nav_names.size(); ++i) {
          auto* item = new wxPanel(m_printbench_global_nav, wxID_ANY);
          item->SetBackgroundColour(wxColour(2, 11, 22));
+         item->SetMinSize(wxSize(-1, FromDIP(42)));
          auto* item_sizer = new wxBoxSizer(wxHORIZONTAL);
-         auto* icon = new wxStaticBitmap(item, wxID_ANY, ScalableBitmap(item, pb_nav_icons[i], 14).bmp());
+         auto* icon = new wxStaticBitmap(item, wxID_ANY, ScalableBitmap(item, pb_nav_icons[i], 18).bmp());
          auto* label = new wxStaticText(item, wxID_ANY, pb_nav_names[i]);
          wxFont font = label->GetFont();
          font.SetPointSize(9);
          label->SetFont(font);
          label->SetForegroundColour(wxColour(184, 201, 214));
-         item_sizer->Add(icon, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(8));
-         item_sizer->Add(label, 0, wxLEFT | wxRIGHT | wxTOP | wxBOTTOM | wxALIGN_CENTER_VERTICAL, FromDIP(6));
+         item_sizer->Add(icon, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(12));
+         item_sizer->Add(label, 1, wxALIGN_CENTER_VERTICAL);
          item->SetSizer(item_sizer);
          item->SetCursor(wxCursor(wxCURSOR_HAND));
          icon->SetCursor(wxCursor(wxCURSOR_HAND));
@@ -575,36 +592,34 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
          m_printbench_global_nav_labels[i] = label;
          const auto handler = [this, i](wxMouseEvent&) {
              switch (i) {
-             case 0: select_tab(tpMonitor); break;
-             case 1: select_tab(tp3DEditor); break;
-             case 2: select_tab(tpMultiDevice); break;
-             case 3: select_tab(tpMonitor); break;
-             case 4: select_tab(tpMonitor); break;
-             case 5: wxGetApp().open_preferences(); break;
-             default: break;
+             case 7: select_tab(tp3DEditor); break;
+             case 9: case 10: select_tab(tpMultiDevice); break;
+             case 11: wxGetApp().open_preferences(); break;
+             case 12: show_log_window(); break;
+             default: select_tab(tpMonitor); break;
              }
          };
          item->Bind(wxEVT_LEFT_UP, handler);
          icon->Bind(wxEVT_LEFT_UP, handler);
          label->Bind(wxEVT_LEFT_UP, handler);
-         pb_nav_sizer->Add(item, 0, wxRIGHT | wxTOP | wxBOTTOM, FromDIP(3));
+         pb_nav_sizer->Add(item, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(4));
      }
      pb_nav_sizer->AddStretchSpacer();
      auto* jl_brand = new wxStaticText(m_printbench_global_nav, wxID_ANY, "JL1976 SOFTWARE");
-     wxFont jl_font = jl_brand->GetFont();
-     jl_font.SetPointSize(8);
-     jl_font.SetWeight(wxFONTWEIGHT_BOLD);
-     jl_brand->SetFont(jl_font);
      jl_brand->SetForegroundColour(wxColour(0, 188, 230));
-     pb_nav_sizer->Add(jl_brand, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(12));
+     pb_nav_sizer->Add(jl_brand, 0, wxALL, FromDIP(12));
      m_printbench_global_nav->SetSizer(pb_nav_sizer);
-     sizer->Add(m_printbench_global_nav, 0, wxEXPAND);
 #else
      sizer->Add(panel_topbar, 0, wxEXPAND);
 #endif // __WINDOWS__
 
 
-    sizer->Add(m_main_sizer, 1, wxEXPAND);
+    auto* pb_workspace = new wxBoxSizer(wxHORIZONTAL);
+#ifndef __APPLE__
+    pb_workspace->Add(m_printbench_global_nav, 0, wxEXPAND);
+#endif
+    pb_workspace->Add(m_main_sizer, 1, wxEXPAND);
+    sizer->Add(pb_workspace, 1, wxEXPAND);
     SetSizerAndFit(sizer);
     // initialize layout from config
     update_layout();
@@ -4036,14 +4051,11 @@ void MainFrame::update_printbench_global_nav(size_t tab)
         return;
     const bool show_global = tab != tpMonitor;
     m_printbench_global_nav->Show(show_global);
-    size_t active = 1;
-    if (tab == tpMultiDevice) active = 2;
-    else if (tab == tpMonitor) active = 0;
-    else if (tab == tpProject) active = 3;
+    size_t active = tab == tpMultiDevice ? 9 : (tab == tp3DEditor || tab == tpPreview ? 7 : 0);
     for (size_t i = 0; i < m_printbench_global_nav_items.size(); ++i) {
         if (!m_printbench_global_nav_items[i] || !m_printbench_global_nav_labels[i]) continue;
         const bool selected = i == active;
-        m_printbench_global_nav_items[i]->SetBackgroundColour(selected ? wxColour(13, 112, 238) : wxColour(2, 11, 22));
+        m_printbench_global_nav_items[i]->SetBackgroundColour(selected ? wxColour(5, 46, 103) : wxColour(2, 11, 22));
         m_printbench_global_nav_labels[i]->SetForegroundColour(selected ? *wxWHITE : wxColour(184, 201, 214));
         wxFont font = m_printbench_global_nav_labels[i]->GetFont();
         font.SetWeight(selected ? wxFONTWEIGHT_BOLD : wxFONTWEIGHT_NORMAL);

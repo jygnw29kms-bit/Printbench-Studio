@@ -38,8 +38,8 @@ def test_native_panel_covers_final_master_primary_regions():
         assert label in PANEL, label
 
     for label in ['\u00dcbersicht', 'Live Ansicht', 'Steuerung', 'Druckauftr\u00e4ge', 'Ger\u00e4te-Setup',
-                  'Netzwerk', 'Sicherheit', 'Diagnose', 'Drucker', 'Slicer', 'Ger\u00e4te',
-                  'Material', 'Historie', 'Einstellungen', 'SCHNELLSTEUERUNG']:
+                  'Netzwerk', 'Sicherheit', 'Diagnose', 'Drucker',
+                  'Material', 'Historie', 'SCHNELLSTEUERUNG']:
         assert label in PANEL_RENDERED, label
 
 
