@@ -265,7 +265,7 @@ public:
     {
         SetBackgroundStyle(wxBG_STYLE_PAINT);
         SetBackgroundColour(PB_CARD);
-        SetMinSize(wxSize(FromDIP(390), FromDIP(278)));
+        SetMinSize(wxSize(FromDIP(390), FromDIP(340)));
         Bind(wxEVT_PAINT, &PrintbenchHeroPanel::on_paint, this);
     }
 
@@ -1448,7 +1448,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
 
     auto* printer_card = new PrintbenchCardPanel(this);
     m_printer_card = printer_card;
-    printer_card->SetMinSize(wxSize(FromDIP(390), FromDIP(330)));
+    printer_card->SetMinSize(wxSize(FromDIP(390), FromDIP(400)));
     auto* printer_body = new wxBoxSizer(wxVERTICAL);
     auto hero_bitmap = create_scaled_bitmap("printbench_hero_p2s_ams", this, 560);
     m_hero_panel = new PrintbenchHeroPanel(printer_card, hero_bitmap);
@@ -1471,13 +1471,14 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     m_speed = add_status_value(status_card, body, "Modus", m_printer_status_dots[4]);
     add_status_section("AMS 2 PRO");
     m_ams_summary = add_status_value(status_card, body, "Status", m_printer_status_dots[5]);
-    status_card->SetMinSize(wxSize(FromDIP(230), FromDIP(330)));
+    status_card->SetMinSize(wxSize(FromDIP(230), FromDIP(400)));
     hero->Add(status_card, 24, wxEXPAND | wxRIGHT, FromDIP(8));
 
     auto* right_hero = new wxBoxSizer(wxVERTICAL);
     auto* camera_card = make_card(this, "LIVE KAMERA", body);
     m_camera_card = camera_card;
-    camera_card->SetMinSize(wxSize(FromDIP(330), FromDIP(205)));
+    // Video, player chrome and camera action row must fit without overlap.
+    camera_card->SetMinSize(wxSize(FromDIP(330), FromDIP(280)));
     m_camera = add_value(camera_card, body, "Kamera");
     m_media_ctrl = new wxMediaCtrl2(camera_card);
     m_media_ctrl->SetMinSize(wxSize(FromDIP(330), FromDIP(155)));
