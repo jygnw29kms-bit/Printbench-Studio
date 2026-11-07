@@ -832,11 +832,22 @@ bool PresetUpdater::priv::get_cached_plugins_version(std::string& cached_version
 
 void PresetUpdater::priv::sync_plugins(std::string http_url, std::string plugin_version)
 {
+    // Plugin synchronisation can outlive the GUI during shutdown. wxGetApp()
+    // dereferences wxApp::GetInstance(), so never use it without an instance.
+    if (wxApp::GetInstance() == nullptr) {
+        BOOST_LOG_TRIVIAL(warning) << "Skipping plugin sync: GUI app is unavailable";
+        return;
+    }
+    const bool legacy_network_plugin = GUI::wxGetApp().use_legacy_network_plugin();
+#if defined(__WINDOWS__)
+    // Capture the platform once, before any potentially blocking sync work.
+    const bool arm64_network_headers = GUI::wxGetApp().is_running_on_arm64() && !legacy_network_plugin;
+#endif
     if (plugin_version == "00.00.00.00") {
         BOOST_LOG_TRIVIAL(info) << "non need to sync plugins for there is no plugins currently.";
         return;
     }
-    std::string curr_version = GUI::wxGetApp().use_legacy_network_plugin() ? BAMBU_NETWORK_AGENT_VERSION_LEGACY : get_latest_network_version();
+    std::string curr_version = legacy_network_plugin ? BAMBU_NETWORK_AGENT_VERSION_LEGACY : get_latest_network_version();
     std::string using_version = curr_version.substr(0, 9) + "00";
 
     std::string cached_version;
@@ -931,7 +942,7 @@ void PresetUpdater::priv::sync_plugins(std::string http_url, std::string plugin_
     }
 
 #if defined(__WINDOWS__)
-    if (GUI::wxGetApp().is_running_on_arm64() && !GUI::wxGetApp().use_legacy_network_plugin()) {
+    if (arm64_network_headers) {
         //set to arm64 for plugins
         std::map<std::string, std::string> current_headers = Slic3r::Http::get_extra_headers();
         current_headers["X-BBL-OS-Type"] = "windows_arm";
@@ -951,7 +962,7 @@ void PresetUpdater::priv::sync_plugins(std::string http_url, std::string plugin_
         BOOST_LOG_TRIVIAL(warning) << format("[Orca Updater] sync_plugins: %1%", e.what());
     }
 #if defined(__WINDOWS__)
-    if (GUI::wxGetApp().is_running_on_arm64() && !GUI::wxGetApp().use_legacy_network_plugin()) {
+    if (arm64_network_headers) {
         //set back
         std::map<std::string, std::string> current_headers = Slic3r::Http::get_extra_headers();
         current_headers["X-BBL-OS-Type"] = "windows";

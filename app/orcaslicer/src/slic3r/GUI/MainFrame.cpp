@@ -532,31 +532,39 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
      m_topbar->Hide();
 
      m_printbench_global_nav = new wxPanel(this, wxID_ANY);
-     m_printbench_global_nav->SetBackgroundColour(wxColour(6, 16, 24));
+     m_printbench_global_nav->SetBackgroundColour(wxColour(2, 11, 22));
      auto* pb_nav_sizer = new wxBoxSizer(wxHORIZONTAL);
      auto* pb_brand_icon = new wxStaticBitmap(m_printbench_global_nav, wxID_ANY,
-         ScalableBitmap(m_printbench_global_nav, "printbench_app_icon_32", 22).bmp());
+         ScalableBitmap(m_printbench_global_nav, "printbench_app_icon_32", 30).bmp());
      auto* pb_brand = new wxStaticText(m_printbench_global_nav, wxID_ANY, "PRINTBENCH");
      wxFont pb_brand_font = pb_brand->GetFont();
-     pb_brand_font.SetPointSize(13);
+     pb_brand_font.SetPointSize(17);
      pb_brand_font.SetWeight(wxFONTWEIGHT_BOLD);
      pb_brand->SetFont(pb_brand_font);
-     pb_brand->SetForegroundColour(wxColour(230, 241, 248));
+     pb_brand->SetForegroundColour(wxColour(236, 245, 252));
+     auto* pb_brand_stack = new wxBoxSizer(wxVERTICAL);
+     auto* pb_brand_subtitle = new wxStaticText(m_printbench_global_nav, wxID_ANY, "STUDIO / DEVICE");
+     wxFont pb_subtitle_font = pb_brand_subtitle->GetFont();
+     pb_subtitle_font.SetPointSize(7);
+     pb_brand_subtitle->SetFont(pb_subtitle_font);
+     pb_brand_subtitle->SetForegroundColour(wxColour(111, 137, 158));
+     pb_brand_stack->Add(pb_brand, 0);
+     pb_brand_stack->Add(pb_brand_subtitle, 0, wxTOP, FromDIP(1));
      pb_nav_sizer->Add(pb_brand_icon, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(10));
-     pb_nav_sizer->Add(pb_brand, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(18));
+     pb_nav_sizer->Add(pb_brand_stack, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(18));
 
      const std::array<wxString, 6> pb_nav_names{L"Drucker", L"Slicer", wxString(L"Ger\u00E4te"), L"Material", L"Historie", L"Einstellungen"};
      const std::array<const char*, 6> pb_nav_icons{"printer", "topbar_file", "printer_in_lan", "filament", "print_info_time", "settings"};
      for (size_t i = 0; i < pb_nav_names.size(); ++i) {
          auto* item = new wxPanel(m_printbench_global_nav, wxID_ANY);
-         item->SetBackgroundColour(wxColour(6, 16, 24));
+         item->SetBackgroundColour(wxColour(2, 11, 22));
          auto* item_sizer = new wxBoxSizer(wxHORIZONTAL);
          auto* icon = new wxStaticBitmap(item, wxID_ANY, ScalableBitmap(item, pb_nav_icons[i], 14).bmp());
          auto* label = new wxStaticText(item, wxID_ANY, pb_nav_names[i]);
          wxFont font = label->GetFont();
          font.SetPointSize(9);
          label->SetFont(font);
-         label->SetForegroundColour(wxColour(180, 199, 213));
+         label->SetForegroundColour(wxColour(184, 201, 214));
          item_sizer->Add(icon, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(8));
          item_sizer->Add(label, 0, wxLEFT | wxRIGHT | wxTOP | wxBOTTOM | wxALIGN_CENTER_VERTICAL, FromDIP(6));
          item->SetSizer(item_sizer);
@@ -4035,8 +4043,8 @@ void MainFrame::update_printbench_global_nav(size_t tab)
     for (size_t i = 0; i < m_printbench_global_nav_items.size(); ++i) {
         if (!m_printbench_global_nav_items[i] || !m_printbench_global_nav_labels[i]) continue;
         const bool selected = i == active;
-        m_printbench_global_nav_items[i]->SetBackgroundColour(selected ? wxColour(10, 66, 137) : wxColour(6, 16, 24));
-        m_printbench_global_nav_labels[i]->SetForegroundColour(selected ? *wxWHITE : wxColour(180, 199, 213));
+        m_printbench_global_nav_items[i]->SetBackgroundColour(selected ? wxColour(13, 112, 238) : wxColour(2, 11, 22));
+        m_printbench_global_nav_labels[i]->SetForegroundColour(selected ? *wxWHITE : wxColour(184, 201, 214));
         wxFont font = m_printbench_global_nav_labels[i]->GetFont();
         font.SetWeight(selected ? wxFONTWEIGHT_BOLD : wxFONTWEIGHT_NORMAL);
         m_printbench_global_nav_labels[i]->SetFont(font);

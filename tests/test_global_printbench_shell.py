@@ -22,6 +22,8 @@ def test_device_dashboard_does_not_get_duplicate_global_navigation():
     assert 'update_printbench_global_nav(new_selection);' in CPP
 
 def test_global_nav_keeps_final_master_dark_branding():
-    assert 'wxColour(6, 16, 24)' in CPP
-    assert 'wxColour(10, 66, 137)' in CPP
+    assert 'wxColour(2, 11, 22)' in CPP
+    assert 'wxColour(13, 112, 238)' in CPP
     assert 'wxColour(0, 188, 230)' in CPP
+    assert 'STUDIO / DEVICE' in CPP
+    assert 'ScalableBitmap(m_printbench_global_nav, "printbench_app_icon_32", 30)' in CPP
