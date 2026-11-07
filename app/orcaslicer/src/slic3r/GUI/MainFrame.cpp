@@ -1142,6 +1142,9 @@ void MainFrame::update_layout()
 
         m_plater->Show();
         m_tabpanel->Show();
+        // Do not let Orca reintroduce a second menu above the workspace.
+        m_tabpanel->GetBtnsListCtrl()->Hide();
+        m_tabpanel->Layout();
 
         break;
     }
@@ -1355,10 +1358,10 @@ void MainFrame::init_tabpanel() {
         //BBS
         wxWindow* panel = m_tabpanel->GetCurrentPage();
         int sel = m_tabpanel->GetSelection();
-        // PRINTBENCH FINAL-MASTER: the native Device shell owns its own top navigation.
-        // Keep the legacy page strip only while working inside the slicer until that shell is replaced too.
+        // FINAL MASTER: the notebook changes pages internally; only the single
+        // left PRINTBENCH rail may expose product-level navigation.
         if (auto* page_buttons = m_tabpanel->GetBtnsListCtrl()) {
-            page_buttons->Show(sel != tpMonitor);
+            page_buttons->Hide();
             m_tabpanel->Layout();
         }
         //wxString page_text = m_tabpanel->GetPageText(sel);
