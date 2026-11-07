@@ -593,7 +593,7 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
          m_printbench_global_nav_labels[i] = label;
          const auto handler = [this, i](wxMouseEvent&) {
              switch (i) {
-             case 7: select_tab(tp3DEditor); break;
+             case 7: open_printbench_files(); break;
              case 9: case 10: select_tab(tpMultiDevice); break;
              case 11: wxGetApp().open_preferences(); break;
              case 12: show_log_window(); break;
@@ -4018,6 +4018,19 @@ void MainFrame::load_config(const DynamicPrintConfig& config)
 }
 
 //BBS: GUI refactor
+void MainFrame::open_printbench_files()
+{
+    // The file section must perform a real action rather than just selecting
+    // an unrelated page. Use Orca's native model/project import pipeline.
+    if (!m_plater || !can_open_project()) {
+        wxMessageBox(_L("Cannot open files while a project operation is active."),
+                     "PRINTBENCH", wxOK | wxICON_INFORMATION, this);
+        return;
+    }
+    select_tab(tp3DEditor);
+    m_plater->load_project();
+}
+
 void MainFrame::select_tab(wxPanel* panel)
 {
     if (!panel)

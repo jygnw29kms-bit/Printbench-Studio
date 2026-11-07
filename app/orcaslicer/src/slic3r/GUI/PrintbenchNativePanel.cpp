@@ -1977,7 +1977,7 @@ void PrintbenchNativePanel::handle_nav(size_t index)
     case 4: scroll_to(m_ams_card); break;                     // Material
     case 5: scroll_to(m_print_card); break;                   // Druckauftraege
     case 6: scroll_to(m_history_card); break;                 // Historie
-    case 7: if (wxGetApp().mainframe) wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor); break;
+    case 7: if (wxGetApp().mainframe) wxGetApp().mainframe->open_printbench_files(); break;
     case 8: scroll_to(m_camera_card); break;                  // Kamera
     case 9: if (wxGetApp().mainframe) wxGetApp().mainframe->select_tab(MainFrame::tpMultiDevice); break;
     case 10: if (wxGetApp().mainframe) wxGetApp().mainframe->select_tab(MainFrame::tpMultiDevice); break;

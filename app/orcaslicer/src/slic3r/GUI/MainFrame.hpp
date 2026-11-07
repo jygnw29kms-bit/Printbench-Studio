@@ -295,6 +295,8 @@ public:
 #endif
     //BBS
     void        show_log_window();
+    // FINAL MASTER Files: open a real local 3MF/STL/project chooser.
+    void        open_printbench_files();
 
     void        update_ui_from_settings();
     //BBS

@@ -11,7 +11,7 @@ def test_global_printbench_nav_replaces_hidden_orca_shell_outside_device():
     assert 'std::array<wxPanel*, 14> m_printbench_global_nav_items' in HPP
 
 def test_global_sidebar_has_real_native_routes():
-    assert 'case 7: select_tab(tp3DEditor); break;' in CPP
+    assert 'case 7: open_printbench_files(); break;' in CPP
     assert 'case 9: case 10: select_tab(tpMultiDevice); break;' in CPP
     assert 'case 11: wxGetApp().open_preferences(); break;' in CPP
     assert 'default:' in CPP
