@@ -13,6 +13,6 @@ def test_system_is_real_fourteenth_master_navigation_row():
 
 def test_system_navigation_routes_to_real_action_card():
     assert 'm_action_card = action_card;' in CPP
-    assert 'case 13: scroll_to(m_action_card); break;' in CPP
+    assert 'case 13: show_master_section(index); break;' in CPP
     assert 'wxWindow* m_action_card{nullptr};' in HPP
     assert '\u2699  System' not in CPP

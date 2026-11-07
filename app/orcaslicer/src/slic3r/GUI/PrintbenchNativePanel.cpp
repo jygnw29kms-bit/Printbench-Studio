@@ -1415,6 +1415,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     shell->Add(sidebar, 0, wxEXPAND);
 
     auto* root = new wxBoxSizer(wxVERTICAL);
+    m_master_root = root;
     auto* header = new wxBoxSizer(wxHORIZONTAL);
     // FINAL MASTER: no duplicate top navigation. The header is status-only.
     header->AddStretchSpacer();
@@ -1422,8 +1423,19 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     header->Add(m_header_status, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(8));
     root->Add(header, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(10));
     root->AddSpacer(FromDIP(4));
+    // A selected menu item must change the actual workspace, not silently
+    // scroll an already fully visible dashboard.
+    m_section_title = new wxStaticText(this, wxID_ANY, "");
+    style_label(m_section_title, 16, true, PB_TEXT);
+    m_section_hint = new wxStaticText(this, wxID_ANY, "");
+    style_label(m_section_hint, 10, false, PB_MUTED);
+    root->Add(m_section_title, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(16));
+    root->Add(m_section_hint, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(16));
+    m_section_title->Hide();
+    m_section_hint->Hide();
 
     auto* hero = new wxBoxSizer(wxHORIZONTAL);
+    m_master_hero = hero;
     wxBoxSizer* body = nullptr;
 
     auto* printer_card = new PrintbenchCardPanel(this);
@@ -1437,6 +1449,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     hero->Add(printer_card, 42, wxEXPAND | wxRIGHT, FromDIP(8));
 
     auto* status_card = make_card(this, "DRUCKERSTATUS", body);
+    m_status_card = status_card;
     auto add_status_section = [&](const wxString& caption) {
         auto* label = new wxStaticText(status_card, wxID_ANY, caption);
         style_label(label, 8, true, PB_MUTED);
@@ -1455,6 +1468,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     hero->Add(status_card, 24, wxEXPAND | wxRIGHT, FromDIP(8));
 
     auto* right_hero = new wxBoxSizer(wxVERTICAL);
+    m_master_hero_right = right_hero;
     auto* camera_card = make_card(this, "LIVE KAMERA", body);
     m_camera_card = camera_card;
     // Video, player chrome and camera action row must fit without overlap.
@@ -1517,6 +1531,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     root->AddSpacer(FromDIP(8));
 
     auto* middle = new wxBoxSizer(wxHORIZONTAL);
+    m_master_middle = middle;
     auto* print_card = make_card(this, "AKTUELLER DRUCK", body);
     m_print_card = print_card;
     m_job_header = new PrintbenchJobHeader(print_card);
@@ -1543,6 +1558,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     middle->Add(print_card, 31, wxEXPAND | wxRIGHT, FromDIP(8));
 
     auto* temp_card = make_card(this, "TEMPERATUREN (LIVE)", body);
+    m_temp_card = temp_card;
     temp_card->SetMinSize(wxSize(FromDIP(280), FromDIP(190)));
     auto* temp_values = new wxBoxSizer(wxHORIZONTAL);
     const std::array<wxString, 3> temp_names{L"D\u00DCSE", L"BETT", L"KAMMER"};
@@ -1581,7 +1597,9 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     root->AddSpacer(FromDIP(6));
 
     auto* bottom = new wxBoxSizer(wxHORIZONTAL);
+    m_master_bottom = bottom;
     auto* device_card = make_card(this, wxString::FromUTF8("GERÄTESTATUS"), body);
+    m_device_card = device_card;
     auto* device_grid = new wxFlexGridSizer(2, 3, FromDIP(8), FromDIP(8));
     for (int col = 0; col < 3; ++col)
         device_grid->AddGrowableCol(col, 1);
@@ -1957,6 +1975,57 @@ void PrintbenchNativePanel::navigate_to_section(size_t index)
     handle_nav(index);
 }
 
+void PrintbenchNativePanel::show_master_section(size_t index)
+{
+    if (!m_master_root || !m_master_hero || !m_master_middle || !m_master_bottom)
+        return;
+    // Overview is the actual FINAL MASTER dashboard. Other entries show a
+    // clearly identified functional workspace instead of a no-op scroll.
+    const bool overview = index == 0;
+    const bool camera = index == 1 || index == 8;
+    const bool controls = index == 2;
+    const bool ams = index == 3 || index == 4;
+    const bool jobs = index == 5;
+    const bool history = index == 6;
+    const bool system = index == 13;
+    if (!(overview || camera || controls || ams || jobs || history || system))
+        return;
+
+    static const std::array<wxString, 14> names {
+        wxString::FromUTF8("ÜBERSICHT"), "LIVE ANSICHT", "STEUERUNG",
+        "AMS 2 PRO", "MATERIAL", wxString::FromUTF8("DRUCKAUFTRÄGE"),
+        "HISTORIE", "DATEIEN", "KAMERA", "GERÄTE-SETUP",
+        "NETZWERK", "SICHERHEIT", "DIAGNOSE", "SYSTEM"
+    };
+    m_section_title->SetLabel(names[index]);
+    m_section_hint->SetLabel(index == 4
+        ? wxString::FromUTF8("AMS-Materialstatus. Profilverwaltung ist noch nicht verfügbar.")
+        : index == 5
+            ? wxString::FromUTF8("Aktueller Druck. Eine vollständige Warteschlange ist noch nicht verfügbar.")
+            : wxString::FromUTF8("PRINTBENCH / Bambu Lab P2S"));
+    m_section_title->Show(!overview);
+    m_section_hint->Show(!overview);
+
+    m_master_root->Show(m_master_hero, overview || camera || controls, true);
+    m_master_root->Show(m_master_middle, overview || ams || jobs, true);
+    m_master_root->Show(m_master_bottom, overview || history || system, true);
+    m_master_hero->Show(m_printer_card, overview);
+    m_master_hero->Show(m_status_card, overview);
+    m_master_hero_right->Show(m_camera_card, overview || camera);
+    m_master_hero_right->Show(m_quick_card, overview || controls);
+    m_master_middle->Show(m_print_card, overview || jobs);
+    m_master_middle->Show(m_temp_card, overview);
+    m_master_middle->Show(m_ams_card, overview || ams);
+    m_master_bottom->Show(m_device_card, overview);
+    m_master_bottom->Show(m_history_card, overview || history);
+    m_master_bottom->Show(m_action_card, overview || system);
+
+    Scroll(0, 0);
+    m_master_root->Layout();
+    Layout();
+    FitInside();
+}
+
 void PrintbenchNativePanel::handle_nav(size_t index)
 {
     activate_nav(index);
@@ -1970,20 +2039,15 @@ void PrintbenchNativePanel::handle_nav(size_t index)
     default: break;
     }
     switch (index) {
-    case 0: Scroll(0, 0); break;                              // Uebersicht
-    case 1: scroll_to(m_camera_card); break;                  // Live Ansicht
-    case 2: scroll_to(m_quick_card); break;                   // Steuerung
-    case 3: scroll_to(m_ams_card); break;                     // AMS 2 Pro
-    case 4: scroll_to(m_ams_card); break;                     // Material
-    case 5: scroll_to(m_print_card); break;                   // Druckauftraege
-    case 6: scroll_to(m_history_card); break;                 // Historie
+    case 0: case 1: case 2: case 3: case 4: case 5: case 6:
+        show_master_section(index); break;
     case 7: if (wxGetApp().mainframe) wxGetApp().mainframe->open_printbench_files(); break;
-    case 8: scroll_to(m_camera_card); break;                  // Kamera
+    case 8: show_master_section(index); break;               // Kamera
     case 9: if (wxGetApp().mainframe) wxGetApp().mainframe->select_tab(MainFrame::tpMultiDevice); break;
     case 10: if (wxGetApp().mainframe) wxGetApp().mainframe->select_tab(MainFrame::tpMultiDevice); break;
     case 11: wxGetApp().open_preferences(); break;            // Sicherheit / Einstellungen
     case 12: if (wxGetApp().mainframe) wxGetApp().mainframe->show_log_window(); break;
-    case 13: scroll_to(m_action_card); break;                     // System
+    case 13: show_master_section(index); break;              // System
     default: break;
     }
 }

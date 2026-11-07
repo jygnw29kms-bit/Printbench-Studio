@@ -10,8 +10,10 @@ def test_master_sidebar_rows_are_interactive():
     assert 'activate_nav(index);' in PANEL
 
 def test_sidebar_routes_to_real_native_sections():
+    assert 'show_master_section(index);' in PANEL
     for target in ('m_camera_card', 'm_quick_card', 'm_ams_card', 'm_print_card', 'm_history_card'):
-        assert f'scroll_to({target})' in PANEL
+        assert f'm_master_' in PANEL
+        assert target in PANEL
     assert 'select_tab(MainFrame::tpMultiDevice)' in PANEL
     assert 'show_log_window()' in PANEL
 

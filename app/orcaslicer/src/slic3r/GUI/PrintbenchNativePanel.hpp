@@ -63,6 +63,7 @@ private:
     void activate_top_nav(size_t index);
     void activate_nav(size_t index);
     void handle_nav(size_t index);
+    void show_master_section(size_t index);
     void scroll_to(wxWindow* target);
     void on_camera_action(wxCommandEvent& event);
 
@@ -99,6 +100,16 @@ private:
     std::array<PrintbenchTopNavItem*, 6> m_top_nav{};
     std::array<PrintbenchNavRow*, 14> m_nav_rows{};
     std::array<PrintbenchSidebarDevice*, 2> m_sidebar_devices{};
+    wxBoxSizer* m_master_root{nullptr};
+    wxBoxSizer* m_master_hero{nullptr};
+    wxBoxSizer* m_master_hero_right{nullptr};
+    wxBoxSizer* m_master_middle{nullptr};
+    wxBoxSizer* m_master_bottom{nullptr};
+    wxStaticText* m_section_title{nullptr};
+    wxStaticText* m_section_hint{nullptr};
+    wxWindow* m_status_card{nullptr};
+    wxWindow* m_temp_card{nullptr};
+    wxWindow* m_device_card{nullptr};
     wxWindow* m_printer_card{nullptr};
     wxWindow* m_camera_card{nullptr};
     wxWindow* m_quick_card{nullptr};
