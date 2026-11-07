@@ -1942,7 +1942,13 @@ void PrintbenchNativePanel::scroll_to(wxWindow* target)
     if (!target)
         return;
     const int step = std::max(1, FromDIP(12));
-    Scroll(-1, std::max(0, target->GetPosition().y / step));
+    // Cards live in nested sizers. Their local y-coordinate is not the
+    // dashboard's scroll coordinate, so convert through screen coordinates.
+    int view_x = 0, view_y = 0;
+    GetViewStart(&view_x, &view_y);
+    const int target_content_y = view_y * step +
+        (target->GetScreenPosition().y - GetScreenPosition().y);
+    Scroll(-1, std::max(0, target_content_y / step));
     target->SetFocus();
 }
 
