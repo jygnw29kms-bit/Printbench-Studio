@@ -161,6 +161,7 @@ public:
 
     void jump_to_HMS();
     void jump_to_LiveView();
+    void navigate_to_section(size_t index);
     void update_network_version_footer();
 };
 

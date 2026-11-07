@@ -1,4 +1,5 @@
 #include "MainFrame.hpp"
+#include "Monitor.hpp"
 
 #include <wx/panel.h>
 #include <wx/notebook.h>
@@ -596,7 +597,10 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
              case 9: case 10: select_tab(tpMultiDevice); break;
              case 11: wxGetApp().open_preferences(); break;
              case 12: show_log_window(); break;
-             default: select_tab(tpMonitor); break;
+             default:
+                 select_tab(tpMonitor);
+                 if (m_monitor) m_monitor->navigate_to_section(i);
+                 break;
              }
          };
          item->Bind(wxEVT_LEFT_UP, handler);

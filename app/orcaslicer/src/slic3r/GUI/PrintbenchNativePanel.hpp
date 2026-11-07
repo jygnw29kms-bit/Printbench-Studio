@@ -39,6 +39,7 @@ class PrintbenchNativePanel : public wxScrolledWindow
 public:
     explicit PrintbenchNativePanel(wxWindow* parent);
     void refresh_from_machine(MachineObject* machine);
+    void navigate_to_section(size_t index);
 
 private:
     wxPanel* make_card(wxWindow* parent, const wxString& title, wxBoxSizer*& body);

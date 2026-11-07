@@ -14,7 +14,8 @@ def test_global_sidebar_has_real_native_routes():
     assert 'case 7: select_tab(tp3DEditor); break;' in CPP
     assert 'case 9: case 10: select_tab(tpMultiDevice); break;' in CPP
     assert 'case 11: wxGetApp().open_preferences(); break;' in CPP
-    assert 'default: select_tab(tpMonitor); break;' in CPP
+    assert 'default:' in CPP
+    assert 'if (m_monitor) m_monitor->navigate_to_section(i);' in CPP
 
 def test_device_dashboard_does_not_get_duplicate_global_navigation():
     assert 'const bool show_global = tab != tpMonitor;' in CPP

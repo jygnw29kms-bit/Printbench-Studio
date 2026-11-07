@@ -1946,6 +1946,11 @@ void PrintbenchNativePanel::scroll_to(wxWindow* target)
     target->SetFocus();
 }
 
+void PrintbenchNativePanel::navigate_to_section(size_t index)
+{
+    handle_nav(index);
+}
+
 void PrintbenchNativePanel::handle_nav(size_t index)
 {
     activate_nav(index);

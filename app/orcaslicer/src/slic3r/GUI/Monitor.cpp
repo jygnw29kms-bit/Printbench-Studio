@@ -550,6 +550,12 @@ void MonitorPanel::jump_to_HMS()
         m_tabpanel->SetSelection(PT_HMS);
 }
 
+void MonitorPanel::navigate_to_section(size_t index)
+{
+    if (m_printbench_panel)
+        m_printbench_panel->navigate_to_section(index);
+}
+
 void MonitorPanel::jump_to_LiveView()
 {
     if (!this->IsShown()) { return; }
