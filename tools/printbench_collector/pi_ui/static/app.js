@@ -16,6 +16,7 @@ let nativeControlAuthorized = false;
 let latestCaps = {controls:{}, features:{}};
 let latestLive = {};
 let commandBusy = false;
+let mobileControlToken = '';
 
 function drawChart(points) {
   const cv = $('chart'), ctx = cv.getContext('2d'), dpr = devicePixelRatio || 1;
@@ -122,10 +123,14 @@ function renderDrying(ams) {
 function updateCamera(camOk, live, sys) {
   $('camera').textContent = camOk ? 'Snapshot Live bereit' : live.camera?.printer_liveview ? 'P2S Stream aktiv / Bridge wartet' : 'Bridge aus';
   $('cameraAge').textContent = sys.camera_snapshot_age_sec != null ? 'letztes Bild ' + Math.round(sys.camera_snapshot_age_sec) + ' s' : 'kein aktuelles Bild';
-  const shouldStream = camOk && currentView === 'overview';
+  const shouldStream = camOk && ['overview','live','camera'].includes(currentView);
   $('cameraOverlay').style.display = shouldStream ? 'none' : 'grid';
   $('cameraOverlay').textContent = camOk ? 'Livefeed pausiert ausserhalb der Übersicht' : 'warte auf Kamera...';
-  const refreshSnapshot = () => { if (cameraStarted && currentView === 'overview') $('cameraImage').src = '/camera/latest.jpg?ts=' + Date.now(); };
+  const refreshSnapshot = () => { if (cameraStarted && ['overview','live','camera'].includes(currentView)) {
+      const src = '/camera/latest.jpg?ts=' + Date.now();
+      $('cameraImage').src = src;
+      document.querySelectorAll('.dedicated-camera').forEach(img => { if (img.closest('.view.active')) img.src=src; });
+    } };
   if (shouldStream && !cameraStarted) {
     cameraStarted = true;
     refreshSnapshot();
@@ -159,11 +164,11 @@ async function sendControl(button) {
   $('controlResult').textContent = `${name} · sende…`; $('controlResult').className = 'control-result busy';
   try {
     const r = await fetch('/api/v1/control/' + name.replaceAll('.', '/'), {
-      method:'POST', cache:'no-store', headers:{'Content-Type':'application/json'},
+      method:'POST', cache:'no-store', headers:{'Content-Type':'application/json',...(mobileControlToken ? {'X-API-Key':mobileControlToken} : {})},
       body:JSON.stringify({args:controlArgs(button), confirm:destructive})
     });
     const body = await r.json().catch(() => ({}));
-    if (r.status === 403 && body.error === 'control_authorization_required') throw new Error('Nur im autorisierten Orca-Tab steuerbar');
+    if (r.status === 403 && body.error === 'control_authorization_required') throw new Error('Steuer-API-Schlüssel fehlt oder ist ungültig');
     if (!r.ok || !body.ok) throw new Error(body.detail || body.verification || body.error || `HTTP ${r.status}`);
     $('controlResult').textContent = `${name} · ${body.verification || 'OK'}`; $('controlResult').className = 'control-result ok';
     setTimeout(refreshFast, 500);
@@ -179,7 +184,7 @@ function refreshControlButtons() {
   const active = ['RUNNING','PREPARE','PRINTING'].includes(state), paused = ['PAUSE','PAUSED'].includes(state);
   document.querySelectorAll('[data-control]').forEach(b => {
     const name = b.dataset.control, cap = latestCaps.controls?.[name];
-    let enabled = !!cap?.enabled && !commandBusy && latestLive.online !== false;
+    let enabled = !!cap?.enabled && nativeControlAuthorized && !commandBusy && latestLive.online === true;
     if (name === 'print.pause') enabled = enabled && active;
     if (name === 'print.resume') enabled = enabled && paused;
     if (name === 'print.stop') enabled = enabled && (active || paused);
@@ -227,8 +232,10 @@ async function refreshSlow() {
     api('/history?hours=24&limit=180').then(hist => { lastHistory = hist.points || []; drawChart(lastHistory); }),
     api('/spools').then(renderSpools),
     api('/firmware').then(renderFirmware),
-    Promise.all([api('/capabilities'), api('/control-capabilities')]).then(([caps, control]) => {
-      nativeControlAuthorized = !!control.browser_write_endpoint;
+    Promise.all([api('/capabilities'), fetch('/api/v1/control-capabilities', {
+      cache:'no-store', headers:mobileControlToken ? {'X-API-Key':mobileControlToken} : {}
+    }).then(r => r.json())]).then(([caps, control]) => {
+      nativeControlAuthorized = (location.protocol === 'https:' || ['localhost','127.0.0.1','::1'].includes(location.hostname)) && !!control.browser_write_endpoint;
       latestCaps = {...caps, controls:control.items || {}};
       renderCaps(latestCaps);
     })
@@ -250,11 +257,11 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') setMobileNav
 document.querySelectorAll('[data-control]').forEach(b => b.addEventListener('click', () => sendControl(b)));
 document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => {
   currentView = b.dataset.view;
-  document.querySelectorAll('.side-nav [data-view],.top-nav [data-view]').forEach(x => x.classList.toggle('active', x.dataset.view === currentView));
+  document.querySelectorAll('.side-nav [data-view]').forEach(x => x.classList.toggle('active', x.dataset.view === currentView));
   document.querySelectorAll('[data-view-panel]').forEach(x => x.classList.toggle('active', x.dataset.viewPanel === currentView));
-  $('pageTitle').textContent = {overview:'Bambu Lab P2S', control:'Steuerung', ams:'AMS 2 Pro', spools:'Material / Spulen', prints:'Drucke / Historie', system:'System / Bridge'}[currentView] || 'PRINTBENCH';
+  $('pageTitle').textContent = {overview:'Bambu Lab P2S',live:'Live Ansicht',control:'Steuerung',ams:'AMS 2 Pro',spools:'Material',jobs:'Druckaufträge',prints:'Historie',files:'Dateien',camera:'Kamera',setup:'Geräte-Setup',network:'Netzwerk',security:'Sicherheit',diagnostics:'Diagnose',system:'System'}[currentView] || 'PRINTBENCH';
   setMobileNav(false);
-  if (currentView !== 'overview' && cameraStarted) {
+  if (!['overview','live','camera'].includes(currentView) && cameraStarted) {
     cameraStarted = false;
     if (cameraTimer) clearInterval(cameraTimer);
     cameraTimer = null;

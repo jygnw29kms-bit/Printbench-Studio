@@ -36,12 +36,12 @@ def test_binding_master_dashboard_sections_exist():
     required = [
         'master-hero-grid', 'machine-hero', 'printer-status', 'camera-panel',
         'current-print', 'therm', 'ams-card', 'master-bottom-grid',
-        'side-nav', 'top-nav', 'mobileNavToggle', 'navScrim',
+        'side-nav', 'mobileNavToggle', 'navScrim',
     ]
     for token in required:
         assert token in HTML, token
 
-    for label in ['Dashboard', 'Live-Ansicht', 'Steuerung', 'AMS 2 Pro', 'Material',
+    for label in ['Übersicht', 'Live Ansicht', 'Steuerung', 'AMS 2 Pro', 'Material',
                   'Druckaufträge', 'Historie', 'Kamera', 'Sicherheit', 'Diagnose', 'System']:
         assert label in HTML
 
