@@ -8,6 +8,16 @@ JS=(UI/'app.js').read_text(encoding='utf-8')
 MOBILE=(UI/'mobile-app.js').read_text(encoding='utf-8')
 CSS=(UI/'app.css').read_text(encoding='utf-8')
 
+def test_mobile_html_is_real_markup_not_escaped_linebreaks():
+    assert '\\n' not in HTML
+    assert HTML.count('\n') > 50
+    assert 'id="refreshMobile"' in HTML
+    assert 'id="exportLive"' in HTML
+    assert 'id="exportSpools"' in HTML
+    assert 'id="exportHistory"' in HTML
+    assert 'data-view-panel="jobs"' in HTML
+
+
 def test_mobile_app_single_final_master_menu():
     expected=['overview','live','control','ams','spools','jobs','prints','files','camera','setup','network','security','diagnostics','system']
     nav=HTML.split('<nav class="side-nav"',1)[1].split('</nav>',1)[0]

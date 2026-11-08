@@ -51,8 +51,8 @@ def test_master_is_responsive_and_local_only():
     assert '@media(max-width:560px)' in CSS
     assert 'grid-template-columns:1fr' in CSS
     assert 'https://' not in HTML
-    assert '<script src="app.js"></script>' in HTML
-    assert '<link rel="stylesheet" href="app.css">' in HTML
+    assert '<script src="app.js?v=3"></script>' in HTML
+    assert '<link rel="stylesheet" href="app.css?v=3">' in HTML
 
 
 def test_binding_master_reference_is_present():

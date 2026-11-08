@@ -50,7 +50,7 @@ function drawChart(points) {
 
 function slotHtml(s, active) {
   const col = /^[0-9A-Fa-f]{8}$/.test(s.color || '') ? '#' + s.color.slice(0, 6) : '#26303a';
-  return `<div class="slot ${String(s.id) === active ? 'active' : ''}"><span class="n">SLOT ${Number(s.id) + 1}</span><div class="swatch" style="background:${col}"></div><b>${esc(s.material || 'NICHT GESETZT')}</b><small>${s.remain != null ? 'Rest ' + Number(s.remain) + '%' : 'keine Restdaten'}</small><em>Quelle: ${esc(s.source || 'printer_report')}</em></div>`;
+  return `<div class="slot ${String(s.id) === active ? 'active' : ''}"><span class="n">SLOT ${Number(s.id) + 1}</span><div class="swatch" style="background:${col}"></div><b>${esc(s.material || 'NICHT GESETZT')}</b><small>${s.remain != null && Number(s.remain) >= 0 ? 'Rest ' + Number(s.remain) + '%' : 'Rest unbekannt'}</small><em>Quelle: ${esc(s.source || 'printer_report')}</em></div>`;
 }
 
 function renderSlots(ams) {
@@ -115,7 +115,7 @@ function renderSpools(x) {
 function renderDrying(ams) {
   const ds = ams?.dry_setting || {}, active = Number(ams?.dry_time || 0) > 0;
   $('dryState').textContent = active ? 'AKTIV' : 'AUS';
-  $('dryTemps').textContent = `${c(ams?.temp_c)} / ${ds.dry_temperature != null ? c(ds.dry_temperature) : '-'}`;
+  $('dryTemps').textContent = `${c(ams?.temp_c)} / ${ds.dry_temperature != null && Number(ds.dry_temperature) >= 0 ? c(ds.dry_temperature) : '-'}`;
   $('dryProfile').textContent = ds.dry_filament ? `${ds.dry_filament} · ${fmt(ds.dry_duration)}h` : '-';
   $('dryTime').textContent = dryTime(ams?.dry_time);
 }

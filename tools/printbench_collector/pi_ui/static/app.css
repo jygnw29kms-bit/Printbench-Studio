@@ -47,3 +47,55 @@ body{background:#020b16}
  .slot b{font-size:12px}.slot small,.slot em{font-size:10px}
  .topbar{height:62px}
 }
+
+
+/* iPhone usability: real status first, no giant decorative machine before data. */
+.mobile-toolbar{display:none}
+.mobile-action-message{min-height:0;color:#98dfff;font-size:13px;margin-top:5px}
+.control-notice{padding:13px 14px;border:1px solid #6a512c;border-radius:8px;background:#211b13;color:#f4d9a7;font-size:13px;line-height:1.5}
+.mobile-inline-action{min-height:44px;padding:10px 13px;border:1px solid #285776;border-radius:8px;background:#0b304f;color:#d6f2ff;font-weight:700}
+button:focus-visible,input:focus-visible{outline:2px solid #39caff;outline-offset:3px}
+@media(max-width:980px){
+  .mobile-toolbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 12px}
+  .mobile-toolbar button{min-height:44px;border:1px solid #204e72;background:#09243d;color:#def5ff;border-radius:8px;font-size:13px;font-weight:700}
+  .view.active[data-view-panel="overview"]{display:flex;flex-direction:column;gap:10px}
+  .view.active[data-view-panel="overview"]>.master-hero-grid,
+  .view.active[data-view-panel="overview"]>.master-mid-grid,
+  .view.active[data-view-panel="overview"]>.master-bottom-grid{display:contents}
+  .view.active[data-view-panel="overview"] .current-print{order:1}
+  .view.active[data-view-panel="overview"] .printer-status{order:2}
+  .view.active[data-view-panel="overview"] .ams-card{order:3}
+  .view.active[data-view-panel="overview"] .therm{order:4}
+  .view.active[data-view-panel="overview"] .camera-panel{order:5}
+  .view.active[data-view-panel="overview"] .quick-actions{order:6}
+  .view.active[data-view-panel="overview"] .sys{order:7}
+  .view.active[data-view-panel="overview"] .recent-print-panel{order:8}
+  .view.active[data-view-panel="overview"] .machine-hero{order:9}
+  .view.active[data-view-panel="overview"]>.master-mid-grid .current-print{margin-top:0}
+  .page-head{padding-bottom:10px}
+  .page-head small,.panel-title small{font-size:10px}
+  .page-head p{font-size:12px}
+  .panel,.control-panel{min-height:0}
+  .status-list div,.sys dl div{font-size:12px}
+  .session,.spool,.firmware-row,.rfidrow{font-size:11px}
+  .note,.empty{font-size:12px;line-height:1.5}
+  .control-grid,.advanced-controls{gap:14px}
+  .mobile-actions button{min-height:44px}
+  .mobile-actions{flex-wrap:wrap}
+  .mobile-actions button{min-width:130px}
+  .machine-stage{height:160px}
+  .machine-hero{min-height:0}
+  .headstat b{font-size:11px}
+}
+@media(max-width:560px){
+  .master-hero-grid,.master-mid-grid,.master-bottom-grid{margin-top:0}
+  .panel-title{gap:8px}
+  .panel-title span{font-size:13px}
+  .page-head h1{font-size:22px}
+  .print-body{grid-template-columns:88px minmax(0,1fr)}
+  .progress-line strong{font-size:28px}
+  .slot .n,.slot small,.slot em{font-size:10px}
+  .kpis b{font-size:17px}
+  .control-row button{min-height:44px}
+  .mobile-actions{display:grid;grid-template-columns:1fr}
+}

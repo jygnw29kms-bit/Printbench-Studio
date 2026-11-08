@@ -161,6 +161,9 @@ def capabilities():
 class Handler(SimpleHTTPRequestHandler):
     server_version='PRINTBENCH';sys_version='';protocol_version='HTTP/1.1'
     def end_headers(self):
+        # A fixed local IP is frequently saved to the iPhone home screen.
+        # Do not let Safari keep an older broken PRINTBENCH user interface.
+        self.send_header('Cache-Control','no-store, max-age=0')
         self.send_header('X-Content-Type-Options','nosniff');self.send_header('X-Frame-Options','DENY');self.send_header('Cross-Origin-Resource-Policy','same-origin')
         self.send_header('Referrer-Policy','no-referrer');self.send_header('Permissions-Policy','camera=(), microphone=(), geolocation=()')
         self.send_header('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");super().end_headers()
