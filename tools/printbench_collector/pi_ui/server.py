@@ -9,6 +9,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parent.parent))
 import command_engine
 import local_tls
 import mobile_pairing
+import mobile_workspace
 
 ROOT=Path(__file__).resolve().parent
 COLLECTOR=ROOT.parent
@@ -16,6 +17,7 @@ DB=COLLECTOR/'printbench.db'
 STATIC=ROOT/'static'
 CAMERA_SNAPSHOT=Path(os.environ.get('PRINTBENCH_CAMERA_SNAPSHOT','/run/printbench-camera/latest.jpg'))
 CAMERA_VIEWER=CAMERA_SNAPSHOT.parent/'viewer.active'
+CAMERA_STATUS=CAMERA_SNAPSHOT.parent/'status.json'
 API_PREFIX='/api/v1'
 CAMERA_STREAMS=threading.BoundedSemaphore(2)
 CONTROL_TOKEN_FILE=Path(os.environ.get('PRINTBENCH_CONTROL_TOKEN_FILE','/etc/printbench/control.token'))
@@ -42,9 +44,24 @@ def safe_json(v,default=None):
     except Exception:return default
 
 
-def camera_fresh(max_age=75):
+def camera_fresh(max_age=30):
     try:return CAMERA_SNAPSHOT.is_file() and CAMERA_SNAPSHOT.stat().st_size>5000 and time.time()-CAMERA_SNAPSHOT.stat().st_mtime<max_age
     except Exception:return False
+
+
+def camera_state():
+    try:
+        state=json.loads(CAMERA_STATUS.read_text(encoding='utf-8')) if CAMERA_STATUS.exists() else {}
+        error=str(state.get('error') or '')[:200]
+        if 'timeout' in error.lower():
+            error='P2S-Kamera meldet keine RTSPS-Daten. Andere Kamera-Apps schließen; LAN-Liveview am P2S aus- und wieder einschalten.'
+        elif 'ssl' in error.lower() or 'tls' in error.lower():
+            error='P2S-Kamera: TLS-Verbindung fehlgeschlagen. LAN-Liveview und Netzwerk prüfen.'
+        return {'online':camera_fresh(),'error':error,
+                'frame_age_sec':round(time.time()-CAMERA_SNAPSHOT.stat().st_mtime,1) if CAMERA_SNAPSHOT.exists() else None,
+                'frames':int(state.get('frames') or 0),
+                'printer_liveview':bool(state.get('liveview_required'))}
+    except Exception:return {'online':False,'error':'camera_status_unavailable','frame_age_sec':None}
 
 
 def latest_payload():
@@ -134,7 +151,7 @@ def system_info():
     try:cam_age=round(time.time()-CAMERA_SNAPSHOT.stat().st_mtime,1) if CAMERA_SNAPSHOT.exists() else None
     except Exception:cam_age=None
     return {'hostname':socket.gethostname(),'pi_temp_c':temp,'collector':cmd(['systemctl','is-active','printbench-collector.service']) or 'unknown',
-      'camera_bridge':cmd(['systemctl','is-active','printbench-camera.service']) or 'unknown','reader_bridge':cmd(['systemctl','is-active','printbench-reader.service']) or 'inactive','camera_snapshot_age_sec':cam_age,'ui':'active',
+      'camera_bridge':'active' if camera_fresh() else 'unavailable','reader_bridge':cmd(['systemctl','is-active','printbench-reader.service']) or 'inactive','camera_snapshot_age_sec':cam_age,'camera_error':camera_state().get('error'),'ui':'active',
       'uptime_sec':uptime,'disk':disk,'time':datetime.now(timezone.utc).isoformat()}
 
 
@@ -284,6 +301,22 @@ class Handler(SimpleHTTPRequestHandler):
                 cookie='PRINTBENCH_SESSION='+session+'; Path=/api/v1; Secure; HttpOnly; SameSite=Strict; Max-Age=2592000'
                 return self._json({'ok':True},cookie=cookie)
             except ValueError:return self._json({'error':'invalid_pairing_request'},400)
+        if path==API_PREFIX+'/materials':
+            if not self._control_authorized():return self._json({'error':'pairing_required'},403)
+            try:return self._json(mobile_workspace.save_material(self._read_json_body()))
+            except ValueError as e:return self._json({'error':str(e)},400)
+        if path==API_PREFIX+'/materials/delete':
+            if not self._control_authorized():return self._json({'error':'pairing_required'},403)
+            try:return self._json(mobile_workspace.remove_material(self._read_json_body().get('id','')))
+            except ValueError as e:return self._json({'error':str(e)},400)
+        if path==API_PREFIX+'/queue':
+            if not self._control_authorized():return self._json({'error':'pairing_required'},403)
+            try:return self._json(mobile_workspace.queue_file(self._read_json_body().get('upload_name',''),UPLOADS))
+            except ValueError as e:return self._json({'error':str(e)},400)
+        if path==API_PREFIX+'/queue/remove':
+            if not self._control_authorized():return self._json({'error':'pairing_required'},403)
+            try:return self._json(mobile_workspace.remove_queued(self._read_json_body().get('id','')))
+            except ValueError as e:return self._json({'error':str(e)},400)
         if path==API_PREFIX+'/files':
             if not self._control_authorized():return self._json({'error':'pairing_required'},403)
             return self._upload_file()
@@ -311,6 +344,7 @@ class Handler(SimpleHTTPRequestHandler):
                 q=parse_qs(u.query);path=u.path
                 if path.startswith('/api/') and not path.startswith(API_PREFIX+'/'):path=API_PREFIX+path[4:]
                 if path==API_PREFIX+'/live':return self._json(latest_payload())
+                if path==API_PREFIX+'/camera-status':return self._json(camera_state())
                 if path==API_PREFIX+'/history':return self._json(history(q.get('hours',['24'])[0],q.get('limit',['240'])[0]))
                 if path==API_PREFIX+'/sessions':return self._json(sessions(q.get('limit',['20'])[0]))
                 if path==API_PREFIX+'/rfid':return self._json(rfid_summary())
@@ -320,6 +354,12 @@ class Handler(SimpleHTTPRequestHandler):
                 if path==API_PREFIX+'/firmware':return self._json(firmware())
                 if path==API_PREFIX+'/capabilities':return self._json(capabilities())
                 if path==API_PREFIX+'/control-capabilities':return self._json(control_catalog(self._control_authorized()))
+                if path==API_PREFIX+'/materials':
+                    if not self._control_authorized():return self._json({'error':'pairing_required'},403)
+                    return self._json(mobile_workspace.list_materials())
+                if path==API_PREFIX+'/queue':
+                    if not self._control_authorized():return self._json({'error':'pairing_required'},403)
+                    return self._json(mobile_workspace.list_queue())
                 if path==API_PREFIX+'/files':
                     if not self._control_authorized():return self._json({'error':'pairing_required'},403)
                     UPLOADS.mkdir(parents=True,exist_ok=True)

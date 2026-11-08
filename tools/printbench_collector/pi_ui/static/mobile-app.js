@@ -129,7 +129,12 @@
         title.textContent=item.name;
         const size=document.createElement('span');
         size.textContent=(item.bytes/1048576).toFixed(2)+' MB';
-        line.append(title,size);
+        const queueButton=document.createElement('button');
+        queueButton.type='button';
+        queueButton.className='mobile-inline-action';
+        queueButton.textContent='Auf Warteliste';
+        queueButton.dataset.uploadQueue=item.name;
+        line.append(title,size,queueButton);
         list.append(line);
       }
     } catch(error) {

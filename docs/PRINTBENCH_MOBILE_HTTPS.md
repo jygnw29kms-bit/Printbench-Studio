@@ -28,6 +28,14 @@ Nach der Kopplung können 3MF, STL, GCODE, GCO und BGCODE vom iPhone über den M
 
 Der P2S benötigt den LAN-Liveview-Modus für RTSPS auf Port 322. Wenn kein Bild erscheint, am P2S in den Netzwerk-/LAN-Einstellungen LAN-Liveview aktivieren. Die lokale Bridge meldet ein Bild nur bei einem tatsächlich frischen Snapshot.
 
+## Lokale Materialverwaltung und Warteliste
+
+Im iPhone-Menü Material können eigene Spulen einschließlich Typ, Farbe, Hersteller, Restgewicht, Slicer-Profil und Notiz gespeichert, bearbeitet und entfernt werden. Alle Einträge liegen lokal in LOCALAPPDATA/PRINTBENCH/mobile/workspace.sqlite3; eine automatische Übertragung der Materialdaten zum AMS erfolgt nicht.
+
+Im Menü Dateien lässt sich eine hochgeladene Druckdatei zur lokalen Warteliste hinzufügen. Im Menü Druckaufträge kann man wartende Dateien ansehen und wieder entfernen. Aus Sicherheitsgründen startet die Warteliste keine Drucke automatisch: Slicing, AMS-Abgleich und Freigabe bleiben in der nativen Windows-App.
+
+Die Kamera verwendet die MIT-lizenzierte RTSPS-Implementierung aus strands-cad mit eigenem Digest-RTSP-Handshake (siehe THIRD_PARTY_CAMERA_NOTICES.md). Der Drucker muss tatsächlich eine RTSPS/TLS-Sitzung zulassen.
+
 ## Abnahme noch offen
 
 Nach der CA-Installation auf dem iPhone müssen HTTPS-Zugriff, reale Steuerung, Kamera und restliche Menüs produktiv abgenommen werden. Der Code allein ist keine FINAL-Freigabe.

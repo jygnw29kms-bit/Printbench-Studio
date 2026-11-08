@@ -125,7 +125,11 @@ function updateCamera(camOk, live, sys) {
   $('cameraAge').textContent = sys.camera_snapshot_age_sec != null ? 'letztes Bild ' + Math.round(sys.camera_snapshot_age_sec) + ' s' : 'kein aktuelles Bild';
   const shouldStream = camOk && ['overview','live','camera'].includes(currentView);
   $('cameraOverlay').style.display = shouldStream ? 'none' : 'grid';
-  $('cameraOverlay').textContent = camOk ? 'Livefeed pausiert ausserhalb der Übersicht' : 'warte auf Kamera...';
+  $('cameraOverlay').textContent = camOk
+    ? 'Livebild pausiert'
+    : (sys.camera_error ? 'Kamera-Verbindung: '+sys.camera_error :
+       (live.camera?.printer_liveview ? 'P2S-Kamera antwortet noch nicht. Andere Liveansichten schließen.' :
+         'P2S LAN-Liveview am Drucker aktivieren.'));
   const refreshSnapshot = () => { if (cameraStarted && ['overview','live','camera'].includes(currentView)) {
       const src = '/camera/latest.jpg?ts=' + Date.now();
       $('cameraImage').src = src;
