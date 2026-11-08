@@ -34,12 +34,16 @@ if (-not (Get-CimInstance Win32_Process | Where-Object {$_.CommandLine -match '[
     $cam=Start-Process -FilePath $python -ArgumentList @('-u','camera_bridge.py') -WorkingDirectory $collector -WindowStyle Hidden -RedirectStandardOutput (Join-Path $logDir 'camera.log') -RedirectStandardError (Join-Path $logDir 'camera-errors.log') -PassThru
     Write-Output "Local camera bridge PID=$($cam.Id)"
 }
-# Scope inbound traffic to the private LAN only.
+# Windows can classify a trusted LAN as Public. Allow only LocalSubnet on
+# both Windows profiles without exposing the UI beyond the local segment.
 try {
-    if (-not (Get-NetFirewallRule -DisplayName 'PRINTBENCH Mobile LAN 8080' -ErrorAction SilentlyContinue)) {
-        New-NetFirewallRule -DisplayName 'PRINTBENCH Mobile LAN 8080' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8080 -Profile Private -RemoteAddress LocalSubnet | Out-Null
-        Write-Output 'Private LAN firewall rule installed (TCP 8080, LocalSubnet).'
+    $rule = Get-NetFirewallRule -DisplayName 'PRINTBENCH Mobile LAN 8080' -ErrorAction SilentlyContinue
+    if (-not $rule) {
+        New-NetFirewallRule -DisplayName 'PRINTBENCH Mobile LAN 8080' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8080 -Profile Private,Public -RemoteAddress LocalSubnet | Out-Null
+    } else {
+        $rule | Set-NetFirewallRule -Profile Private,Public
     }
+    Write-Output 'PRINTBENCH mobile firewall: Private/Public profile, TCP 8080, LocalSubnet only.'
 } catch { Write-Warning 'Firewall rule requires administrator: phone access might be blocked.' }
 Start-Sleep -Seconds 2
 try { $r=Invoke-RestMethod 'http://127.0.0.1:8080/api/v1/capabilities' -TimeoutSec 5;Write-Output "Mobile API reachable: $($r.api), printer=$($r.printer)" }
