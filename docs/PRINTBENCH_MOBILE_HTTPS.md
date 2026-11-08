@@ -34,7 +34,7 @@ Der P2S benötigt den LAN-Liveview-Modus für RTSPS auf Port 322. Wenn kein Bild
 
 ## Lokale Materialverwaltung und Warteliste
 
-Im iPhone-Menü Material können eigene Spulen einschließlich Typ, Farbe, Hersteller, Restgewicht, Slicer-Profil und Notiz gespeichert, bearbeitet und entfernt werden. Alle Einträge liegen lokal in LOCALAPPDATA/PRINTBENCH/mobile/workspace.sqlite3; eine automatische Übertragung der Materialdaten zum AMS erfolgt nicht.
+Im iPhone-Menü Material können eigene Spulen einschließlich Typ, Farbe, Hersteller, Restgewicht, Slicer-Profil und Notiz gespeichert, bearbeitet und entfernt werden. Alle Einträge liegen lokal in LOCALAPPDATA/PRINTBENCH/mobile/workspace.sqlite3; eine automatische Übertragung der Materialdaten zum AMS erfolgt nicht. Nach Auswahl von Material, Farbe, AMS-Slot und Düsentemperaturbereich kann die Zuordnung über einen eigenen, bestätigungspflichtigen Befehl am bereiten P2S gesetzt werden. Während laufender oder pausierter Druckaufträge ist das gesperrt.
 
 Im Menü Dateien lässt sich eine hochgeladene Druckdatei zur lokalen Warteliste hinzufügen. Im Menü Druckaufträge kann man wartende Dateien ansehen und wieder entfernen. Aus Sicherheitsgründen startet die Warteliste keine Drucke automatisch: Slicing, AMS-Abgleich und Freigabe bleiben in der nativen Windows-App.
 

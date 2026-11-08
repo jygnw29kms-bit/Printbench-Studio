@@ -313,13 +313,13 @@ def execute(name,args=None,confirm=False,timeout=8.0,verify_timeout=12.0):
     if not spec:raise ValueError('unsupported command')
     args=dict(args or {});seq=str(int(time.time()*1000));payload=spec.builder(args,seq);cap=capabilities()[name]
     if not cap['enabled']:raise PermissionError(f'{name} disabled by local policy')
-    if (spec.risk=='destructive' or name=='ams.start_drying') and not confirm:
+    if (spec.risk=='destructive' or name in {'ams.start_drying','ams.filament_setting'}) and not confirm:
         raise PermissionError('explicit confirmation required')
     db=_db_open_readonly();state=_latest(db)
     if not _state_fresh(state):db.close();raise RuntimeError('printer telemetry is stale')
-    if name=='ams.start_drying' and str(state.get('print_state') or '').upper() in {'RUNNING','PREPARE','PRINTING','PAUSE','PAUSED'}:
+    if name in {'ams.start_drying','ams.filament_setting'} and str(state.get('print_state') or '').upper() in {'RUNNING','PREPARE','PRINTING','PAUSE','PAUSED'}:
         db.close()
-        raise RuntimeError('AMS drying blocked while a print is active; finish printing first')
+        raise RuntimeError('AMS changes are blocked while a print is active; finish printing first')
     with _LOCK:
         delay=max(0.0,spec.min_interval-(time.monotonic()-_LAST_SEND))
         if delay:time.sleep(delay)
