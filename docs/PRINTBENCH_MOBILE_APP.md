@@ -16,6 +16,8 @@ Windows-LAN-Companion starten:
 
 Startet HTTP-UI, TLS-zertifikatangepinnten MQTT-Collector und lokale Kamera-Bridge. Windows-Firewall: TCP 8080, privates Netz, LocalSubnet.
 
+Autostart ist auf Jens-PC als Verknüpfung im Startmenü-Autostart installiert. Das reproduzierbare Installationsskript liegt unter tools/install_printbench_mobile_autostart.ps1. Nach einem Windows-Neustart ist der tatsächliche Autostart noch separat zu prüfen.
+
 ## Geprüft am 08.11.2026
 
 - UI auf http://192.168.178.71:8080/: HTTP 200.
