@@ -123,9 +123,31 @@ def _ams_control(args,seq):
     return {'print':{'sequence_id':seq,'command':'ams_control','param':action}}
 
 
+def _ams_start_dry(args,seq):
+    ams_id=int(args.get('ams_id',0))
+    temp=int(args.get('temp',0))
+    hours=int(args.get('duration_h',0))
+    filament=str(args.get('filament','PLA')).upper().strip()
+    rotate=args.get('rotate_tray',False)
+    if ams_id!=0: raise ValueError('Only the configured AMS 2 Pro is supported')
+    if not 35<=temp<=65: raise ValueError('AMS 2 Pro temperature must be 35..65 C')
+    if not 1<=hours<=24: raise ValueError('drying duration must be 1..24 hours')
+    if filament not in {'PLA','PETG','ABS','ASA','TPU','PA','PC','PVA','PP','PET','OTHER'}:
+        raise ValueError('unsupported drying filament')
+    if not isinstance(rotate,bool): raise ValueError('rotate_tray must be boolean')
+    return {'print':{'sequence_id':seq,'command':'ams_filament_drying',
+                     'ams_id':ams_id,'temp':temp,'cooling_temp':45,
+                     'duration':hours,'humidity':0,'mode':1,
+                     'filament':filament,'rotate_tray':rotate,
+                     'close_power_conflict':True}}
+
+
 def _ams_stop_dry(args,seq):
     if args: raise ValueError('ams.stop_drying takes no arguments')
-    return {'print':{'sequence_id':seq,'command':'auto_stop_ams_dry'}}
+    return {'print':{'sequence_id':seq,'command':'ams_filament_drying',
+                     'ams_id':0,'temp':0,'cooling_temp':45,'duration':0,
+                     'humidity':0,'mode':0,'rotate_tray':False,
+                     'filament':'','close_power_conflict':True}}
 
 
 def _ams_filament_setting(args,seq):
@@ -204,6 +226,15 @@ def _verify_camera_resolution(db,args):
     try:return str(json.loads(_latest(db).get('ipcam_json') or '{}').get('resolution','')).lower()==str(args['resolution']).lower()
     except Exception:return False
 
+def _verify_ams_dry_started(db,args):
+    try:
+        top=json.loads(_latest(db).get('ams_json') or '{}')
+        units=top.get('ams') or []
+        if isinstance(units,dict):units=[units]
+        return any(int(unit.get('dry_time') or 0)>0 or str(unit.get('dry_status') or '').upper() in ('DRYING','HEATING') for unit in units)
+    except Exception:return False
+
+
 def _verify_ams_dry_stopped(db,args):
     try:
         unit=(json.loads(_latest(db).get('ams_json') or '{}').get('ams') or [{}])[0]
@@ -232,6 +263,7 @@ SPECS={
  'camera.resolution':CommandSpec('camera.resolution','low','supported_verified',_camera_resolution,_verify_camera_resolution),
  'ams.rfid_read':CommandSpec('ams.rfid_read','read','supported_verified',_ams_rfid,None,'writes'),
  'ams.control':CommandSpec('ams.control','medium','supported_unverified',_ams_control,None,'ams'),
+ 'ams.start_drying':CommandSpec('ams.start_drying','thermal','supported_unverified',_ams_start_dry,_verify_ams_dry_started,'ams'),
  'ams.stop_drying':CommandSpec('ams.stop_drying','medium','supported_unverified',_ams_stop_dry,_verify_ams_dry_stopped,'ams'),
  'ams.filament_setting':CommandSpec('ams.filament_setting','medium','supported_unverified',_ams_filament_setting,_verify_ams_filament,'ams'),
  'ams.change_filament':CommandSpec('ams.change_filament','mechanical','supported_unverified',_ams_change,None,'ams'),
@@ -281,9 +313,13 @@ def execute(name,args=None,confirm=False,timeout=8.0,verify_timeout=12.0):
     if not spec:raise ValueError('unsupported command')
     args=dict(args or {});seq=str(int(time.time()*1000));payload=spec.builder(args,seq);cap=capabilities()[name]
     if not cap['enabled']:raise PermissionError(f'{name} disabled by local policy')
-    if spec.risk=='destructive' and not confirm:raise PermissionError('explicit confirmation required')
+    if (spec.risk=='destructive' or name=='ams.start_drying') and not confirm:
+        raise PermissionError('explicit confirmation required')
     db=_db_open_readonly();state=_latest(db)
     if not _state_fresh(state):db.close();raise RuntimeError('printer telemetry is stale')
+    if name=='ams.start_drying' and str(state.get('print_state') or '').upper() in {'RUNNING','PREPARE','PRINTING','PAUSE','PAUSED'}:
+        db.close()
+        raise RuntimeError('AMS drying blocked while a print is active; finish printing first')
     with _LOCK:
         delay=max(0.0,spec.min_interval-(time.monotonic()-_LAST_SEND))
         if delay:time.sleep(delay)

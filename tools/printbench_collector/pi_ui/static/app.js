@@ -150,6 +150,10 @@ function updateCamera(camOk, live, sys) {
 function controlArgs(button) {
   const name = button.dataset.control;
   if (name === 'printer.light') return {mode:button.dataset.mode};
+  if (name === 'camera.recording' || name === 'camera.timelapse') return {enabled:button.dataset.enabled === 'true'};
+  if (name === 'camera.resolution') return {resolution:$('cameraResolution').value};
+  if (name === 'ams.rfid_read') return {ams_id:0,slot_id:Number($('rfidSlot').value)};
+  if (name === 'ams.start_drying') return {ams_id:0,temp:Number($('dryTemperature').value),duration_h:Number($('dryHours').value),filament:$('dryFilament').value,rotate_tray:$('dryRotate').checked};
   if (name === 'printer.speed') return {level:Number(button.dataset.level)};
   if (name === 'printer.fan') return {fan:Number($('fanIndex').value), speed:Number($('fanSpeed').value)};
   if (name === 'printer.nozzle_temp') return {temp:Number($(button.dataset.input).value)};
@@ -163,13 +167,14 @@ async function sendControl(button) {
   const name = button.dataset.control, cap = latestCaps.controls?.[name];
   if (!cap?.enabled) return;
   const destructive = cap.risk === 'destructive';
-  if (destructive && !window.confirm('Druck wirklich sofort stoppen?')) return;
+  const confirmRequired = destructive || name === 'ams.start_drying';
+  if (confirmRequired && !window.confirm(destructive ? 'Druck wirklich sofort stoppen?' : 'AMS 2 Pro mit den angegebenen Temperaturen und der Laufzeit trocknen lassen?')) return;
   commandBusy = true; refreshControlButtons();
   $('controlResult').textContent = `${name} · sende…`; $('controlResult').className = 'control-result busy';
   try {
     const r = await fetch('/api/v1/control/' + name.replaceAll('.', '/'), {
       method:'POST', cache:'no-store', headers:{'Content-Type':'application/json',...(mobileControlToken ? {'X-API-Key':mobileControlToken} : {})},
-      body:JSON.stringify({args:controlArgs(button), confirm:destructive})
+      body:JSON.stringify({args:controlArgs(button), confirm:confirmRequired})
     });
     const body = await r.json().catch(() => ({}));
     if (r.status === 403 && body.error === 'control_authorization_required') throw new Error('Steuer-API-Schlüssel fehlt oder ist ungültig');
@@ -193,6 +198,7 @@ function refreshControlButtons() {
     if (name === 'print.resume') enabled = enabled && paused;
     if (name === 'print.stop') enabled = enabled && (active || paused);
     if (name === 'ams.stop_drying') enabled = enabled && Number(latestLive.ams?.dry_time || 0) > 0;
+    if (name === 'ams.start_drying') enabled = enabled && !active && !paused && Number(latestLive.ams?.dry_time || 0) <= 0;
     b.disabled = !enabled;
     b.title = cap ? `${cap.status} · ${cap.risk}` : 'Capability nicht gemeldet';
   });
@@ -259,6 +265,12 @@ navScrim?.addEventListener('click', () => setMobileNav(false));
 document.addEventListener('keydown', e => { if (e.key === 'Escape') setMobileNav(false); });
 
 document.querySelectorAll('[data-control]').forEach(b => b.addEventListener('click', () => sendControl(b)));
+$('dryFilament')?.addEventListener('change', e => {
+  const presets={PLA:[50,8],PETG:[65,8],ASA:[65,12],ABS:[65,12],TPU:[60,10],PA:[65,12],PC:[65,12],PVA:[55,10],OTHER:[50,8]};
+  const [temp,hours]=presets[e.target.value]||[50,8];
+  $('dryTemperature').value=temp;
+  $('dryHours').value=hours;
+});
 // Navigation has one owner: mobile-app.js. Keeping a second click listener here
 // caused conflicting panel/camera state and duplicate route transitions.
 function stopCameraOnNonCameraView() {

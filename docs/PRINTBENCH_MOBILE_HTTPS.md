@@ -24,6 +24,10 @@ Druckerbefehle benötigen autorisierte HTTPS-Sitzung, aktive lokale Richtlinien,
 
 Nach der Kopplung können 3MF, STL, GCODE, GCO und BGCODE vom iPhone über den Menüpunkt Dateien an Jens-PC übertragen werden. Pro Datei sind maximal 256 MB zulässig, insgesamt 1 GB Eingangsordner. Gespeichert wird ausschließlich unter LOCALAPPDATA/PRINTBENCH/mobile/uploads. Der Startmenüeintrag PRINTBENCH iPhone Dateien öffnet diesen Ordner. Keine Datei wird automatisch gestartet oder gedruckt.
 
+## P2S- und AMS-Bedienung
+
+Die sichere iPhone-App bietet nach Kopplung Druckpause, Fortsetzen, Stop (mit Bestätigung), Licht, Geschwindigkeit, Lüfter, Temperaturen, Kameraufnahme, Zeitraffer und Auflösung. Das AMS 2 Pro erhält Slot-/RFID-Einlesen und Trocknungsstart/-stopp. Maximal 65 °C, Start nicht während eines laufenden oder pausierten Drucks. Das Startkommando verwendet das P2S-Feld close_power_conflict und verlangt eine zusätzliche Bestätigung. Der Erfolg wird anhand frischer Geräte-Telemetrie bewertet.
+
 ## Kamera
 
 Der P2S benötigt den LAN-Liveview-Modus für RTSPS auf Port 322. Wenn kein Bild erscheint, am P2S in den Netzwerk-/LAN-Einstellungen LAN-Liveview aktivieren. Die lokale Bridge meldet ein Bild nur bei einem tatsächlich frischen Snapshot.
