@@ -3,8 +3,23 @@
   const titles = {overview:'Übersicht',live:'Live Ansicht',control:'Steuerung',ams:'AMS 2 Pro',spools:'Material',jobs:'Druckaufträge',prints:'Historie',files:'Dateien',camera:'Kamera',setup:'Geräte-Setup',network:'Netzwerk',security:'Sicherheit',diagnostics:'Diagnose',system:'System'};
   const secureControl = location.protocol === 'https:' || ['localhost','127.0.0.1','::1'].includes(location.hostname);
   const transport = document.getElementById('securityTransport');
-  if (transport) transport.textContent = secureControl ? 'Verschlüsselte Verbindung. API-Schlüssel bleibt nur im Arbeitsspeicher.' : 'Nur Lesezugriff über HTTP. Steuerbefehle erfordern HTTPS.';
+  const secureLink=document.getElementById('secureAppLink');
+  if(secureLink)secureLink.href='https://'+location.hostname+':8444/';
+  if (transport) transport.textContent = secureControl ? 'Verschlüsselte Verbindung. Das iPhone wird per geschützter Sitzung gekoppelt.' : 'HTTP: Nur Live-Anzeige. Für Druckbefehle bitte den HTTPS-Zugang aktivieren.';
   document.getElementById('networkOrigin').textContent = location.origin;
+  const controlNotice=document.getElementById('mobileControlNotice');
+  function showControlNotice(enabled) {
+    if(!controlNotice)return;
+    if(!secureControl){
+      controlNotice.textContent='Nur Drucküberwachung über HTTP. Für die Steuerung bitte in Sicherheit auf HTTPS umstellen und das iPhone koppeln.';
+    }else if(enabled){
+      controlNotice.textContent='Sichere iPhone-Verbindung aktiv. Befehle werden am P2S geprüft.';
+    }else{
+      controlNotice.textContent='HTTPS aktiv. Zum Freigeben der Steuerung zuerst unter Sicherheit das iPhone koppeln.';
+    }
+    controlNotice.classList.toggle('mobile-control-ready',Boolean(enabled));
+  }
+  showControlNotice(false);
   async function reloadControlCapability() {
     try {
       const r = await fetch('/api/v1/control-capabilities',{cache:'no-store',headers:mobileControlToken?{'X-API-Key':mobileControlToken}:{}});
@@ -12,10 +27,13 @@
       nativeControlAuthorized = secureControl && !!auth.browser_write_endpoint;
       latestCaps.controls = auth.items || {};
       renderCaps(latestCaps);
+      showControlNotice(nativeControlAuthorized);
+      if(nativeControlAuthorized && currentView==='files')loadUploadedFiles();
       return nativeControlAuthorized;
     } catch (_) {
       nativeControlAuthorized = false;
       refreshControlButtons();
+      showControlNotice(false);
       return false;
     }
   }
@@ -23,14 +41,27 @@
   const securityMessage = document.getElementById('securityMessage');
   document.getElementById('applyControlToken')?.addEventListener('click',async()=>{
     if(!secureControl){securityMessage.textContent='Steuerung über unverschlüsseltes HTTP gesperrt.';return;}
-    const key=tokenInput.value.trim();
-    if(!/^[a-f0-9]{64}$/i.test(key)){securityMessage.textContent='64 hexadezimale Zeichen erforderlich.';return;}
-    mobileControlToken=key;tokenInput.value='';
-    const valid=await reloadControlCapability();
-    if(!valid)mobileControlToken='';
-    securityMessage.textContent=valid?'Steuerung autorisiert.':'Zugriff nicht autorisiert.';
+    const code=tokenInput.value.trim();
+    if(!/^[0-9]{8}$/.test(code)){securityMessage.textContent='Bitte den 8-stelligen Kopplungscode eingeben.';return;}
+    tokenInput.value='';
+    try {
+      const response=await fetch('/api/v1/pair',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({code})
+      });
+      const result=await response.json();
+      if(!response.ok || !result.ok)throw Error('Kopplungscode abgelaufen oder ungültig');
+      const valid=await reloadControlCapability();
+      if(!valid)throw Error('Keine Steuerfunktionen für dieses Gerät freigegeben');
+      securityMessage.textContent='iPhone gekoppelt. Die Druckersteuerung ist jetzt freigegeben.';
+    }catch(error){
+      mobileControlToken='';
+      securityMessage.textContent='Kopplung fehlgeschlagen: '+error.message;
+    }
   });
   document.getElementById('clearControlToken')?.addEventListener('click',async()=>{
+    try{await fetch('/api/v1/logout',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});}catch(_){}
     mobileControlToken='';nativeControlAuthorized=false;tokenInput.value='';
     await reloadControlCapability();securityMessage.textContent='Steuerzugriff gesperrt.';
   });
@@ -49,6 +80,7 @@
       const im=document.querySelector('.view.active .dedicated-camera');
       if(im)im.src='/camera/latest.jpg?t='+Date.now();
     }
+    if(name==='files')loadUploadedFiles();
     window.scrollTo(0,0);
   }
   document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
@@ -76,6 +108,71 @@
     text('networkCollector',s.online?'P2S online':'Keine aktuellen P2S-Daten');
     text('setupStatus',s.online?'Bambu Lab P2S meldet aktuelle LAN-Telemetrie.':'Collector / Druckerverbindung prüfen.');
   }
+  async function loadUploadedFiles() {
+    const list=document.getElementById('mobileUploadList');
+    if(!list)return;
+    if(!secureControl || !nativeControlAuthorized){
+      list.textContent='Dateien auf Jens-PC sind erst nach sicherer Kopplung sichtbar.';
+      return;
+    }
+    try {
+      const response=await fetch('/api/v1/files',{cache:'no-store'});
+      const data=await response.json();
+      if(!response.ok)throw Error(data.error||'Dateiliste nicht verfügbar');
+      list.replaceChildren();
+      const items=data.items||[];
+      if(!items.length){list.textContent='Noch keine Dateien vom iPhone übertragen.';return;}
+      for(const item of items){
+        const line=document.createElement('div');
+        line.className='mobile-upload-row';
+        const title=document.createElement('strong');
+        title.textContent=item.name;
+        const size=document.createElement('span');
+        size.textContent=(item.bytes/1048576).toFixed(2)+' MB';
+        line.append(title,size);
+        list.append(line);
+      }
+    } catch(error) {
+      list.textContent='Dateiliste fehlgeschlagen: '+error.message;
+    }
+  }
+  document.getElementById('refreshMobileFiles')?.addEventListener('click',loadUploadedFiles);
+  document.getElementById('uploadMobileFile')?.addEventListener('click',async()=>{
+    const input=document.getElementById('mobileFile');
+    const selected=input?.files?.[0];
+    const info=document.getElementById('fileInfo');
+    if(!selected){info.textContent='Bitte zuerst eine 3MF-, STL- oder G-Code-Datei auswählen.';return;}
+    if(!secureControl || !nativeControlAuthorized){
+      info.textContent='Upload gesperrt: zuerst HTTPS öffnen und unter Sicherheit iPhone koppeln.';
+      return;
+    }
+    if(!/\.(3mf|stl|gcode|gco|bgcode)$/i.test(selected.name)){
+      info.textContent='Dieser Dateityp wird nicht unterstützt.';
+      return;
+    }
+    if(!selected.size || selected.size>256*1024*1024){
+      info.textContent='Datei ist leer oder größer als 256 MB.';
+      return;
+    }
+    const button=document.getElementById('uploadMobileFile');
+    button.disabled=true;
+    info.textContent='Übertragung an Jens-PC läuft…';
+    try{
+      const response=await fetch('/api/v1/files',{
+        method:'POST',
+        headers:{'Content-Type':'application/octet-stream','X-File-Name':encodeURIComponent(selected.name)},
+        body:selected
+      });
+      const data=await response.json();
+      if(!response.ok || !data.ok)throw Error(data.error||'Übertragung fehlgeschlagen');
+      info.textContent='Übertragen: '+data.name+' ('+(data.bytes/1048576).toFixed(2)+' MB). Im PRINTBENCH-Dateiordner auf Jens-PC verfügbar.';
+      input.value='';
+      await loadUploadedFiles();
+    }catch(error){
+      info.textContent='Upload fehlgeschlagen: '+error.message;
+    }finally{button.disabled=false;}
+  });
+
   const actionMessage=document.getElementById('mobileActionMessage');
   function message(text) {
     if(actionMessage) actionMessage.textContent=text;

@@ -99,3 +99,14 @@ button:focus-visible,input:focus-visible{outline:2px solid #39caff;outline-offse
   .control-row button{min-height:44px}
   .mobile-actions{display:grid;grid-template-columns:1fr}
 }
+
+
+
+.mobile-file-list{margin-top:14px;border-top:1px solid #244860;color:#cce9fa;font-size:13px}
+.mobile-upload-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px 4px;border-bottom:1px solid #193a50}
+.mobile-upload-row strong{min-width:0;overflow-wrap:anywhere;font-size:12px}
+.mobile-upload-row span{color:#91b4c9;flex-shrink:0}
+#uploadMobileFile:disabled{opacity:.45;cursor:wait}
+
+#secureAppLink{display:inline-flex;align-items:center;justify-content:center;margin:8px 0 14px;text-decoration:none;min-height:44px}
+.mobile-control-ready{background:#0b2c22;border-color:#247b57;color:#ccffe9}

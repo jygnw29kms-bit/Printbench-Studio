@@ -59,3 +59,4 @@ public-live-media.png
 /tools/printbench_collector/*.db-*
 /tools/printbench_collector/*.sqlite
 /tools/printbench_collector/*.sqlite3
+tools/printbench_collector/pi_ui/static/PRINTBENCH-Local-CA.cer

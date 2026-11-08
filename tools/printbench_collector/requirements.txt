@@ -1,3 +1,6 @@
 paho-mqtt==2.1.0
 watchdog==6.0.0
 requests>=2.32
+cryptography>=44
+av>=15
+imageio-ffmpeg>=0.6

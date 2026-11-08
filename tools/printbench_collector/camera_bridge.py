@@ -1,5 +1,5 @@
 from __future__ import annotations
-import os, signal, time
+import os, signal, time, subprocess
 from pathlib import Path
 import av
 import collector
@@ -40,13 +40,35 @@ def _write_frame(frame)->int:
     TMP.write_bytes(raw);TMP.replace(SNAPSHOT);return len(raw)
 
 
+def _ffmpeg_snapshot()->int:
+    # Bundled FFmpeg provides a fallback when Windows PyAV cannot negotiate
+    # Bambu's RTSPS stream. No external service or cloud is involved.
+    import imageio_ffmpeg
+    command=[imageio_ffmpeg.get_ffmpeg_exe(),'-nostdin','-hide_banner',
+             '-loglevel','error','-rtsp_transport','tcp','-i',camera_url(),
+             '-an','-frames:v','1','-f','image2pipe','-vcodec','mjpeg','pipe:1']
+    result=subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE,
+                          timeout=18,check=False)
+    jpeg=result.stdout
+    if result.returncode or len(jpeg)<5000 or not jpeg.startswith(b'\xff\xd8'):
+        # Do not print stderr because FFmpeg may repeat an authenticated URL.
+        raise RuntimeError('P2S RTSPS camera unavailable; check LAN-Liveview')
+    RUNTIME.mkdir(parents=True,exist_ok=True)
+    TMP.write_bytes(jpeg)
+    TMP.replace(SNAPSHOT)
+    return len(jpeg)
+
+
 def capture_once()->int:
-    with av.open(camera_url(),options={'rtsp_transport':'tcp'},timeout=12) as container:
-        stream=container.streams.video[0]
-        try:stream.codec_context.skip_frame='NONKEY'
-        except Exception:pass
-        for frame in container.decode(stream):return _write_frame(frame)
-    raise RuntimeError('camera returned no frame')
+    try:
+        with av.open(camera_url(),options={'rtsp_transport':'tcp'},timeout=12) as container:
+            stream=container.streams.video[0]
+            try:stream.codec_context.skip_frame='NONKEY'
+            except Exception:pass
+            for frame in container.decode(stream):return _write_frame(frame)
+    except Exception:
+        return _ffmpeg_snapshot()
+    return _ffmpeg_snapshot()
 
 
 def stream_while_viewed(interval:float)->None:
@@ -73,7 +95,13 @@ def run_forever(active_interval=1.0,idle_interval=60.0)->None:
     while not STOP:
         try:
             if viewer_active():
-                stream_while_viewed(active_interval);failures=0;continue
+                try:
+                    stream_while_viewed(active_interval)
+                except Exception:
+                    # A slow snapshot is preferable to a permanently black view.
+                    _ffmpeg_snapshot()
+                    _sleep(max(2.0,active_interval))
+                failures=0;continue
             now=time.monotonic()
             if not SNAPSHOT.exists() or now-last_idle>=idle_interval:
                 capture_once();last_idle=time.monotonic();failures=0

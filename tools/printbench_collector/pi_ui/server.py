@@ -1,11 +1,14 @@
 from __future__ import annotations
-import json, os, secrets, sqlite3, socket, subprocess, sys, threading, time
+import json, os, secrets, sqlite3, socket, subprocess, sys, threading, time, ssl
 from datetime import datetime, timezone, timedelta
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, unquote
+from http.cookies import SimpleCookie
 sys.path.insert(0,str(Path(__file__).resolve().parent.parent))
 import command_engine
+import local_tls
+import mobile_pairing
 
 ROOT=Path(__file__).resolve().parent
 COLLECTOR=ROOT.parent
@@ -17,6 +20,9 @@ API_PREFIX='/api/v1'
 CAMERA_STREAMS=threading.BoundedSemaphore(2)
 CONTROL_TOKEN_FILE=Path(os.environ.get('PRINTBENCH_CONTROL_TOKEN_FILE','/etc/printbench/control.token'))
 MAX_CONTROL_BODY=4096
+UPLOADS=Path(os.environ.get('PRINTBENCH_MOBILE_UPLOADS',str(mobile_pairing.BASE/'uploads')))
+MAX_UPLOAD_BYTES=256*1024*1024
+UPLOAD_EXTS={'.3mf','.stl','.gcode','.gco','.bgcode'}
 
 
 def dbconn():
@@ -168,8 +174,15 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header('Referrer-Policy','no-referrer');self.send_header('Permissions-Policy','camera=(), microphone=(), geolocation=()')
         self.send_header('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");super().end_headers()
     def list_directory(self,path):self.send_error(403);return None
-    def _json(self,obj,status=200):
-        raw=json.dumps(obj,ensure_ascii=False,separators=(',',':')).encode();self.send_response(status);self.send_header('Content-Type','application/json; charset=utf-8');self.send_header('Cache-Control','no-store');self.send_header('Content-Length',str(len(raw)));self.end_headers();self.wfile.write(raw)
+    def _json(self,obj,status=200,cookie=None):
+        raw=json.dumps(obj,ensure_ascii=False,separators=(',',':')).encode()
+        self.send_response(status)
+        self.send_header('Content-Type','application/json; charset=utf-8')
+        self.send_header('Cache-Control','no-store')
+        if cookie:self.send_header('Set-Cookie',cookie)
+        self.send_header('Content-Length',str(len(raw)))
+        self.end_headers()
+        self.wfile.write(raw)
     def _viewer_touch(self):
         try:CAMERA_VIEWER.touch();return True
         except Exception:return False
@@ -197,9 +210,54 @@ class Handler(SimpleHTTPRequestHandler):
             pass
         finally:
             CAMERA_STREAMS.release()
+    def _is_tls(self):
+        return isinstance(self.connection,ssl.SSLSocket)
+    def _same_origin(self):
+        origin=self.headers.get('Origin','')
+        if not origin:return False
+        host=self.headers.get('Host','')
+        return origin==('https://' + host)
+    def _session_value(self):
+        try:
+            cookie=SimpleCookie()
+            cookie.load(self.headers.get('Cookie',''))
+            return cookie['PRINTBENCH_SESSION'].value if 'PRINTBENCH_SESSION' in cookie else ''
+        except Exception:return ''
     def _control_authorized(self):
+        if not self._is_tls():return False
+        if mobile_pairing.authenticated_session(self._session_value()):return True
         expected=_control_token();provided=self.headers.get('X-API-Key','')
         return bool(expected and provided and secrets.compare_digest(expected,provided))
+    def _upload_file(self):
+        try:
+            length=int(self.headers.get('Content-Length','0'))
+        except ValueError:return self._json({'error':'invalid_file_length'},400)
+        if length<=0 or length>MAX_UPLOAD_BYTES:return self._json({'error':'file_size_out_of_range'},413)
+        if (self.headers.get('Content-Type') or '').split(';',1)[0]!='application/octet-stream':
+            return self._json({'error':'binary_upload_required'},415)
+        original=unquote(self.headers.get('X-File-Name',''))
+        clean=''.join(ch for ch in original if ch.isalnum() or ch in '._- ')[:120].strip(' .')
+        if not clean or Path(clean).suffix.lower() not in UPLOAD_EXTS:
+            return self._json({'error':'unsupported_file_type'},400)
+        UPLOADS.mkdir(parents=True,exist_ok=True)
+        if sum(p.stat().st_size for p in UPLOADS.iterdir() if p.is_file())+length>1024*1024*1024:
+            return self._json({'error':'local_upload_storage_full'},507)
+        filename=f'{int(time.time())}-{secrets.token_hex(6)}-{clean}'
+        final=UPLOADS/filename
+        tmp=UPLOADS/(filename+'.partial')
+        left=length
+        try:
+            with tmp.open('xb') as output:
+                while left:
+                    chunk=self.rfile.read(min(left,1024*1024))
+                    if not chunk:raise OSError('incomplete_upload')
+                    output.write(chunk)
+                    left-=len(chunk)
+            tmp.replace(final)
+            return self._json({'ok':True,'name':clean,'stored_as':filename,'bytes':length})
+        except OSError:
+            tmp.unlink(missing_ok=True)
+            return self._json({'error':'upload_failed'},500)
     def _read_json_body(self):
         if (self.headers.get('Content-Type') or '').split(';',1)[0].strip().lower()!='application/json':
             raise ValueError('application/json required')
@@ -213,6 +271,25 @@ class Handler(SimpleHTTPRequestHandler):
     def do_POST(self):
         u=urlparse(self.path);path=u.path
         if path.startswith('/api/') and not path.startswith(API_PREFIX+'/'):path=API_PREFIX+path[4:]
+        if not self._is_tls():
+            return self._json({'error':'https_required'},403)
+        if not self._same_origin():
+            return self._json({'error':'origin_required'},403)
+        if path==API_PREFIX+'/pair':
+            try:
+                data=self._read_json_body()
+                token=mobile_pairing.pair(data.get('code'),self.client_address[0])
+                if not token:return self._json({'error':'invalid_or_expired_pairing_code'},403)
+                session=mobile_pairing.create_session()
+                cookie='PRINTBENCH_SESSION='+session+'; Path=/api/v1; Secure; HttpOnly; SameSite=Strict; Max-Age=2592000'
+                return self._json({'ok':True},cookie=cookie)
+            except ValueError:return self._json({'error':'invalid_pairing_request'},400)
+        if path==API_PREFIX+'/files':
+            if not self._control_authorized():return self._json({'error':'pairing_required'},403)
+            return self._upload_file()
+        if path==API_PREFIX+'/logout':
+            mobile_pairing.revoke_session(self._session_value())
+            return self._json({'ok':True},cookie='PRINTBENCH_SESSION=; Path=/api/v1; Secure; HttpOnly; SameSite=Strict; Max-Age=0')
         if not path.startswith(API_PREFIX+'/control/'):
             return self._json({'error':'not_found'},404)
         if not self._control_authorized():
@@ -243,6 +320,11 @@ class Handler(SimpleHTTPRequestHandler):
                 if path==API_PREFIX+'/firmware':return self._json(firmware())
                 if path==API_PREFIX+'/capabilities':return self._json(capabilities())
                 if path==API_PREFIX+'/control-capabilities':return self._json(control_catalog(self._control_authorized()))
+                if path==API_PREFIX+'/files':
+                    if not self._control_authorized():return self._json({'error':'pairing_required'},403)
+                    UPLOADS.mkdir(parents=True,exist_ok=True)
+                    rows=[{'name':p.name,'bytes':p.stat().st_size,'mtime':p.stat().st_mtime} for p in UPLOADS.iterdir() if p.is_file() and not p.name.endswith('.partial')]
+                    return self._json({'items':sorted(rows,key=lambda r:r['mtime'],reverse=True)[:100]})
                 return self._json({'error':'not_found'},404)
             except Exception:return self._json({'error':'internal'},500)
         return super().do_GET()
@@ -254,4 +336,14 @@ class Handler(SimpleHTTPRequestHandler):
 
 if __name__=='__main__':
     os.chdir(STATIC);host=os.environ.get('PRINTBENCH_UI_HOST','0.0.0.0');port=int(os.environ.get('PRINTBENCH_UI_PORT','8080'))
-    print(f'[PRINTBENCH UI] http://{host}:{port}/',flush=True);ThreadingHTTPServer((host,port),Handler).serve_forever()
+    tls_cert=os.environ.get('PRINTBENCH_UI_TLS_CERT','')
+    tls_key=os.environ.get('PRINTBENCH_UI_TLS_KEY','')
+    server=ThreadingHTTPServer((host,port),Handler)
+    if tls_cert and tls_key:
+        ctx=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ctx.minimum_version=ssl.TLSVersion.TLSv1_2
+        ctx.load_cert_chain(tls_cert,tls_key)
+        server.socket=ctx.wrap_socket(server.socket,server_side=True)
+    scheme='https' if tls_cert and tls_key else 'http'
+    print(f'[PRINTBENCH UI] {scheme}://{host}:{port}/',flush=True)
+    server.serve_forever()

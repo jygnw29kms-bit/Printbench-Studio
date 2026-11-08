@@ -13,4 +13,20 @@ $link.WindowStyle=7
 $link.Description='PRINTBENCH iPhone LAN App and local P2S telemetry'
 $link.Save()
 if(-not (Test-Path $shortcut)){throw 'Startup shortcut not created'}
-Write-Output "PRINTBENCH mobile autostart installed: $shortcut"
+$pairing=Join-Path $PSScriptRoot 'show_printbench_mobile_pairing.ps1'
+$pairingShortcut=Join-Path ([Environment]::GetFolderPath('StartMenu')) 'Programs\PRINTBENCH iPhone koppeln.lnk'
+$pairLink=$shell.CreateShortcut($pairingShortcut)
+$pairLink.TargetPath="$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+$pairLink.Arguments='-NoProfile -ExecutionPolicy Bypass -File "'+$pairing+'"'
+$pairLink.WorkingDirectory=$root
+$pairLink.Description='Einmaligen iPhone-Kopplungscode für PRINTBENCH anzeigen'
+$pairLink.Save()
+New-Item -ItemType Directory -Force -Path (Join-Path $env:LOCALAPPDATA 'PRINTBENCH\mobile\uploads') | Out-Null
+$fileShortcut=Join-Path ([Environment]::GetFolderPath('StartMenu')) 'Programs\PRINTBENCH iPhone Dateien.lnk'
+$fileLink=$shell.CreateShortcut($fileShortcut)
+$fileLink.TargetPath='explorer.exe'
+$fileLink.Arguments='"'+(Join-Path $env:LOCALAPPDATA 'PRINTBENCH\mobile\uploads')+'"'
+$fileLink.WorkingDirectory=$root
+$fileLink.Description='Vom iPhone an PRINTBENCH übertragene Druckdateien'
+$fileLink.Save()
+Write-Output 'PRINTBENCH mobile autostart, pairing and uploaded-file shortcuts installed.'
