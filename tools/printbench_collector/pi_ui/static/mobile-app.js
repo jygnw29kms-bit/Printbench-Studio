@@ -37,6 +37,7 @@
   function showView(name) {
     if(!Object.prototype.hasOwnProperty.call(titles,name))return;
     currentView=name;
+    stopCameraOnNonCameraView();
     document.querySelectorAll('.side-nav button[data-view]').forEach(el=>{
       el.classList.toggle('active',el.dataset.view===name);
       el.setAttribute('aria-current',el.dataset.view===name?'page':'false');

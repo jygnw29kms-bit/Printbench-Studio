@@ -255,18 +255,15 @@ navScrim?.addEventListener('click', () => setMobileNav(false));
 document.addEventListener('keydown', e => { if (e.key === 'Escape') setMobileNav(false); });
 
 document.querySelectorAll('[data-control]').forEach(b => b.addEventListener('click', () => sendControl(b)));
-document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => {
-  currentView = b.dataset.view;
-  document.querySelectorAll('.side-nav [data-view]').forEach(x => x.classList.toggle('active', x.dataset.view === currentView));
-  document.querySelectorAll('[data-view-panel]').forEach(x => x.classList.toggle('active', x.dataset.viewPanel === currentView));
-  $('pageTitle').textContent = {overview:'Bambu Lab P2S',live:'Live Ansicht',control:'Steuerung',ams:'AMS 2 Pro',spools:'Material',jobs:'Druckaufträge',prints:'Historie',files:'Dateien',camera:'Kamera',setup:'Geräte-Setup',network:'Netzwerk',security:'Sicherheit',diagnostics:'Diagnose',system:'System'}[currentView] || 'PRINTBENCH';
-  setMobileNav(false);
+// Navigation has one owner: mobile-app.js. Keeping a second click listener here
+// caused conflicting panel/camera state and duplicate route transitions.
+function stopCameraOnNonCameraView() {
   if (!['overview','live','camera'].includes(currentView) && cameraStarted) {
     cameraStarted = false;
     if (cameraTimer) clearInterval(cameraTimer);
     cameraTimer = null;
     $('cameraImage').removeAttribute('src');
   }
-}));
+}
 
 refreshFast(); refreshSlow(); setInterval(refreshFast, 5000); setInterval(refreshSlow, 30000); window.addEventListener('resize', () => drawChart(lastHistory));
