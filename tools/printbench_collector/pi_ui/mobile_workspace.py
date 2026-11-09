@@ -72,11 +72,29 @@ def remove_material(id):
         changed=db.execute('DELETE FROM materials WHERE id=?',(id,)).rowcount
     return {'ok':True,'deleted':bool(changed)}
 
+def queue_display_name(upload_name):
+    """Remove the local timestamp/random-id prefix; never expose it as a real title."""
+    parts=str(upload_name).split('-',2)
+    if len(parts)==3 and parts[0].isdigit() and len(parts[1])==12 and all(
+        c in '0123456789abcdefABCDEF' for c in parts[1]):
+        return parts[2]
+    return str(upload_name)
+
+
 def list_queue():
+    uploads=BASE/'uploads'
     with connection() as db:
-        return {'items':[dict(r) for r in db.execute(
-            'SELECT * FROM queue ORDER BY position ASC, created ASC LIMIT 200').fetchall()],
-            'auto_start':False}
+        rows=[dict(r) for r in db.execute(
+            'SELECT * FROM queue ORDER BY position ASC, created ASC LIMIT 200').fetchall()]
+    for row in rows:
+        stored=str(row['upload_name'])
+        path=uploads/stored
+        exists=path.is_file() and path.parent==uploads
+        row['display_name']=queue_display_name(stored)
+        row['file_available']=exists
+        row['bytes']=path.stat().st_size if exists else None
+        row['file_type']=path.suffix.lower() if exists else ''
+    return {'items':rows,'auto_start':False,'count':len(rows)}
 
 def queue_file(upload_name,uploads):
     name=_short(upload_name,170)

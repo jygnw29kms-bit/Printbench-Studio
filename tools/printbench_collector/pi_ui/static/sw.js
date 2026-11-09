@@ -1,4 +1,4 @@
-const CACHE='printbench-mobile-shell-v22';
+const CACHE='printbench-mobile-shell-v23';
 const ASSETS=['/','/index.html','/app.css','/app.js','/mobile-app.js','/mobile-workspace.js','/mobile-runtime.js','/mobile-health.js','/manifest.webmanifest','/icons/icon-192.png','/icons/icon-512.png'];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));

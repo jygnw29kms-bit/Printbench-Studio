@@ -97,7 +97,11 @@
       for(const item of items){
         const line=el('div',null,'mobile-upload-row');
         const details=el('div');
-        details.append(el('strong',item.upload_name),el('div','Bereitgestellt, kein automatischer Druckstart','mobile-small'));
+        const size=item.bytes!=null?' · '+(item.bytes/1048576).toFixed(2)+' MB':'';
+        const ready=item.file_available?'Datei vorhanden':'Datei fehlt auf Jens-PC';
+        details.append(el('strong',item.display_name||item.upload_name),
+          el('div',ready+size+' · Kein automatischer Druckstart','mobile-small'));
+        if(!item.file_available)line.classList.add('mobile-queue-missing');
         const actions=el('div',null,'mobile-inline-actions');
         actions.append(btn('Hoch',async()=>{try{await request('/queue/move',{id:item.id,direction:'up'});await loadQueue();}catch(e){notice('queueMessage',e.message);}}));
         actions.append(btn('Runter',async()=>{try{await request('/queue/move',{id:item.id,direction:'down'});await loadQueue();}catch(e){notice('queueMessage',e.message);}}));
@@ -115,6 +119,14 @@
     }catch(e){list.textContent='Warteliste: '+e.message;}
   }
   $('refreshQueue')?.addEventListener('click',loadQueue);
+  // Read-only synchronization with the Windows inbox while the jobs view is
+  // visible. Never auto-open a project or send anything to the printer.
+  setInterval(()=>{
+    if(document.visibilityState==='visible' &&
+       document.querySelector('[data-view-panel="jobs"]')?.classList.contains('active')){
+      loadQueue();
+    }
+  },5000);
   $('mobileUploadList')?.addEventListener('click',async e=>{
     const button=e.target.closest('button[data-upload-queue]');
     if(!button)return;

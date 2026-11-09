@@ -59,6 +59,25 @@ class Inbox(tk.Tk):
         self.status.pack(fill='x',padx=24,pady=(0,14))
         self.tree.bind('<Double-1>',lambda _:self.open_project())
         self.refresh()
+        self._auto_refresh_id=None
+        self.schedule_refresh()
+
+    def schedule_refresh(self):
+        # The native slicer inbox observes the same SQLite workspace as iOS.
+        # Read-only refresh, no automatic project opening or printer actions.
+        self._auto_refresh_id=self.after(5000,self._refresh_if_idle)
+
+    def _refresh_if_idle(self):
+        chosen=self.selected()
+        selected_id=chosen['id'] if chosen else None
+        self.refresh()
+        if selected_id:
+            for iid,row in self.rows.items():
+                if row['id']==selected_id:
+                    self.tree.selection_set(iid)
+                    self.tree.focus(iid)
+                    break
+        self.schedule_refresh()
 
     def selected(self):
         selection=self.tree.selection()
@@ -75,7 +94,7 @@ class Inbox(tk.Tk):
                 size=(path.stat().st_size/1048576) if path.is_file() else None
                 stamp=datetime.datetime.fromtimestamp(row['created']).strftime('%d.%m.%Y %H:%M')
                 iid=self.tree.insert('',tk.END,values=(
-                    row['upload_name'],'Bereit' if path.is_file() else 'Fehlt',
+                    row.get('display_name',row['upload_name']),'Bereit' if row.get('file_available') else 'Fehlt',
                     f'{size:.1f} MB' if size is not None else '-',stamp))
                 self.rows[iid]=row
             self.status.config(text=f'{len(queue)} vorbereitete Dateien · kein automatischer Druckstart')

@@ -343,3 +343,6 @@ button:focus-visible,input:focus-visible{outline:2px solid #39caff;outline-offse
 .mobile-file-toolbar input{flex:1;min-width:140px;min-height:44px;border:1px solid #285e7c;border-radius:8px;background:#091e30;color:#e8f7ff;padding:8px 12px}
 .mobile-file-toolbar span{font-size:11px;color:#92b3c9}
 .mobile-upload-row>div{min-width:0;overflow-wrap:anywhere}
+
+.mobile-queue-missing{border-color:#824457!important;background:#2b1724!important}
+.mobile-queue-missing .mobile-small{color:#ffd5aa!important}
