@@ -99,10 +99,13 @@
         };
         throw Error(reasons[result.error]||('Kopplung abgelehnt (HTTP '+response.status+')'));
       }
-      const valid=await reloadControlCapability();
-      if(!valid)throw Error('Keine Steuerfunktionen für dieses Gerät freigegeben');
+      // A valid session does not imply the printer's control capabilities
+      // are enabled. Report authentication and permissions separately.
       tokenInput.value='';
-      securityMessage.textContent='iPhone gekoppelt. Die Druckersteuerung ist jetzt freigegeben.';
+      const permitted=await reloadControlCapability();
+      securityMessage.textContent=permitted
+        ? 'iPhone erfolgreich gekoppelt. Die freigegebenen Steuerfunktionen sind verfügbar.'
+        : 'iPhone erfolgreich gekoppelt. Steuerfunktionen sind derzeit nicht freigegeben oder nicht erreichbar. Die Anmeldung bleibt bestehen.';
       showPairingStatus();
     }catch(error){
       mobileControlToken='';
