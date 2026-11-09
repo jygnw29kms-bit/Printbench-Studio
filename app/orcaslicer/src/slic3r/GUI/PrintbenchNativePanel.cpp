@@ -21,6 +21,8 @@
 #include <wx/statline.h>
 #include <wx/msgdlg.h>
 #include <wx/gauge.h>
+#include <wx/button.h>
+#include <wx/utils.h>
 
 namespace Slic3r {
 namespace GUI {
@@ -1555,6 +1557,30 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     add_metric("SCHICHTEN", m_layers);
     add_metric("RESTZEIT", m_remaining);
     body->Add(print_metrics, 0, wxEXPAND);
+#ifdef __WXMSW__
+    // Keep the FINAL MASTER as the only navigation. The queue is an actual
+    // native PRINTBENCH action within Druckauftraege, not another top menu.
+    auto* queue_open = new wxButton(print_card, wxID_ANY, wxString(L"DRUCKWARTELISTE ÖFFNEN"));
+    queue_open->SetBackgroundColour(wxColour(12, 60, 101));
+    queue_open->SetForegroundColour(PB_TEXT);
+    queue_open->SetMinSize(wxSize(-1, FromDIP(40)));
+    queue_open->SetToolTip(wxString(L"Vorbereitete iPhone-Druckdateien im Windows-Slicer öffnen"));
+    queue_open->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+        wxString appdata;
+        if (!wxGetEnv("APPDATA", &appdata) || appdata.empty()) {
+            wxMessageBox(wxString(L"Windows-Benutzerordner nicht gefunden."),
+                "PRINTBENCH", wxOK | wxICON_WARNING, this);
+            return;
+        }
+        const wxString shortcut = appdata +
+            wxString(L"\\Microsoft\\Windows\\Start Menu\\Programs\\PRINTBENCH Druckwarteliste.lnk");
+        if (!wxFileExists(shortcut) || !wxLaunchDefaultApplication(shortcut)) {
+            wxMessageBox(wxString(L"PRINTBENCH Druckwarteliste fehlt. Mobile-LAN-Installation erneut ausführen."),
+                "PRINTBENCH", wxOK | wxICON_WARNING, this);
+        }
+    });
+    body->Add(queue_open, 0, wxEXPAND | wxTOP, FromDIP(12));
+#endif
     middle->Add(print_card, 31, wxEXPAND | wxRIGHT, FromDIP(8));
 
     auto* temp_card = make_card(this, "TEMPERATUREN (LIVE)", body);
