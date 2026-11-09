@@ -69,6 +69,12 @@ Auf jeder iPhone-Seite wird PRINTBENCH iPHONE V14 im Kopf angezeigt. Der Verbind
 
 HTTP 8080 bleibt für Status/Einrichtung und die Bereitstellung des öffentlichen lokalen CA-Zertifikats aktiv. Es ist bewusst nicht mit dem sicheren Bedienzugang zu verwechseln.
 
+## V16: Stabilere iPhone-Kamera
+
+Die bereits aus einer MIT-lizenzierten Open-Source-Implementierung portierte RTSPS-/Digest-Verbindung bleibt auf Jens-PC in einer einzelnen Kamera-Bridge. Der Kamera-Watchdog startet den Decoder bei einem Ausfall erneut. In der iPhone-Web-App werden JPEG-Bilder nacheinander und erst nach erfolgreichem Laden aktualisiert: Es läuft maximal eine neue Abrufanfrage, fehlgeschlagene Anfragen werden gedrosselt. Dazu kommen wählbare Bildabstände (1/2/5 s), Bildpause und Zoom von 100 bis 300 Prozent. Der laufende P2S-Druck wird nicht verändert.
+
+Für die Protokollfunktionen wurde die offen dokumentierte P2S-Implementierung von panda-be-free als Referenz herangezogen. Swift-UI-Quellcode wird nicht als angeblich native iOS-App ausgegeben. Die freigegebenen Protokollteile und deren Lizenzhinweise sind unter docs/THIRD_PARTY_CAMERA_NOTICES.md sowie in der jeweiligen Codequelle dokumentiert.
+
 ## Abnahme noch offen
 
 Nach der CA-Installation auf dem iPhone müssen HTTPS-Zugriff, reale Steuerung, Kamera und restliche Menüs produktiv abgenommen werden. Der Code allein ist keine FINAL-Freigabe.

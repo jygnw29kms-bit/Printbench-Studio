@@ -9,8 +9,8 @@
   const mode=document.getElementById('appAccessMode');
   if(mode){
     mode.textContent=location.protocol==='https:'
-      ? 'PRINTBENCH iPHONE V15 · HTTPS :8444 · STEUERUNG NACH KOPPLUNG'
-      : 'PRINTBENCH iPHONE V15 · HTTP :8080 · NUR LIVE-ANZEIGE';
+      ? 'PRINTBENCH iPHONE V16 · HTTPS :8444 · STEUERUNG NACH KOPPLUNG'
+      : 'PRINTBENCH iPHONE V16 · HTTP :8080 · NUR LIVE-ANZEIGE';
     mode.classList.toggle('read-only',location.protocol!=='https:');
   }
   document.getElementById('networkOrigin').textContent = location.origin;
@@ -338,7 +338,8 @@
     });
   });
   document.getElementById('cameraRefresh')?.addEventListener('click',()=>{
-    document.querySelectorAll('.view.active .dedicated-camera').forEach(img=>img.src='/camera/latest.jpg?ts='+Date.now());
+    cameraFrameRequested=0;
+    if(typeof refreshFast==='function')refreshFast().catch(()=>{});
     refreshCameraInfo();
   });
   document.getElementById('cameraFullscreen')?.addEventListener('click',()=>{

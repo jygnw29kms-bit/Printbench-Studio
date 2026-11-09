@@ -11,6 +11,12 @@ const api = p => fetch('/api/v1' + p, {cache:'no-store'}).then(async r => {
 let lastHistory = [];
 let cameraStarted = false;
 let cameraTimer = null;
+let cameraRequestPending=false;
+let cameraUserPaused=false;
+let cameraFrameRequested=0;
+let cameraIntervalMs=2000;
+let cameraFrameFailures=0;
+
 let currentView = 'overview';
 let nativeControlAuthorized = false;
 let latestCaps = {controls:{}, features:{}};
@@ -130,22 +136,72 @@ function updateCamera(camOk, live, sys) {
     : (sys.camera_error ? 'Kamera-Verbindung: '+sys.camera_error :
        (live.camera?.printer_liveview ? 'P2S-Kamera antwortet noch nicht. Andere Liveansichten schließen.' :
          'P2S LAN-Liveview am Drucker aktivieren.'));
-  const refreshSnapshot = () => { if (cameraStarted && ['overview','live','camera'].includes(currentView)) {
-      const src = '/camera/latest.jpg?ts=' + Date.now();
-      $('cameraImage').src = src;
-      document.querySelectorAll('.dedicated-camera').forEach(img => { if (img.closest('.view.active')) img.src=src; });
-    } };
+  const refreshSnapshot = () => {
+    if (!cameraStarted || document.hidden || !['overview','live','camera'].includes(currentView) ||
+        cameraRequestPending || cameraUserPaused) return;
+    const now=Date.now();
+    if (now-cameraFrameRequested<cameraIntervalMs) return;
+    cameraFrameRequested=now;
+    cameraRequestPending=true;
+    const url='/camera/latest.jpg?ts='+now;
+    const image=new Image();
+    let done=false;
+    const finish=good=>{
+      if(done)return;
+      done=true;clearTimeout(timeout);cameraRequestPending=false;
+      if(good && cameraStarted) {
+        cameraFrameFailures=0;
+        $('cameraImage').src=url;
+        document.querySelectorAll('.dedicated-camera').forEach(img=>{
+          if(img.closest('.view.active'))img.src=url;
+        });
+      } else {
+        cameraFrameFailures++;
+        cameraFrameRequested=Date.now()+Math.min(7000,cameraFrameFailures*1000);
+      }
+    };
+    const timeout=setTimeout(()=>finish(false),7500);
+    image.onload=()=>finish(image.naturalWidth>0&&image.naturalHeight>0);
+    image.onerror=()=>finish(false);
+    image.src=url;
+  };
   if (shouldStream && !cameraStarted) {
     cameraStarted = true;
     refreshSnapshot();
-    cameraTimer = setInterval(refreshSnapshot, 1000);
+    cameraTimer = setInterval(refreshSnapshot, 500);
   } else if (!shouldStream && cameraStarted) {
     cameraStarted = false;
     if (cameraTimer) clearInterval(cameraTimer);
     cameraTimer = null;
-    $('cameraImage').removeAttribute('src');
+    // Keep the last valid JPEG in the UI. A stale frame is not relabeled LIVE.
   }
 }
+
+function setCameraUserPaused(paused){
+  cameraUserPaused=Boolean(paused);
+  const label=$('cameraPause');
+  if(label)label.textContent=cameraUserPaused?'Livebild fortsetzen':'Bild pausieren';
+  if(!cameraUserPaused)cameraFrameRequested=0;
+}
+$('cameraPause')?.addEventListener('click',()=>{
+  setCameraUserPaused(!cameraUserPaused);
+});
+$('cameraInterval')?.addEventListener('change',event=>{
+  const value=Number(event.target.value);
+  if([1000,2000,5000].includes(value))cameraIntervalMs=value;
+});
+let cameraZoom=1;
+function setCameraZoom(next){
+  cameraZoom=Math.min(3,Math.max(1,next));
+  if($('cameraZoomLevel'))$('cameraZoomLevel').textContent=Math.round(cameraZoom*100)+' %';
+  document.querySelectorAll('.dedicated-camera').forEach(img=>{
+    img.style.transform='scale('+cameraZoom+')';
+    img.style.transformOrigin='center';
+  });
+}
+$('cameraZoomIn')?.addEventListener('click',()=>setCameraZoom(cameraZoom+0.25));
+$('cameraZoomOut')?.addEventListener('click',()=>setCameraZoom(cameraZoom-0.25));
+$('cameraZoomReset')?.addEventListener('click',()=>setCameraZoom(1));
 
 function controlArgs(button) {
   const name = button.dataset.control;

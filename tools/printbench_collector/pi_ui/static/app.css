@@ -162,3 +162,11 @@ button:focus-visible,input:focus-visible{outline:2px solid #39caff;outline-offse
 .app-access-mode.read-only{background:#2b2011;border-color:#8c642a;color:#ffdc9e}
 
 .dedicated-camera[hidden]{display:none!important}
+
+.camera-control-label{display:flex;align-items:center;gap:8px;font-size:12px;color:#bddbef}
+.camera-control-label select{background:#09283f;color:#f0f9ff;border:1px solid #2c617e;border-radius:8px;min-height:44px;padding:7px}
+.camera-zoom-row{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
+.camera-zoom-row button{min-height:44px;min-width:44px;padding:8px;background:#103a58;color:#f0f9ff;border:1px solid #29617d;border-radius:8px}
+.camera-zoom-row span{font-weight:700;color:#cfecff;min-width:55px;text-align:center}
+.mobile-camera{overflow:hidden}
+.dedicated-camera{object-fit:contain;transition:transform 120ms ease}
