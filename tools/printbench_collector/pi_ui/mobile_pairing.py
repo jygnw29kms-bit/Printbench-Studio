@@ -19,6 +19,21 @@ def protect(path):
                             f'{user}:F','SYSTEM:F','Administrators:F'],capture_output=True,check=False)
     except Exception:pass
 
+def valid_pairing_code():
+    """Retain the existing one-time code until expiry; return None if invalid."""
+    try:
+        expiry,code=PIN.read_text(encoding='ascii').strip().split(':',1)
+        if int(expiry)>time.time() and len(code)==8 and code.isascii() and code.isdigit():
+            return code
+    except (OSError,ValueError):pass
+    return None
+
+
+def ensure_pairing_code():
+    """Startup must not invalidate a PIN already shown to the user."""
+    return valid_pairing_code() or issue_pairing_code()
+
+
 def issue_pairing_code():
     BASE.mkdir(parents=True,exist_ok=True)
     if not TOKEN.exists():

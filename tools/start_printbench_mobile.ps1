@@ -19,7 +19,7 @@ $nic=Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-
 if ($nic) {$env:PRINTBENCH_LAN_IP=$nic.IPAddress}
 Push-Location $ui
 try {
-    & $python -c 'import local_tls; local_tls.ensure_certificates(); import mobile_pairing; mobile_pairing.issue_pairing_code()' | Out-Null
+    & $python -c 'import local_tls; local_tls.ensure_certificates(); import mobile_pairing; mobile_pairing.ensure_pairing_code()' | Out-Null
 } finally {Pop-Location}
 if ($LASTEXITCODE -ne 0) { throw 'PRINTBENCH HTTPS setup failed; refusing insecure printer controls' }
 $cameraDir=Join-Path $root 'runtime\mobile-camera'
