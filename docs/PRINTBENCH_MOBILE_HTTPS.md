@@ -89,6 +89,18 @@ Die App hat unterhalb der Versionsanzeige einen gemeinsamen Status für Jens-PC,
 
 Die Anzeige benennt ausdrücklich, wenn die Kamera offline ist, aber der P2S-Collector online bleibt. HTTP :8080 ist weiterhin nur für Anzeige, HTTPS :8444 für autorisierte Steuerung. Der laufende Druck und die Kamera-Bridge werden durch die neuen Leseabfragen nicht verändert.
 
+
+
+## Kopplungsreparatur 09.11.2026 (HTTPS)
+
+Zwei Fehler wurden behoben:
+1. Der Start des lokalen Webdienstes überschrieb bisher jeden noch gültigen achtstelligen PIN. Nun wird der PIN während seiner 15 Minuten Lebensdauer wiederverwendet. Das lokale Fenster "PRINTBENCH iPhone koppeln" zeigt denselben PIN erneut an, statt einen weiteren zu erzeugen.
+2. Die alte PRINTBENCH-CA und das lokale HTTPS-Serverzertifikat enthielten nicht alle von strengen TLS-Verifizierern verlangten Schlüsselkennungen (SubjectKeyIdentifier/AuthorityKeyIdentifier). Die Stammzertifizierungsstelle wurde mit demselben bestehenden privaten Schlüssel technisch korrekt neu ausgestellt und im lokalen CA-Download aktualisiert, das Serverzertifikat ebenfalls angepasst.
+
+**Wichtig für bestehende iPhones:** Das bisher installierte PRINTBENCH-CA-Profil muss entfernt werden, danach die aktuelle `PRINTBENCH-Local-CA.cer` über den HTTP-LAN-Zugang :8080 neu installieren und unter iOS Einstellungen → Allgemein → Info → Zertifikatsvertrauenseinstellungen als vertrauenswürdig aktivieren. Erst anschließend den HTTPS-Zugang :8444 öffnen und den gültigen PIN unter Sicherheit verwenden. Der PIN ist einmalig und läuft nach 15 Minuten ab. Die Zertifikate und geheimen Schlüssel liegen außerhalb des Git-Repositories.
+
+Eine HTTPS-Anfrage auf `192.168.178.71:8444/api/v1/control-capabilities` wurde nach der Erneuerung mit strenger Zertifikatsprüfung und HTTP 200 bestätigt; eine erfolgreiche PIN-Eingabe am tatsächlichen iPhone ist damit noch nicht bewiesen.
+
 ## Abnahme noch offen
 
 Nach der CA-Installation auf dem iPhone müssen HTTPS-Zugriff, reale Steuerung, Kamera und restliche Menüs produktiv abgenommen werden. Der Code allein ist keine FINAL-Freigabe.
@@ -126,3 +138,8 @@ Die vorbereitete Warteliste liefert jetzt einen lesbaren ursprünglichen Dateina
 ## V24 Upload-Speicherverwaltung
 
 Das iPhone zeigt die tatsächliche Größe des lokalen Upload-Speichers an. Ein Dateieintrag lässt sich erst nach ausdrücklicher Bestätigung löschen. Der Server nimmt Löschbefehle ausschließlich über gekoppelte HTTPS-Sitzungen entgegen. Dateien, die noch in der vorbereiteten Warteliste stehen, lassen sich nicht löschen; dazu muss zuerst der Wartelisteneintrag entfernt werden. Die Dateioperationen sind ausschließlich auf den verwalteten Upload-Ordner begrenzt und betreffen weder Druckdateien an anderen Orten noch laufende Druckaufträge.
+
+
+## V25 iPhone-Download der eigenen Dateien
+
+Von iPhone hochgeladene 3MF/STL/G-Code-Dateien können aus der lokalen PRINTBENCH-Ablage wieder heruntergeladen werden. Der Download läuft ausschließlich über die authentifizierte HTTPS-API, ist auf vorhandene Dateien im verwalteten Upload-Verzeichnis begrenzt und verwendet den ursprünglichen Dateinamen. Er ändert keine Warteliste und löst keine Druckerbefehle aus. Auf iPhone erfolgt die Speicherung über die Safari-Dateiverwaltung.

@@ -58,11 +58,33 @@ def ensure_certificates():
             .not_valid_before(today-datetime.timedelta(days=1))
             .not_valid_after(today+datetime.timedelta(days=3650))
             .add_extension(x509.BasicConstraints(ca=True,path_length=0),critical=True)
+            .add_extension(x509.SubjectKeyIdentifier.from_public_key(ca_key.public_key()),critical=False)
             .add_extension(x509.KeyUsage(digital_signature=True,key_encipherment=False,
                 key_cert_sign=True,crl_sign=True,key_agreement=False,content_commitment=False,
                 data_encipherment=False,encipher_only=False,decipher_only=False),critical=True)
             .sign(ca_key,hashes.SHA256()))
         save(CA_KEY,pem_key(ca_key),True)
+        save(CA_CERT,ca.public_bytes(serialization.Encoding.DER))
+    # Legacy local CAs lacked SubjectKeyIdentifier. Current TLS verifiers
+    # reject that chain. Reissue only the public CA cert using the *same*
+    # private key, then publish the updated CA for iOS installation.
+    try:
+        ca.extensions.get_extension_for_class(x509.SubjectKeyIdentifier)
+    except x509.ExtensionNotFound:
+        legacy=BASE/'ca-legacy.cer'
+        if not legacy.exists():
+            save(legacy,CA_CERT.read_bytes())
+        new_ca=(x509.CertificateBuilder().subject_name(ca.subject).issuer_name(ca.subject)
+            .public_key(ca_key.public_key()).serial_number(x509.random_serial_number())
+            .not_valid_before(today-datetime.timedelta(days=1))
+            .not_valid_after(today+datetime.timedelta(days=3650))
+            .add_extension(x509.BasicConstraints(ca=True,path_length=0),critical=True)
+            .add_extension(x509.SubjectKeyIdentifier.from_public_key(ca_key.public_key()),critical=False)
+            .add_extension(x509.KeyUsage(digital_signature=True,key_encipherment=False,
+                key_cert_sign=True,crl_sign=True,key_agreement=False,content_commitment=False,
+                data_encipherment=False,encipher_only=False,decipher_only=False),critical=True)
+            .sign(ca_key,hashes.SHA256()))
+        ca=new_ca
         save(CA_CERT,ca.public_bytes(serialization.Encoding.DER))
     ip_sans=addresses()
     # Regenerate on new IP or within 30 days of leaf expiry.
@@ -72,7 +94,8 @@ def ensure_certificates():
             old=x509.load_pem_x509_certificate(CERT.read_bytes())
             existing={str(x.value) for x in old.extensions.get_extension_for_class(x509.SubjectAlternativeName).value if isinstance(x,x509.IPAddress)}
             expiry=old.not_valid_after_utc
-            valid=expiry>today+datetime.timedelta(days=30) and set(map(str,ip_sans)).issubset(existing)
+            valid=(expiry>today+datetime.timedelta(days=30) and set(map(str,ip_sans)).issubset(existing)
+                   and old.extensions.get_extension_for_class(x509.AuthorityKeyIdentifier) is not None)
         except Exception:pass
     if not valid:
         leaf_key=rsa.generate_private_key(public_exponent=65537,key_size=2048)
@@ -83,6 +106,8 @@ def ensure_certificates():
             .not_valid_after(today+datetime.timedelta(days=365))
             .add_extension(x509.SubjectAlternativeName([x509.IPAddress(x) for x in ip_sans]),critical=False)
             .add_extension(x509.BasicConstraints(ca=False,path_length=None),critical=True)
+            .add_extension(x509.AuthorityKeyIdentifier.from_issuer_public_key(ca_key.public_key()),critical=False)
+            .add_extension(x509.SubjectKeyIdentifier.from_public_key(leaf_key.public_key()),critical=False)
             .add_extension(x509.ExtendedKeyUsage([ExtendedKeyUsageOID.SERVER_AUTH]),critical=False)
             .add_extension(x509.KeyUsage(digital_signature=True,key_encipherment=True,key_cert_sign=False,
                 crl_sign=False,key_agreement=False,content_commitment=False,data_encipherment=False,
