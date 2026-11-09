@@ -11,7 +11,6 @@ CA_KEY=BASE/'ca-private.pem'
 CA_CERT=BASE/'ca.cer'
 KEY=BASE/'server-private.pem'
 CERT=BASE/'server-cert.pem'
-PUBLIC=pathlib.Path(__file__).resolve().parent/'static'/'PRINTBENCH-Local-CA.cer'
 
 def private_acl(path):
     try:
@@ -50,6 +49,8 @@ def ensure_certificates():
     if CA_KEY.exists() and CA_CERT.exists():
         ca_key=serialization.load_pem_private_key(CA_KEY.read_bytes(),password=None)
         ca=x509.load_der_x509_certificate(CA_CERT.read_bytes())
+        if ca_key.public_key().public_numbers()!=ca.public_key().public_numbers():
+            raise ValueError('PRINTBENCH CA certificate and private key do not match')
     else:
         ca_key=rsa.generate_private_key(public_exponent=65537,key_size=3072)
         name=x509.Name([x509.NameAttribute(NameOID.COMMON_NAME,'PRINTBENCH Private LAN CA')])
@@ -92,9 +93,12 @@ def ensure_certificates():
     if CERT.exists() and KEY.exists():
         try:
             old=x509.load_pem_x509_certificate(CERT.read_bytes())
+            old_key=serialization.load_pem_private_key(KEY.read_bytes(),password=None)
+            old.verify_directly_issued_by(ca)
             existing={str(x.value) for x in old.extensions.get_extension_for_class(x509.SubjectAlternativeName).value if isinstance(x,x509.IPAddress)}
             expiry=old.not_valid_after_utc
             valid=(expiry>today+datetime.timedelta(days=30) and set(map(str,ip_sans)).issubset(existing)
+                   and old_key.public_key().public_numbers()==old.public_key().public_numbers()
                    and old.extensions.get_extension_for_class(x509.AuthorityKeyIdentifier) is not None)
         except Exception:pass
     if not valid:
@@ -115,11 +119,10 @@ def ensure_certificates():
             .sign(ca_key,hashes.SHA256()))
         save(KEY,pem_key(leaf_key),True)
         save(CERT,leaf.public_bytes(serialization.Encoding.PEM))
-    PUBLIC.write_bytes(CA_CERT.read_bytes())
     return CERT,KEY,ip_sans
 
 if __name__=='__main__':
     _,_,ips=ensure_certificates()
     print('PRINTBENCH certificate prepared for: '+', '.join(map(str,ips)))
-    print('CA certificate for iPhone: '+str(PUBLIC))
+    print('CA certificate for iPhone: '+str(CA_CERT))
     print('CA private key stored outside repository.')

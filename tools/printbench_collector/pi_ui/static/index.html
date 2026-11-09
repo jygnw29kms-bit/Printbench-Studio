@@ -11,7 +11,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="app.css?v=26">
+  <link rel="stylesheet" href="app.css?v=28">
 </head>
 <body>
 <button id="mobileNavToggle" class="mobile-nav-toggle" type="button" aria-label="Navigation öffnen" aria-expanded="false">&#9776;</button>
@@ -48,7 +48,7 @@
     </header>
 
     <section class="page-head">
-      <div><small>PRINTBENCH / LOCAL DEVICE CENTER <span class="app-version">iPHONE V26</span></small><h1 id="pageTitle">Bambu Lab P2S</h1><p>P2S + AMS 2 Pro · LAN only · sichere Device API</p></div>
+      <div><small>PRINTBENCH / LOCAL DEVICE CENTER <span class="app-version">iPHONE V28</span></small><h1 id="pageTitle">Bambu Lab P2S</h1><p>P2S + AMS 2 Pro · LAN only · sichere Device API</p></div>
       <div class="page-actions"><span class="status-chip">P2S</span><span class="status-chip">AMS 2 PRO</span></div>
     </section>
 
@@ -68,6 +68,7 @@
   <div class="health-summary"><span class="health-led" id="mobileHealthLed"></span>
     <span id="mobileHealthText">PRINTBENCH-Verbindung wird aufgebaut…</span>
   </div>
+  <a class="mobile-inline-action pairing-entry" href="#security">Sicherheit &amp; Kopplung</a>
   <button type="button" id="mobileHealthRetry">Verbindung erneuern</button>
 </div>
 <div class="mobile-connection-bar" aria-label="Verbindungsstatus">
@@ -78,12 +79,9 @@
 <div class="view active" data-view-panel="overview">
       <section class="master-hero-grid">
         <article class="panel machine-hero">
-          <div class="panel-title"><span>P2S + AMS 2 PRO</span><small>GERÄTE-HERO</small></div>
-          <div class="machine-stage cockpit-machine" aria-label="PRINTBENCH P2S Statusanzeige">
-            <div class="cockpit-machine-ring"><div class="cockpit-ring-core"><img src="icons/icon-192.png" alt="JL1976 PRINTBENCH Logo"><span>P2S / AMS 2 PRO</span><b id="cockpitState">VERBINDE</b></div></div>
-            <div class="cockpit-machine-footer"><span>JL1976 SOFTWARE</span><strong>135er PRINTBENCH</strong></div>
-          </div>
-          <div class="hero-foot"><strong id="stateHero">–</strong><span><i></i>LOCAL / SECURE</span></div>
+          <div class="panel-title"><span>Bambu Lab P2S</span><small>AMS 2 PRO</small></div>
+          <img class="master-printer-image" src="images/printbench_hero_p2s_ams.png" alt="Bambu Lab P2S mit AMS 2 Pro" width="936" height="672">
+          <div class="hero-foot"><strong id="stateHero">–</strong><span>JL1976 SOFTWARE</span></div>
         </article>
 
         <article class="panel printer-status">
@@ -98,11 +96,17 @@
           </dl>
         </article>
 
-        <article class="panel camera-panel">
-          <div class="panel-title"><span>Live Kamera</span><small>P2S</small></div>
-          <div class="camera-frame"><img id="cameraImage" alt="P2S Livebild"><div id="cameraOverlay" class="camera-overlay">warte auf Kamera…</div></div>
-          <div class="camera-tools"><span id="cameraAge">–</span><span id="camera">Bridge –</span></div>
-        </article>
+        <div class="master-right-column">
+          <article class="panel camera-panel">
+            <div class="panel-title"><span>Live Kamera</span><button type="button" class="master-camera-open" data-view="camera">Öffnen</button></div>
+            <div class="camera-frame"><img id="cameraImage" alt="P2S Livebild"><div id="cameraOverlay" class="camera-overlay">warte auf Kamera…</div></div>
+            <div class="camera-tools"><span id="cameraAge">–</span><span id="camera">Bridge –</span></div>
+          </article>
+          <article class="panel quick-actions">
+            <div class="panel-title"><span>Schnellsteuerung</span><small id="quickControlStatus">NUR ANZEIGE</small></div>
+            <div class="quick-grid"><button type="button" data-control="print.pause">PAUSE</button><button type="button" data-control="print.resume">WEITER</button><button type="button" data-control="print.stop" class="danger">STOP</button><button type="button" data-control="printer.light" data-mode="on">LICHT AN</button><button type="button" data-control="printer.light" data-mode="off">LICHT AUS</button><button type="button" data-view="control" class="accent">DETAILS</button></div>
+          </article>
+        </div>
       </section>
 
       <section class="master-mid-grid">
@@ -133,9 +137,9 @@
           <div class="panel-title"><span>Letzte Drucke</span><small>SESSIONS</small></div>
           <div id="sessionsOverview" class="sessions-list compact"></div>
         </article>
-        <article class="panel quick-actions">
-          <div class="panel-title"><span>System & Aktionen</span><small id="quickControlStatus">READ ONLY</small></div>
-          <div class="quick-grid"><button data-control="print.pause">PAUSE</button><button data-control="print.resume">WEITER</button><button data-control="print.stop" class="danger">STOP</button><button data-control="printer.light" data-mode="on">LICHT AN</button><button data-control="printer.light" data-mode="off">LICHT AUS</button><button data-view="control" class="accent">DETAILS</button></div>
+        <article class="panel master-system-actions">
+          <div class="panel-title"><span>System &amp; Aktionen</span></div>
+          <div class="quick-grid"><button type="button" data-view="files">DATEIEN</button><button type="button" data-view="diagnostics">DIAGNOSE</button><button type="button" data-view="system">SYSTEM</button></div>
         </article>
       </section>
     </div>
@@ -241,15 +245,37 @@
   <p class="note">Nur lokale MQTT-Abfrage. Kein Druckstart, kein Neustart.</p>
 </div><p class="note">Die Druckerregistrierung erfolgt in PRINTBENCH auf dem PC. Das iPhone verwendet den lokalen Collector, ohne Bambu-Cloud.</p></section></div>
     <div class="view" data-view-panel="network"><section class="panel"><div class="panel-title"><span>NETZWERK</span><small>LAN ONLY</small></div><dl class="mobile-dl"><div><dt>App-Adresse</dt><dd id="networkOrigin">-</dd></div><div><dt>Collector</dt><dd id="networkCollector">-</dd></div><div><dt>P2S WLAN</dt><dd id="networkWifi">-</dd></div></dl></section></div>
-    <div class="view" data-view-panel="security"><section class="panel"><div class="panel-title"><span>SICHERHEIT</span><small>LOKALER ZUGRIFF</small></div><p id="securityTransport" class="note">Prüfe Verbindungssicherheit…</p><p><a id="secureAppLink" class="mobile-inline-action" href="#">PRINTBENCH mit HTTPS öffnen</a></p><p class="note">Einmalige iPhone-Einrichtung: <a id="printbenchCaDownload" href="#" download="PRINTBENCH-Local-CA.cer">PRINTBENCH-Zertifikat laden</a>, auf dem iPhone installieren und unter Einstellungen → Allgemein → Info → Zertifikatsvertrauenseinstellungen aktivieren. Danach die HTTPS-Adresse öffnen.</p><div class="pairing-setup-status" aria-live="polite">
-  <span id="pairingCodeStatus">Prüfe Gültigkeit des Kopplungscodes…</span>
-  <button type="button" id="checkPairingCode">Kopplung prüfen</button>
-</div>
-<label class="mobile-file-label" for="controlToken">Einmaliger 8-stelliger Kopplungscode vom Jens-PC</label><input id="controlToken" type="text" spellcheck="false" autocomplete="one-time-code" inputmode="numeric" maxlength="8" pattern="[0-9]{8}" placeholder="8-stelliger Kopplungscode"><div class="mobile-actions"><button type="button" id="applyControlToken">iPhone sicher koppeln</button><button type="button" id="clearControlToken">Zugriff sperren</button></div><p id="securityMessage" class="note">Verschlüsselter LAN-Zugang erforderlich. Klicke auf Jens-PC im Startmenü auf PRINTBENCH iPhone koppeln, um den Code anzuzeigen. Der Code ist einmalig und läuft nach 15 Minuten ab.</p></section></div>
+    <div class="view" data-view-panel="security">
+      <section class="panel">
+        <div class="panel-title"><span>Sicherheit</span><small>LOKALER ZUGRIFF</small></div>
+        <p id="securityTransport" class="note">Prüfe Verbindungssicherheit…</p>
+        <div id="pairingPreparation">
+          <ol class="pairing-instructions">
+            <li><a id="printbenchCaDownload" href="/PRINTBENCH-Local-CA.cer">PRINTBENCH-Zertifikat laden</a> und den SHA-256-Fingerabdruck mit dem Kopplungsfenster auf Jens-PC abgleichen.</li>
+            <li>In Einstellungen → Allgemein → VPN und Geräteverwaltung das Profil installieren. Unter Allgemein → Info → Zertifikatsvertrauenseinstellungen volles Vertrauen aktivieren.</li>
+            <li><a id="secureAppLink" class="mobile-inline-action pairing-entry" href="#security">Sichere App öffnen</a></li>
+          </ol>
+        </div>
+        <div id="pairingSecure" hidden>
+          <div class="pairing-setup-status" aria-live="polite">
+            <span id="pairingCodeStatus">Prüfe Kopplung…</span>
+            <button type="button" id="checkPairingCode">Kopplung prüfen</button>
+          </div>
+          <form id="pairingForm" method="post" action="/api/v1/pair">
+            <p class="note">Auf Jens-PC unter Sicherheit → iPhone koppeln oder im Startmenü „PRINTBENCH iPhone koppeln“ öffnen.</p>
+            <label class="mobile-file-label" for="controlToken">Achtstelliger Einmalcode vom Jens-PC</label>
+            <input id="controlToken" type="text" spellcheck="false" autocomplete="one-time-code" inputmode="numeric" maxlength="8" pattern="[0-9]{8}" required>
+            <div class="mobile-actions"><button type="submit" id="applyControlToken">iPhone sicher koppeln</button></div>
+          </form>
+          <button type="button" id="clearControlToken" class="mobile-inline-action" hidden>iPhone entkoppeln</button>
+          <p id="securityMessage" class="note" role="status"></p>
+        </div>
+      </section>
+    </div>
     <div class="view" data-view-panel="diagnostics"><section class="panel"><div class="panel-title"><span>DIAGNOSE</span><small>P2S / COLLECTOR</small></div><p id="diagnosticStatus" class="note">Prüfe API…</p><button type="button" id="diagnosticRefresh">Diagnose neu laden</button><div class="mobile-actions"><button type="button" id="exportDiagnostics">Diagnosebericht speichern</button><button type="button" data-view="network">LAN-Verbindung anzeigen</button></div><div id="diagnosticCaps" class="caps"></div></section></div>
     <div class="view" data-view-panel="system"><section class="system-grid"><article class="panel sys"><div class="panel-title"><span>Jens-PC / Bridge</span><small>SYSTEM</small></div><dl><div><dt>Hostname</dt><dd id="hostName">–</dd></div><div><dt>Collector</dt><dd id="collector2">–</dd></div><div><dt>Reader Bridge</dt><dd id="readerBridge">–</dd></div><div><dt>Uptime</dt><dd id="uptime">–</dd></div><div><dt>Speicher frei</dt><dd id="disk">–</dd></div><div><dt>PC Speicher</dt><dd id="piTemp2">–</dd></div></dl></article><article class="panel"><div class="panel-title"><span>Capabilities / Safety</span><small>READ ONLY</small></div><div id="caps" class="caps"></div></article><article class="panel"><div class="panel-title"><span>Control Engine</span><small>POLICY</small></div><div id="controlCaps" class="caps"></div></article><article class="panel firmware-panel"><div class="panel-title"><span>P2S Firmware / Module</span><small>SANITIZED</small></div><div id="firmwareRows" class="firmware-rows"></div></article></section></div>
 
-    <footer>PRINTBENCH iPHONE V26 · LOCAL ONLY · DEVICE API · <span id="updated">–</span></footer>
+    <footer>PRINTBENCH iPHONE V28 · LOCAL ONLY · DEVICE API · <span id="updated">–</span></footer>
   </main>
 </div>
 <nav id="mobileDock" class="mobile-dock" aria-label="PRINTBENCH Schnellnavigation">
@@ -262,10 +288,10 @@
 <div id="mobileOfflineNotice" class="mobile-offline-notice" role="status" hidden>
   Keine Verbindung zu PRINTBENCH. Bitte WLAN und Jens-PC prüfen.
 </div>
-<script src="app.js?v=26"></script>
-<script src="mobile-app.js?v=26"></script>
-<script src="mobile-workspace.js?v=26"></script>
-<script src="mobile-runtime.js?v=26"></script>
-<script src="mobile-health.js?v=26"></script>
+<script src="app.js?v=28"></script>
+<script src="mobile-app.js?v=28"></script>
+<script src="mobile-workspace.js?v=28"></script>
+<script src="mobile-runtime.js?v=28"></script>
+<script src="mobile-health.js?v=28"></script>
 </body>
 </html>

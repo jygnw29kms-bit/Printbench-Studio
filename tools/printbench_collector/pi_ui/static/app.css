@@ -184,22 +184,34 @@ button:focus-visible,input:focus-visible{outline:2px solid #39caff;outline-offse
  --pb-white:#eaf7ff;
  --pb-secondary:#88a8bd;
 }
-.cockpit-machine{min-height:228px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:8px;
- background:radial-gradient(ellipse 65% 60% at 50% 50%,rgba(10,104,166,.22),transparent 76%),
- repeating-linear-gradient(90deg,transparent 0,transparent 36px,rgba(71,195,238,.024) 37px),
- linear-gradient(160deg,#071a2b,#02080f);
- border:1px solid rgba(68,163,202,.18);border-radius:10px}
-.cockpit-machine-ring{width:184px;height:184px;border-radius:50%;padding:10px;
- background:conic-gradient(from 215deg,transparent 0deg,#0f74bd 25deg,#16caff 110deg,#155083 230deg,transparent 275deg);
- box-shadow:0 0 0 1px #19374e,0 0 28px rgba(13,137,214,.17),inset 0 0 24px #06192b}
-.cockpit-ring-core{height:100%;width:100%;border-radius:50%;background:radial-gradient(circle at 50% 35%,#112d45,#04101c 75%);
- border:3px solid #061522;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
-.cockpit-ring-core img{width:58px;height:58px;object-fit:contain;filter:drop-shadow(0 0 10px #03a6e35c)}
-.cockpit-ring-core span{font-size:9px;font-weight:800;letter-spacing:1.7px;color:#7baac4}
-.cockpit-ring-core b{font-size:14px;letter-spacing:1px;color:#f3fbff}
-.cockpit-machine-footer{width:100%;display:flex;justify-content:space-between;align-items:center;padding:0 15px}
-.cockpit-machine-footer span{font-size:9px;letter-spacing:1.5px;color:#4783a5;font-weight:800}
-.cockpit-machine-footer strong{font-size:11px;color:#a2e6ff;letter-spacing:.7px}
+.master-printer-image {
+ display:block;
+ width:100%;
+ height:auto;
+ margin:0 0 8px;
+ border-radius:6px;
+}
+.master-right-column {
+ display:grid;
+ grid-template-rows:1fr auto;
+ gap:10px;
+ min-width:0;
+}
+.master-right-column .camera-panel{min-height:0}
+.master-camera-open {
+ min-height:44px;
+ padding:0 10px;
+ border:1px solid #245a7c;
+ border-radius:6px;
+ background:#092640;
+ color:#d7f2ff;
+}
+@media(min-width:1281px){
+ .master-hero-grid{grid-template-columns:minmax(0,45fr) minmax(0,20fr) minmax(0,35fr)}
+}
+@media(min-width:981px) and (max-width:1280px){
+ .master-right-column{grid-column:1/-1}
+}
 @media(max-width:980px){
  html,body{background:#020914!important;color:var(--pb-white)}
  body{background-image:none!important}
@@ -221,13 +233,15 @@ button:focus-visible,input:focus-visible{outline:2px solid #39caff;outline-offse
  .mobile-signal.connected{background:#0a2a24!important;border-color:#286f56!important}
  .mobile-signal.warning{background:#291c12!important;border-color:#68502c!important}
  .view.active[data-view-panel="overview"]{gap:14px!important}
- .view.active[data-view-panel="overview"] .current-print{order:0!important}
- .view.active[data-view-panel="overview"] .camera-panel{order:1!important}
- .view.active[data-view-panel="overview"] .therm{order:2!important}
- .view.active[data-view-panel="overview"] .ams-card{order:3!important}
- .view.active[data-view-panel="overview"] .printer-status{order:4!important}
- .view.active[data-view-panel="overview"] .machine-hero{order:5!important}
- .view.active[data-view-panel="overview"] .quick-actions{order:6!important}
+ .view.active[data-view-panel="overview"] .master-right-column{display:contents}
+ .view.active[data-view-panel="overview"] .machine-hero{order:0}
+ .view.active[data-view-panel="overview"] .camera-panel{order:1}
+ .view.active[data-view-panel="overview"] .quick-actions{order:2}
+ .view.active[data-view-panel="overview"] .current-print{order:3}
+ .view.active[data-view-panel="overview"] .printer-status{order:4}
+ .view.active[data-view-panel="overview"] .therm{order:5}
+ .view.active[data-view-panel="overview"] .ams-card{order:6}
+ .view.active[data-view-panel="overview"] .master-system-actions{order:9}
  .panel{background:linear-gradient(145deg,#0c2133 0%,#071523 62%,#06111d 100%)!important;
   border:1px solid #1c3b53!important;border-radius:12px!important;padding:17px!important;
   box-shadow:0 8px 30px rgba(0,0,0,.22),inset 0 1px 0 rgba(130,203,244,.035)!important}
@@ -358,3 +372,24 @@ button:focus-visible,input:focus-visible{outline:2px solid #39caff;outline-offse
 .pairing-setup-status span{font-size:12px;color:#b8d7e9;line-height:1.45}
 .pairing-setup-status button{min-height:43px;flex-shrink:0;border:1px solid #2577a5;background:#0a4164;border-radius:8px;color:#effaff;padding:8px 10px;font-weight:700}
 @media(max-width:440px){.pairing-setup-status{flex-direction:column;align-items:stretch}.pairing-setup-status button{width:100%}}
+.pairing-entry {
+ display:inline-flex;
+ align-items:center;
+ justify-content:center;
+ text-decoration:none;
+ font-size:12px;
+}
+.pairing-instructions {
+ padding-left:1.4rem;
+ color:#b8d7e9;
+ font-size:14px;
+ line-height:1.5;
+}
+.pairing-instructions li + li{margin-top:12px}
+.pairing-instructions a{color:#a7e4ff}
+#controlToken {
+ min-height:44px;
+ width:100%;
+ max-width:18rem;
+ font-size:16px;
+}

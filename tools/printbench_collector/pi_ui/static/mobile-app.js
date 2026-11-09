@@ -1,19 +1,21 @@
 (() => {
   'use strict';
   const titles = {overview:'Übersicht',live:'Live Ansicht',control:'Steuerung',ams:'AMS 2 Pro',spools:'Material',jobs:'Druckaufträge',prints:'Historie',files:'Dateien',camera:'Kamera',setup:'Geräte-Setup',network:'Netzwerk',security:'Sicherheit',diagnostics:'Diagnose',system:'System'};
-  const secureControl = location.protocol === 'https:' || ['localhost','127.0.0.1','::1'].includes(location.hostname);
+  const secureControl = location.protocol === 'https:';
   const transport = document.getElementById('securityTransport');
   const secureLink=document.getElementById('secureAppLink');
-  if(secureLink)secureLink.href='https://'+location.hostname+':8444/';
-  const caDownload=document.getElementById('printbenchCaDownload');
-  if(caDownload)caDownload.href='http://'+location.hostname+':8080/PRINTBENCH-Local-CA.cer';
-  if (transport) transport.textContent = secureControl ? 'Verschlüsselte Verbindung. Das iPhone wird per geschützter Sitzung gekoppelt.' : 'HTTP: Nur Live-Anzeige. Für Druckbefehle bitte den HTTPS-Zugang aktivieren.';
+  secureLink.href='https://'+location.hostname+':8444/#security';
+  document.getElementById('pairingPreparation').hidden=secureControl;
+  document.getElementById('pairingSecure').hidden=!secureControl;
+  transport.textContent=secureControl
+    ? 'Verschlüsselte Verbindung zu PRINTBENCH.'
+    : 'HTTP für Live-Anzeige und die Einrichtung der sicheren App.';
   const mode=document.getElementById('appAccessMode');
   if(mode){
     mode.textContent=location.protocol==='https:'
-      ? 'PRINTBENCH iPHONE V26 · HTTPS :8444 · STEUERUNG NACH KOPPLUNG'
-      : 'PRINTBENCH iPHONE V26 · HTTP :8080 · NUR LIVE-ANZEIGE';
-    mode.classList.toggle('read-only',location.protocol!=='https:');
+      ? 'PRINTBENCH iPHONE V28 · HTTPS · STEUERUNG NACH KOPPLUNG'
+      : 'PRINTBENCH iPHONE V28 · HTTP · NUR LIVE-ANZEIGE';
+    mode.classList.toggle('read-only',!secureControl);
   }
   document.getElementById('networkOrigin').textContent = location.origin;
   const mobileConnection=document.getElementById('mobileActionMessage');
@@ -37,6 +39,7 @@
   async function reloadControlCapability() {
     try {
       const r = await fetch('/api/v1/control-capabilities',{cache:'no-store',headers:mobileControlToken?{'X-API-Key':mobileControlToken}:{}});
+      if(!r.ok)throw Error('HTTP '+r.status);
       const auth = await r.json();
       nativeControlAuthorized = secureControl && !!auth.browser_write_endpoint;
       latestCaps.controls = auth.items || {};
@@ -51,36 +54,42 @@
       return false;
     }
   }
+  const pairingForm=document.getElementById('pairingForm');
+  const tokenInput=document.getElementById('controlToken');
+  const pairButton=document.getElementById('applyControlToken');
+  const signOut=document.getElementById('clearControlToken');
+  const securityMessage=document.getElementById('securityMessage');
   async function showPairingStatus(){
+    if(!secureControl)return null;
     const label=document.getElementById('pairingCodeStatus');
-    if(!label)return;
     try{
-      const response=await fetch('/api/v1/pairing-status',{cache:'no-store',credentials:'same-origin'});
-      if(!response.ok)throw Error('HTTP '+response.status);
-      const info=await response.json();
+      const info=await api('/pairing-status');
+      pairingForm.hidden=info.paired;
+      signOut.hidden=!info.paired;
       if(info.paired){
-        label.textContent='iPhone gekoppelt. Sichere Steuerung freigegeben.';
+        label.textContent='iPhone gekoppelt. Die Sitzung ist aktiv.';
       } else if(info.pin_available){
         label.textContent='Kopplungscode verfügbar, noch '+Math.ceil(info.pin_expires_in_sec/60)+' Min. gültig. Code wird auf Jens-PC angezeigt.';
       } else {
         label.textContent='Kein gültiger Code. Auf Jens-PC „PRINTBENCH iPhone koppeln“ öffnen, um einen neuen zu erzeugen.';
       }
-    }catch(_){
-      label.textContent='Kopplungsstatus nicht erreichbar. Bitte HTTPS-Verbindung prüfen.';
+      return info;
+    }catch(error){
+      label.textContent=error.message==='session_storage_unavailable'
+        ? 'Sitzungsspeicher auf Jens-PC nicht erreichbar.'
+        : 'Kopplungsstatus nicht erreichbar. Bitte HTTPS-Verbindung prüfen.';
+      return null;
     }
   }
   document.getElementById('checkPairingCode')?.addEventListener('click',showPairingStatus);
-  document.querySelectorAll('[data-view="security"]').forEach(button=>{
-    button.addEventListener('click',showPairingStatus);
-  });
   document.addEventListener('visibilitychange',()=>{if(!document.hidden && currentView==='security')showPairingStatus();});
-  if(location.hash==='#security')showPairingStatus();
-  const tokenInput = document.getElementById('controlToken');
-  const securityMessage = document.getElementById('securityMessage');
-  document.getElementById('applyControlToken')?.addEventListener('click',async()=>{
-    if(!secureControl){securityMessage.textContent='Steuerung über unverschlüsseltes HTTP gesperrt.';return;}
+  pairingForm.addEventListener('submit',async event=>{
+    event.preventDefault();
+    if(!secureControl || pairButton.disabled)return;
     const code=tokenInput.value.trim();
     if(!/^[0-9]{8}$/.test(code)){securityMessage.textContent='Bitte den 8-stelligen Kopplungscode eingeben.';return;}
+    pairButton.disabled=true;
+    securityMessage.textContent='Kopplung wird geprüft…';
     try {
       const response=await fetch('/api/v1/pair',{
         method:'POST',credentials:'same-origin',cache:'no-store',
@@ -95,29 +104,44 @@
           invalid_code:'Code stimmt nicht. Bitte aktuellen Code von Jens-PC verwenden.',
           too_many_attempts:'Zu viele Versuche. Aus Sicherheitsgründen zehn Minuten warten.',
           session_storage_unavailable:'Sitzung konnte auf Jens-PC nicht gespeichert werden. Code bleibt gültig.',
-          pairing_not_initialized:'Kopplung auf Jens-PC noch nicht vorbereitet.'
+          pairing_not_initialized:'Auf Jens-PC „PRINTBENCH iPhone koppeln“ öffnen und den aktuellen Code eingeben.',
+          origin_required:'PRINTBENCH direkt in Safari oder vom Home-Bildschirm öffnen.'
         };
         throw Error(reasons[result.error]||('Kopplung abgelehnt (HTTP '+response.status+')'));
       }
-      // A valid session does not imply the printer's control capabilities
-      // are enabled. Report authentication and permissions separately.
+      const status=await showPairingStatus();
+      if(!status)throw Error('Sitzung konnte nicht geprüft werden. Tippe auf „Kopplung prüfen“.');
+      if(!status.paired)throw Error('Der Browser hat die Sitzung nicht gespeichert. Öffne die sichere App direkt und hole einen neuen Code auf Jens-PC.');
       tokenInput.value='';
-      const permitted=await reloadControlCapability();
-      securityMessage.textContent=permitted
-        ? 'iPhone erfolgreich gekoppelt. Die freigegebenen Steuerfunktionen sind verfügbar.'
-        : 'iPhone erfolgreich gekoppelt. Steuerfunktionen sind derzeit nicht freigegeben oder nicht erreichbar. Die Anmeldung bleibt bestehen.';
-      showPairingStatus();
+      await reloadControlCapability();
+      securityMessage.textContent='iPhone erfolgreich gekoppelt.';
+      window.dispatchEvent(new Event('printbench-pairing-changed'));
     }catch(error){
-      mobileControlToken='';
-      securityMessage.textContent='Kopplung fehlgeschlagen: '+error.message;
-      showPairingStatus();
+      securityMessage.textContent=error.message;
+      await showPairingStatus();
+    }finally{
+      pairButton.disabled=false;
     }
   });
-  document.getElementById('clearControlToken')?.addEventListener('click',async()=>{
-    try{await fetch('/api/v1/logout',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});}catch(_){}
-    mobileControlToken='';nativeControlAuthorized=false;tokenInput.value='';
-    await reloadControlCapability();securityMessage.textContent='Steuerzugriff gesperrt.';
-    showPairingStatus();
+  signOut.addEventListener('click',async()=>{
+    if(!secureControl || signOut.disabled)return;
+    signOut.disabled=true;
+    try{
+      const response=await fetch('/api/v1/logout',{
+        method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'
+      });
+      if(!response.ok)throw Error('HTTP '+response.status);
+      nativeControlAuthorized=false;
+      refreshControlButtons();
+      await showPairingStatus();
+      await reloadControlCapability();
+      securityMessage.textContent='iPhone entkoppelt.';
+      window.dispatchEvent(new Event('printbench-pairing-changed'));
+    }catch(error){
+      securityMessage.textContent='Entkoppeln fehlgeschlagen. '+error.message;
+    }finally{
+      signOut.disabled=false;
+    }
   });
   function routeFromHash() {
     const name=decodeURIComponent(location.hash.replace(/^#\/?/,''));
@@ -153,6 +177,7 @@
       if(im)im.src='/camera/latest.jpg?t='+Date.now();
     }
     if(name==='files')loadUploadedFiles();
+    if(name==='security')showPairingStatus();
     window.scrollTo(0,0);
   }
   document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
@@ -161,10 +186,7 @@
   if(routeFromHash())showView(routeFromHash(),false);
   // The installed HTTPS app has a 30-day cookie. Restore control state
   // automatically after every launch; do not force re-pairing every time.
-  if(secureControl){
-    document.addEventListener('DOMContentLoaded',()=>reloadControlCapability(),{once:true});
-    Promise.resolve().then(()=>reloadControlCapability());
-  }
+  if(secureControl)reloadControlCapability();
   const initialView=routeFromHash()||'overview';
   document.querySelectorAll('.mobile-dock button').forEach(b=>b.classList.toggle('active',b.dataset.view===initialView));
   const offlineNotice=document.getElementById('mobileOfflineNotice');
@@ -509,7 +531,6 @@
     updateMobile();
     const online=latestLive.online===true && Number(latestLive.age_sec||999)<45;
     signal('mobileDeviceSignal',online?'P2S ONLINE':'P2S OFFLINE',online,!online);
-    signal('mobilePairingSignal',nativeControlAuthorized?'GEKOPPELT':secureControl?'KOPPLUNG FEHLT':'NUR ANZEIGE',nativeControlAuthorized,!nativeControlAuthorized);
     const setup=document.getElementById('setupTelemetryAge');
     if(setup)setup.textContent=online?Number(latestLive.age_sec||0).toFixed(0)+' s':'offline';
   }

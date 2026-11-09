@@ -15,6 +15,8 @@
 #include <wx/filename.h>
 #include <wx/debug.h>
 #include <wx/utils.h>
+#include <wx/display.h>
+#include <wx/filedlg.h>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/log/trivial.hpp>
@@ -594,9 +596,7 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
          const auto handler = [this, i](wxMouseEvent&) {
              switch (i) {
              case 7: open_printbench_files(); break;
-             case 9: case 10: select_tab(tpMultiDevice); break;
-             case 11: wxGetApp().open_preferences(); break;
-             case 12: show_log_window(); break;
+             case 9: select_tab(tpMultiDevice); break;
              default:
                  select_tab(tpMonitor);
                  if (m_monitor) m_monitor->navigate_to_section(i);
@@ -631,10 +631,12 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     sizer->SetSizeHints(this);
     // Hiding Orca's notebook tab strip must not collapse the native frame
     // to the notebook's 1x1 placeholder while presets and pages initialize.
-    const wxSize printbench_min_window(FromDIP(1100), FromDIP(720));
+    const wxSize work_area = wxDisplay(0u).GetClientArea().GetSize();
+    const wxSize printbench_min_window(std::min(FromDIP(1100), work_area.x),
+                                       std::min(FromDIP(720), work_area.y));
     SetMinSize(printbench_min_window);
-    if (GetSize().x < printbench_min_window.x || GetSize().y < printbench_min_window.y)
-        SetSize(wxSize(FromDIP(1440), FromDIP(900)));
+    SetSize(wxSize(std::min(FromDIP(1440), work_area.x),
+                   std::min(FromDIP(900), work_area.y)));
     Layout();
 
     #if 0 && defined(__WXMSW__)
@@ -659,16 +661,6 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
 
 #endif // __WXMSW__
  
-
-    // BBS
-    Fit();
-
-    const wxSize min_size = wxGetApp().get_min_size(); //wxSize(76*wxGetApp().em_unit(), 49*wxGetApp().em_unit());
-
-    SetMinSize(min_size/*wxSize(760, 490)*/);
-    SetSize(wxSize(FromDIP(1200), FromDIP(800)));
-
-    Layout();
 
     update_title();
 
@@ -4020,15 +4012,21 @@ void MainFrame::load_config(const DynamicPrintConfig& config)
 //BBS: GUI refactor
 void MainFrame::open_printbench_files()
 {
-    // The file section must perform a real action rather than just selecting
-    // an unrelated page. Use Orca's native model/project import pipeline.
     if (!m_plater || !can_open_project()) {
         wxMessageBox(_L("Cannot open files while a project operation is active."),
                      "PRINTBENCH", wxOK | wxICON_INFORMATION, this);
         return;
     }
+    wxFileDialog dialog(this, wxString(L"STL oder 3MF \u00f6ffnen"),
+                        from_u8(wxGetApp().app_config->get_last_dir()), wxEmptyString,
+                        "STL / 3MF (*.stl;*.3mf)|*.stl;*.3mf", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+    if (dialog.ShowModal() != wxID_OK)
+        return;
+
     select_tab(tp3DEditor);
-    m_plater->load_project();
+    wxArrayString files;
+    files.Add(dialog.GetPath());
+    m_plater->load_files(files);
 }
 
 void MainFrame::select_tab(wxPanel* panel)

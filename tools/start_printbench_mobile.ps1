@@ -1,5 +1,6 @@
-param([switch]$StartCollector)
+param([switch]$StartCollector, [switch]$WebOnly)
 $ErrorActionPreference='Stop'
+if ($StartCollector -and $WebOnly) { throw 'Use either -WebOnly or -StartCollector.' }
 $root=Split-Path $PSScriptRoot -Parent
 $collector=Join-Path $root 'tools\printbench_collector'
 $ui=Join-Path $collector 'pi_ui'
@@ -19,16 +20,18 @@ $nic=Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-
 if ($nic) {$env:PRINTBENCH_LAN_IP=$nic.IPAddress}
 Push-Location $ui
 try {
-    & $python -c 'import local_tls; local_tls.ensure_certificates(); import mobile_pairing; mobile_pairing.ensure_pairing_code()' | Out-Null
+    & $python -c 'import local_tls,mobile_pairing;local_tls.ensure_certificates();mobile_pairing.initialize()'
+    if ($LASTEXITCODE -ne 0) { throw 'PRINTBENCH HTTPS setup failed; refusing insecure printer controls' }
 } finally {Pop-Location}
-if ($LASTEXITCODE -ne 0) { throw 'PRINTBENCH HTTPS setup failed; refusing insecure printer controls' }
 $cameraDir=Join-Path $root 'runtime\mobile-camera'
 New-Item -ItemType Directory -Force -Path $cameraDir | Out-Null
 $env:PRINTBENCH_CAMERA_SNAPSHOT=Join-Path $cameraDir 'latest.jpg'
+$serverScript='"'+(Join-Path $ui 'server.py')+'"'
+Remove-Item Env:PRINTBENCH_UI_TLS_CERT,Env:PRINTBENCH_UI_TLS_KEY -ErrorAction SilentlyContinue
 if (-not (Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue)) {
     $env:PRINTBENCH_UI_HOST='0.0.0.0'
     $env:PRINTBENCH_UI_PORT='8080'
-    $server=Start-Process -FilePath $python -ArgumentList @('-u','server.py') -WorkingDirectory $ui -WindowStyle Hidden -RedirectStandardOutput (Join-Path $logDir 'ui.log') -RedirectStandardError (Join-Path $logDir 'ui-errors.log') -PassThru
+    $server=Start-Process -FilePath $python -ArgumentList @('-u',$serverScript) -WorkingDirectory $ui -WindowStyle Hidden -RedirectStandardOutput (Join-Path $logDir 'ui.log') -RedirectStandardError (Join-Path $logDir 'ui-errors.log') -PassThru
     Write-Output "PRINTBENCH mobile server PID=$($server.Id)"
 } else { Write-Output 'Mobile port 8080 already listening. Existing service retained.' }
 if (-not (Get-NetTCPConnection -LocalPort 8444 -State Listen -ErrorAction SilentlyContinue)) {
@@ -36,7 +39,7 @@ if (-not (Get-NetTCPConnection -LocalPort 8444 -State Listen -ErrorAction Silent
     $env:PRINTBENCH_UI_PORT='8444'
     $env:PRINTBENCH_UI_TLS_CERT=Join-Path $secureDir 'server-cert.pem'
     $env:PRINTBENCH_UI_TLS_KEY=Join-Path $secureDir 'server-private.pem'
-    $secureServer=Start-Process -FilePath $python -ArgumentList @('-u','server.py') -WorkingDirectory $ui -WindowStyle Hidden -RedirectStandardOutput (Join-Path $logDir 'https.log') -RedirectStandardError (Join-Path $logDir 'https-errors.log') -PassThru
+    $secureServer=Start-Process -FilePath $python -ArgumentList @('-u',$serverScript) -WorkingDirectory $ui -WindowStyle Hidden -RedirectStandardOutput (Join-Path $logDir 'https.log') -RedirectStandardError (Join-Path $logDir 'https-errors.log') -PassThru
     Write-Output "PRINTBENCH secure mobile server PID=$($secureServer.Id)"
 } else { Write-Output 'PRINTBENCH secure port 8444 already listening.' }
 Remove-Item Env:PRINTBENCH_UI_TLS_CERT,Env:PRINTBENCH_UI_TLS_KEY -ErrorAction SilentlyContinue
@@ -53,23 +56,24 @@ if ($StartCollector) {
         Write-Output "Local P2S collector PID=$($proc.Id)"
     } else {Write-Output 'Collector already running, retained.'}
 }
-# One watchdog supervises the camera and restarts it when frames go stale.
-# It never touches the MQTT collector or the current print.
-$env:PRINTBENCH_CAMERA_RUNTIME=$cameraDir
-$watchdog=Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
-    $_.Name -eq 'python.exe' -and $_.CommandLine -match '[c]amera_watchdog.py'
-}
-if (-not $watchdog) {
-    $oldCameras=Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
-        $_.Name -eq 'python.exe' -and $_.CommandLine -match '[c]amera_bridge.py'
+if (-not $WebOnly) {
+    # One watchdog supervises the camera and restarts it when frames go stale.
+    $env:PRINTBENCH_CAMERA_RUNTIME=$cameraDir
+    $watchdog=Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+        $_.Name -eq 'python.exe' -and $_.CommandLine -match '[c]amera_watchdog.py'
     }
-    foreach($old in $oldCameras){
-        Stop-Process -Id $old.ProcessId -Force -ErrorAction SilentlyContinue
+    if (-not $watchdog) {
+        $oldCameras=Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+            $_.Name -eq 'python.exe' -and $_.CommandLine -match '[c]amera_bridge.py'
+        }
+        foreach($old in $oldCameras){
+            Stop-Process -Id $old.ProcessId -Force -ErrorAction SilentlyContinue
+        }
+        $watch=Start-Process -FilePath $python -ArgumentList @('-u','camera_watchdog.py') -WorkingDirectory $collector -WindowStyle Hidden -RedirectStandardOutput (Join-Path $logDir 'camera-watchdog.log') -RedirectStandardError (Join-Path $logDir 'camera-watchdog-errors.log') -PassThru
+        Write-Output "Local camera watchdog PID=$($watch.Id)"
+    } else {
+        Write-Output 'Local camera watchdog already running.'
     }
-    $watch=Start-Process -FilePath $python -ArgumentList @('-u','camera_watchdog.py') -WorkingDirectory $collector -WindowStyle Hidden -RedirectStandardOutput (Join-Path $logDir 'camera-watchdog.log') -RedirectStandardError (Join-Path $logDir 'camera-watchdog-errors.log') -PassThru
-    Write-Output "Local camera watchdog PID=$($watch.Id)"
-} else {
-    Write-Output 'Local camera watchdog already running.'
 }
 # Windows can classify a trusted LAN as Public. Allow only LocalSubnet on
 # both Windows profiles without exposing the UI beyond the local segment.

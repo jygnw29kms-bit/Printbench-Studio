@@ -18,7 +18,7 @@ def test_sidebar_routes_to_real_native_sections():
     assert 'show_log_window()' in PANEL
 
 def test_single_sidebar_routes_across_workspaces_without_duplicate_top_menu():
-    assert 'case 11: wxGetApp().open_preferences(); break;' in SHELL
-    assert 'case 9: case 10: select_tab(tpMultiDevice); break;' in SHELL
+    assert 'case 11:' not in SHELL
+    assert 'case 9: select_tab(tpMultiDevice); break;' in SHELL
     assert 'case 7: open_printbench_files(); break;' in SHELL
     assert 'const std::array<wxString, 6> top_items' not in PANEL

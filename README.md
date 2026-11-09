@@ -54,6 +54,12 @@ PRINTBENCH reuses Orca's native Bambu device model instead of routing the deskto
 
 ## Verification status
 
+- iPhone V28 speichert den Einmalcode und seine Sitzung gemeinsam. HTTPS, Cookie-Rückweg und Entkopplung wurden lokal ohne Druckerverbindung geprüft.
+- **Dateien** öffnet STL und 3MF im eingebauten OrcaSlicer. Das native Cockpit führt zu Filamentprofilen, Druckwarteliste, LAN-Daten, iPhone-Kopplung und Diagnose.
+- Der verbindliche P2S-Hero ist in der iPhone-Übersicht eingebunden. Der aktuelle Windows-Build auf Jens-PC, die Safari-Kopplung am Gerät und die optische Abnahme stehen aus.
+
+[iPhone einrichten und Webdienst aktualisieren](docs/PRINTBENCH_MOBILE_HTTPS.md)
+
 - Product contract validates P2S `N7` and all four supported nozzle profiles
 - Windows Orca/PRINTBENCH Release build is reproducible through `tools/build_printbench_orca.ps1`
 - Native PRINTBENCH Device/collector integration is being built and verified against the real P2S + AMS 2 Pro

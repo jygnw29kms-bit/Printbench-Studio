@@ -10,6 +10,7 @@ from contextlib import contextmanager
 
 BASE=Path(os.environ.get('LOCALAPPDATA',str(Path.home()/'AppData'/'Local')))/'PRINTBENCH'/'mobile'
 DB=BASE/'workspace.sqlite3'
+UPLOADS=Path(os.environ.get('PRINTBENCH_MOBILE_UPLOADS') or BASE/'uploads').resolve()
 MATERIAL_TYPES={'PLA','PETG','ABS','ASA','TPU','PA','PC','PVA','OTHER'}
 
 @contextmanager
@@ -82,18 +83,22 @@ def queue_display_name(upload_name):
 
 
 def list_queue():
-    uploads=BASE/'uploads'
     with connection() as db:
         rows=[dict(r) for r in db.execute(
             'SELECT * FROM queue ORDER BY position ASC, created ASC LIMIT 200').fetchall()]
     for row in rows:
         stored=str(row['upload_name'])
-        path=uploads/stored
-        exists=path.is_file() and path.parent==uploads
+        path=UPLOADS/stored
+        size=None
+        if path.parent==UPLOADS and not path.is_symlink() and path.is_file():
+            try:
+                size=path.stat().st_size
+            except OSError:
+                pass
         row['display_name']=queue_display_name(stored)
-        row['file_available']=exists
-        row['bytes']=path.stat().st_size if exists else None
-        row['file_type']=path.suffix.lower() if exists else ''
+        row['file_available']=size is not None
+        row['bytes']=size
+        row['file_type']=path.suffix.lower() if size is not None else ''
     return {'items':rows,'auto_start':False,'count':len(rows)}
 
 def queue_file(upload_name,uploads):

@@ -1,131 +1,153 @@
-"""One-use local iPhone pairing. Never sends control secrets over HTTP."""
+"""One-use PINs and cookie sessions shared by the Windows dialog and web server."""
 from __future__ import annotations
-import os, pathlib, secrets, threading, time, sqlite3, hashlib
-from contextlib import contextmanager
-BASE=pathlib.Path(os.environ.get('LOCALAPPDATA',str(pathlib.Path.home()/'AppData'/'Local')))/'PRINTBENCH'/'mobile'
-TOKEN=BASE/'control.token'
-PIN=BASE/'pairing.code'
-LOCK=threading.Lock()
-ATTEMPTS={}
-MAX_ATTEMPTS=5
-WINDOW=600
+
+import hashlib
+import os
+import pathlib
+import secrets
+import sqlite3
+import subprocess
+import threading
+import time
+from contextlib import closing, contextmanager, suppress
+
+BASE = pathlib.Path(os.environ.get('LOCALAPPDATA', str(pathlib.Path.home() / 'AppData' / 'Local'))) / 'PRINTBENCH' / 'mobile'
+TOKEN = BASE / 'control.token'
+LEGACY_PIN = BASE / 'pairing.code'
+SESSIONS = BASE / 'sessions.sqlite3'
+PIN_AGE = 15 * 60
+SESSION_AGE = 30 * 24 * 3600
+MAX_ATTEMPTS = 5
+WINDOW = 600
+ATTEMPTS = {}
+ATTEMPT_LOCK = threading.Lock()
+
 
 def protect(path):
-    try:
-        import subprocess
-        user=os.environ.get('USERNAME','')
-        if user and os.name=='nt':
-            subprocess.run(['icacls',str(path),'/inheritance:r','/grant:r',
-                            f'{user}:F','SYSTEM:F','Administrators:F'],capture_output=True,check=False)
-    except Exception:pass
+    if os.name == 'nt':
+        user = os.environ.get('USERNAME')
+        if user:
+            with suppress(OSError):
+                subprocess.run(
+                    ['icacls', str(path), '/inheritance:r', '/grant:r',
+                     f'{user}:F', '*S-1-5-18:F', '*S-1-5-32-544:F'],
+                    capture_output=True, check=False,
+                )
+    else:
+        path.chmod(0o600)
 
-def valid_pairing_code():
-    """Retain the existing one-time code until expiry; return None if invalid."""
-    try:
-        expiry,code=PIN.read_text(encoding='ascii').strip().split(':',1)
-        if int(expiry)>time.time() and len(code)==8 and code.isascii() and code.isdigit():
-            return code
-    except (OSError,ValueError):pass
-    return None
+
+def _is_pin(code):
+    return isinstance(code, str) and len(code) == 8 and code.isascii() and code.isdigit()
+
+
+@contextmanager
+def _open_store(write=False):
+    if write:
+        BASE.mkdir(parents=True, exist_ok=True)
+    new_file = write and not SESSIONS.exists()
+    with closing(sqlite3.connect(SESSIONS, timeout=3)) as db, db:
+        if new_file:
+            protect(SESSIONS)
+        migrate_pin = False
+        if write:
+            db.execute('BEGIN IMMEDIATE')
+            db.execute('CREATE TABLE IF NOT EXISTS sessions(token_hash TEXT PRIMARY KEY, expiry INTEGER NOT NULL)')
+            migrate_pin = db.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='pairing_pin'"
+            ).fetchone() is None
+            if migrate_pin:
+                db.execute('CREATE TABLE pairing_pin(id INTEGER PRIMARY KEY CHECK(id=1), code TEXT NOT NULL, expiry INTEGER NOT NULL)')
+                with suppress(OSError, ValueError):
+                    expiry, code = LEGACY_PIN.read_text(encoding='ascii').strip().split(':', 1)
+                    if int(expiry) > time.time() and _is_pin(code):
+                        db.execute('INSERT INTO pairing_pin VALUES(1, ?, ?)', (code, int(expiry)))
+        yield db
+    if migrate_pin:
+        with suppress(OSError):
+            LEGACY_PIN.unlink(missing_ok=True)
+
+
+def initialize():
+    """Prepare storage without opening a new pairing window."""
+    with _open_store(write=True):
+        if not TOKEN.exists():
+            TOKEN.write_text(secrets.token_hex(32), encoding='ascii')
+            protect(TOKEN)
 
 
 def ensure_pairing_code():
-    """Startup must not invalidate a PIN already shown to the user."""
-    return valid_pairing_code() or issue_pairing_code()
+    """Return the PIN and its expiry from the same transaction."""
+    with _open_store(write=True) as db:
+        now = int(time.time())
+        row = db.execute('SELECT code, expiry FROM pairing_pin WHERE id=1 AND expiry>?', (now,)).fetchone()
+        if row is None:
+            row = (f'{secrets.randbelow(100000000):08d}', now + PIN_AGE)
+            db.execute('INSERT OR REPLACE INTO pairing_pin VALUES(1, ?, ?)', row)
+        return {'code': row[0], 'expires_at': row[1]}
 
 
-def issue_pairing_code():
-    BASE.mkdir(parents=True,exist_ok=True)
-    if not TOKEN.exists():
-        TOKEN.write_text(secrets.token_hex(32),encoding='ascii')
-        protect(TOKEN)
-    # A pairing code remains valid for 15 minutes and only one successful pairing.
-    pin=f'{secrets.randbelow(100000000):08d}'
-    PIN.write_text(f'{int(time.time()+900)}:{pin}',encoding='ascii')
-    protect(PIN)
-    return pin
+def pairing_seconds_remaining():
+    if not SESSIONS.is_file():
+        return 0
+    with _open_store() as db:
+        row = db.execute('SELECT expiry FROM pairing_pin WHERE id=1').fetchone()
+    return max(0, row[0] - int(time.time())) if row else 0
 
 
-SESSIONS=BASE/'sessions.sqlite3'
-SESSION_AGE=30*24*3600
+def _digest(value):
+    return hashlib.sha256(value.encode('utf-8')).hexdigest()
 
-@contextmanager
-def _open_sessions():
-    BASE.mkdir(parents=True,exist_ok=True)
-    con=sqlite3.connect(SESSIONS,timeout=3)
-    try:
-        con.execute('CREATE TABLE IF NOT EXISTS sessions(token_hash TEXT PRIMARY KEY, expiry INTEGER NOT NULL)')
-        con.execute('DELETE FROM sessions WHERE expiry<?',(int(time.time()),))
-        con.commit()
-        yield con
-        con.commit()
-    finally:
-        con.close()
-
-def create_session():
-    value=secrets.token_urlsafe(40)
-    digest=hashlib.sha256(value.encode('ascii')).hexdigest()
-    with LOCK, _open_sessions() as db:
-        db.execute('INSERT INTO sessions(token_hash,expiry) VALUES(?,?)',(digest,int(time.time()+SESSION_AGE)))
-        db.commit()
-    protect(SESSIONS)
-    return value
 
 def authenticated_session(value):
-    if not value or len(value)>200:return False
-    digest=hashlib.sha256(value.encode('utf-8')).hexdigest()
-    with LOCK, _open_sessions() as db:
-        row=db.execute('SELECT expiry FROM sessions WHERE token_hash=?',(digest,)).fetchone()
-        return bool(row and row[0]>time.time())
+    if not value or len(value) > 200 or not SESSIONS.is_file():
+        return False
+    try:
+        with _open_store() as db:
+            row = db.execute('SELECT expiry FROM sessions WHERE token_hash=?', (_digest(value),)).fetchone()
+        return bool(row and row[0] > time.time())
+    except (OSError, sqlite3.Error):
+        return False
+
 
 def revoke_session(value):
-    if not value or len(value)>200:return
-    digest=hashlib.sha256(value.encode('utf-8')).hexdigest()
-    with LOCK, _open_sessions() as db:
-        db.execute('DELETE FROM sessions WHERE token_hash=?',(digest,))
-        db.commit()
+    if not value or len(value) > 200 or not SESSIONS.is_file():
+        return
+    with _open_store(write=True) as db:
+        db.execute('DELETE FROM sessions WHERE token_hash=?', (_digest(value),))
 
-def pair_and_create_session(code,ip):
-    """Issue cookie session before consuming the one-use PIN, atomically.
 
-    The caller never receives printer credentials. Failed database writes
-    leave the original PIN usable until it expires.
-    """
-    now=time.time()
-    if not isinstance(code,str) or len(code)!=8 or not code.isascii() or not code.isdigit():
-        return None,'invalid_format'
-    with LOCK:
-        attempts=[t for t in ATTEMPTS.get(ip,[]) if now-t<WINDOW]
-        if len(attempts)>=MAX_ATTEMPTS:
-            return None,'too_many_attempts'
-        attempts.append(now)
-        ATTEMPTS[ip]=attempts
+def pair_and_create_session(code, ip):
+    if not _is_pin(code):
+        return None, 'invalid_format'
+    with ATTEMPT_LOCK:
+        now = int(time.time())
+        attempts = [ts for ts in ATTEMPTS.get(ip, []) if now - ts < WINDOW]
+        if len(attempts) >= MAX_ATTEMPTS:
+            return None, 'too_many_attempts'
         try:
-            expiry,pin=PIN.read_text(encoding='ascii').strip().split(':',1)
-            if now>int(expiry):return None,'expired_code'
-            if not secrets.compare_digest(pin,code):return None,'invalid_code'
-            if not TOKEN.is_file():return None,'pairing_not_initialized'
-            token=TOKEN.read_text(encoding='ascii').strip()
-            if len(token)!=64:return None,'pairing_not_initialized'
-            value=secrets.token_urlsafe(40)
-            digest=hashlib.sha256(value.encode('ascii')).hexdigest()
-            # Persisting the session precedes deleting the user's PIN.
-            try:
-                with _open_sessions() as db:
-                    db.execute('INSERT INTO sessions(token_hash,expiry) VALUES(?,?)',
-                               (digest,int(time.time()+SESSION_AGE)))
-            except (OSError,sqlite3.Error):
-                return None,'session_storage_unavailable'
-            protect(SESSIONS)
-            try:PIN.unlink(missing_ok=True)
-            except OSError:pass
-            ATTEMPTS.pop(ip,None)
-            return value,None
-        except (OSError,ValueError):
-            return None,'pairing_not_initialized'
+            with _open_store(write=True) as db:
+                now = int(time.time())
+                row = db.execute('SELECT code, expiry FROM pairing_pin WHERE id=1').fetchone()
+                if row is None:
+                    return None, 'pairing_not_initialized'
+                if row[1] <= now:
+                    return None, 'expired_code'
+                if not secrets.compare_digest(row[0], code):
+                    ATTEMPTS[ip] = attempts + [now]
+                    return None, 'invalid_code'
+                value = secrets.token_urlsafe(40)
+                db.execute('DELETE FROM sessions WHERE expiry<=?', (now,))
+                db.execute('INSERT INTO sessions VALUES(?, ?)', (_digest(value), now + SESSION_AGE))
+                # A rollback restores the PIN if creating the session fails.
+                db.execute('DELETE FROM pairing_pin WHERE id=1')
+        except (OSError, sqlite3.Error):
+            return None, 'session_storage_unavailable'
+        ATTEMPTS.pop(ip, None)
+        return value, None
 
 
-def pair(code,ip):
-    """Compatibility for legacy callers; no secret return value."""
-    _,reason=pair_and_create_session(code,ip)
+def pair(code, ip):
+    """Compatibility for callers that only need the success flag."""
+    _, reason = pair_and_create_session(code, ip)
     return reason is None

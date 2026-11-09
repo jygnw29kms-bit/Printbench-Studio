@@ -376,7 +376,7 @@ async function refreshFast() {
     $('printerStatusText').textContent = live.online ? 'ONLINE / BEREIT' : 'TELEMETRIE STALE';
     $('printerStatusDot').style.background = live.online ? '#4ee59b' : '#ff5f72';
     $('printerStatusAge').textContent = `vor ${fmt(live.age_sec)} s`;
-    $('age').textContent = `letztes Telegramm vor ${fmt(live.age_sec)} s`; $('state').textContent = live.print_state || 'UNBEKANNT'; $('stateHero').textContent = live.print_state || 'UNBEKANNT'; if ($('cockpitState'))$('cockpitState').textContent=live.print_state||'VERBINDE';
+    $('age').textContent = `letztes Telegramm vor ${fmt(live.age_sec)} s`; $('state').textContent = live.print_state || 'UNBEKANNT'; $('stateHero').textContent = live.print_state || 'UNBEKANNT';
     const p = Math.max(0, Math.min(100, Math.round(live.progress || 0))); $('progress').textContent = p + '%'; $('progressBar').style.width = p + '%';
     $('layer').textContent = `${fmt(live.layer_current)} / ${fmt(live.layer_total)}`; $('remain').textContent = live.remaining_min != null ? Math.round(live.remaining_min) + ' min' : '-';
     $('speed').textContent = live.speed_mag != null ? Math.round(live.speed_mag) + '%' : fmt(live.speed_level);
@@ -411,7 +411,7 @@ async function refreshSlow() {
     Promise.all([api('/capabilities'), fetch('/api/v1/control-capabilities', {
       cache:'no-store', headers:mobileControlToken ? {'X-API-Key':mobileControlToken} : {}
     }).then(r => r.json())]).then(([caps, control]) => {
-      nativeControlAuthorized = (location.protocol === 'https:' || ['localhost','127.0.0.1','::1'].includes(location.hostname)) && !!control.browser_write_endpoint;
+      nativeControlAuthorized = location.protocol === 'https:' && !!control.browser_write_endpoint;
       latestCaps = {...caps, controls:control.items || {}};
       renderCaps(latestCaps);
     })

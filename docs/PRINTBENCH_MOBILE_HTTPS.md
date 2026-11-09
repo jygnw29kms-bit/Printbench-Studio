@@ -3,12 +3,11 @@
 ## Einmalige Einrichtung auf dem iPhone
 
 1. iPhone und Jens-PC im gleichen WLAN/LAN.
-2. In Safari die HTTP-Seite http://192.168.178.71:8080/ öffnen und unter Sicherheit die öffentliche PRINTBENCH-CA-Datei laden.
-3. Einstellungen > Allgemein > VPN & Geräteverwaltung: das heruntergeladene Zertifikatsprofil installieren.
-4. Einstellungen > Allgemein > Info > Zertifikatsvertrauenseinstellungen: der PRINTBENCH Private LAN CA vertrauen, nachdem der Fingerabdruck am Jens-PC geprüft wurde.
-5. Sichere App: https://192.168.178.71:8444/ (Safari > Teilen > Zum Home-Bildschirm).
-6. Auf Jens-PC im Startmenü PRINTBENCH iPhone koppeln wählen. Der achtstellige Code ist einmalig und 15 Minuten gültig.
-7. In der iPhone-App unter Sicherheit den Code eingeben. Danach gilt die geschützte Kopplungssitzung bis zu 30 Tage.
+2. In Safari [Sicherheit und Einrichtung](http://192.168.178.71:8080/#security) öffnen und das PRINTBENCH-Zertifikat laden.
+3. Auf Jens-PC in PRINTBENCH **Sicherheit → iPhone koppeln** öffnen. Der Dialog zeigt den SHA-256-Fingerabdruck des Zertifikats und den Einmalcode mit Ablaufzeit.
+4. Das Zertifikatsprofil unter **Einstellungen → Allgemein → VPN und Geräteverwaltung** installieren. Nach dem Fingerabdruckabgleich unter **Allgemein → Info → Zertifikatsvertrauenseinstellungen** volles Vertrauen aktivieren. [Apple-Anleitung](https://support.apple.com/de-de/102390)
+5. Die [sichere PRINTBENCH-App](https://192.168.178.71:8444/#security) in Safari öffnen. Für die Nutzung per Symbol **Teilen → Zum Home-Bildschirm** wählen und das neue Symbol öffnen.
+6. In der sicheren App den achtstelligen Einmalcode eingeben. Sobald der Server das Sitzungscookie bestätigt, zeigt die App **iPhone gekoppelt**. Die Sitzung gilt bis zu 30 Tage. Unter **Sicherheit** lässt sie sich widerrufen.
 
 ## Windows-Dienste
 
@@ -16,7 +15,15 @@ Der Windows-Autostart verwendet tools/start_printbench_mobile.ps1. Zugriff nur i
 - TCP 8080: Lesen und Download des öffentlichen CA-Zertifikats.
 - TCP 8444: HTTPS-App, Kopplung und autorisierte Gerätebefehle.
 
-Zertifikate, private Schlüssel, Sitzungsspeicher, Audit und Kopplungscode liegen unter LOCALAPPDATA/PRINTBENCH/mobile außerhalb des Repositories. Niemals private Schlüssel ins Git legen.
+Zertifikate, private Schlüssel, Sitzungsspeicher, Audit und Kopplungscode liegen unter LOCALAPPDATA/PRINTBENCH/mobile außerhalb des Repositories. Webdienst und Kopplungsdialog verwenden dasselbe Windows-Benutzerkonto.
+
+Für ein Webupdate zuerst die beiden PRINTBENCH-Webprozesse auf 8080 und 8444 eindeutig identifizieren und beenden. Dann im Projektordner unter dem PRINTBENCH-Windows-Konto ausführen.
+
+~~~powershell
+powershell -NoProfile -File .\tools\start_printbench_mobile.ps1 -WebOnly
+~~~
+
+Der Schalter startet die Weblistener und lässt den Collector und den Kamera-Watchdog in Ruhe. Die Versionsanzeige im Kopf und die HTTPS-API unter /api/v1/mobile-health zeigen V28.
 
 Druckerbefehle benötigen autorisierte HTTPS-Sitzung, aktive lokale Richtlinien, Audit und Bestätigung destruktiver Aktionen. Keine Steuerung über HTTP.
 
@@ -157,3 +164,10 @@ Die einmalige Kopplung legt erst eine serverseitige 30-Tage-Sitzung an und verbr
 ## V27: Native Windows-Slicer-Übergabe
 
 Die Windows-Druckwarteliste öffnet 3MF/STL ausschließlich nach Bestätigung. Sie sucht PRINTBENCH zuerst in einem explizit konfigurierten Pfad (\`PRINTBENCH_NATIVE_EXE\`), anschließend in den üblichen Installationsordnern und zuletzt im lokalen Entwicklungs-Build. Es werden keine fremden OrcaSlicer-Installationen als PRINTBENCH ausgegeben. Druckaufträge werden dadurch nicht gestartet.
+
+## V28 Kopplung, Orca-Import und Final Master
+
+- PIN-Verbrauch und Sitzung werden in derselben SQLite-Transaktion gespeichert. Bestehende Sitzungen bleiben gültig und ein noch aktiver PIN aus dem alten Dateiformat wird übernommen.
+- HTTP liefert die Einrichtung und das öffentliche CA-Zertifikat. Die HTTPS-Ansicht prüft das Sitzungscookie, bevor sie Erfolg meldet. Der Kopplungsstatus bleibt auch bei fehlender P2S-Telemetrie abrufbar.
+- Die Übersicht verwendet das P2S-Motiv aus dem verbindlichen Master. Auf dem iPhone folgen Kamera und Schnellsteuerung direkt darauf. Auf dem Windows-Desktop öffnet **Dateien** STL und 3MF mit Orcas nativem Import.
+- Mit lokalen HTTP- und HTTPS-Listenern geprüft wurden Zertifikatskette, PIN-Migration, Rollback bei Speicherfehler, konkurrierende Einlösung, Sitzungscookie und Entkopplung. Windows-Build, Rollout auf Jens-PC und Abnahme in Safari am iPhone stehen aus.

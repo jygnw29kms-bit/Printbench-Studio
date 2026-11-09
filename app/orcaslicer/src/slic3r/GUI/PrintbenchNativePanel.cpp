@@ -3,6 +3,8 @@
 #include "DeviceManager.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
+#include "Plater.hpp"
+#include "PrintbenchUpdateService.hpp"
 #include "DeviceCore/DevLamp.h"
 #include "MediaPlayCtrl.h"
 #include "wxMediaCtrl2.h"
@@ -57,6 +59,20 @@ wxString format_temp(double value, double target = -1.0)
         return wxString::Format("%.0f C  /  %.0f C", value, target);
     return wxString::Format("%.0f C", value);
 }
+
+#ifdef __WXMSW__
+void open_mobile_shortcut(wxWindow* parent, const wxString& name)
+{
+    wxString appdata;
+    if (wxGetEnv("APPDATA", &appdata) && !appdata.empty()) {
+        const wxString shortcut = appdata + L"\\Microsoft\\Windows\\Start Menu\\Programs\\" + name + L".lnk";
+        if (wxFileExists(shortcut) && wxLaunchDefaultApplication(shortcut))
+            return;
+    }
+    wxMessageBox(wxString::FromUTF8("Windows-Verknüpfung fehlt. Die PRINTBENCH Mobile-LAN-Installation ausführen."),
+                 "PRINTBENCH", wxOK | wxICON_WARNING, parent);
+}
+#endif
 } // namespace
 
 class PrintbenchTempChart : public wxPanel
@@ -984,69 +1000,6 @@ private:
     wxString m_wifi;
 };
 
-class PrintbenchTopNavItem : public wxPanel
-{
-public:
-    PrintbenchTopNavItem(wxWindow* parent, const wxString& caption, const wxBitmap& bitmap)
-        : wxPanel(parent, wxID_ANY), m_caption(caption), m_bitmap(bitmap)
-    {
-        SetBackgroundStyle(wxBG_STYLE_PAINT);
-        SetMinSize(wxSize(FromDIP(92), FromDIP(42)));
-        SetCursor(wxCursor(wxCURSOR_HAND));
-        Bind(wxEVT_PAINT, &PrintbenchTopNavItem::on_paint, this);
-        Bind(wxEVT_ENTER_WINDOW, [this](wxMouseEvent& e) { m_hover = true; Refresh(false); e.Skip(); });
-        Bind(wxEVT_LEAVE_WINDOW, [this](wxMouseEvent& e) { m_hover = false; Refresh(false); e.Skip(); });
-    }
-
-    void SetActive(bool active)
-    {
-        if (m_active == active) return;
-        m_active = active;
-        Refresh(false);
-    }
-
-private:
-    void on_paint(wxPaintEvent&)
-    {
-        wxAutoBufferedPaintDC dc(this);
-        const wxSize size = GetClientSize();
-        dc.SetBackground(wxBrush(PB_BG));
-        dc.Clear();
-        if (size.x <= 0 || size.y <= 0)
-            return;
-
-        if (m_active || m_hover) {
-            dc.SetPen(*wxTRANSPARENT_PEN);
-            dc.SetBrush(wxBrush(m_active ? wxColour(5, 46, 103) : wxColour(5, 24, 40)));
-            dc.DrawRoundedRectangle(0, 0, size.x - 1, size.y - 1, FromDIP(7));
-        }
-        if (m_active) {
-            dc.SetPen(*wxTRANSPARENT_PEN);
-            dc.SetBrush(wxBrush(PB_ACCENT));
-            dc.DrawRoundedRectangle(FromDIP(6), size.y - FromDIP(2), size.x - FromDIP(12), FromDIP(2), FromDIP(1));
-        }
-
-        const int icon_size = FromDIP(16);
-        const int icon_x = FromDIP(8);
-        const int icon_y = std::max(0, (size.y - icon_size) / 2);
-        if (m_bitmap.IsOk())
-            dc.DrawBitmap(m_bitmap, icon_x, icon_y, true);
-
-        wxFont font = GetFont();
-        font.SetPointSize(9);
-        font.SetWeight(m_active ? wxFONTWEIGHT_BOLD : wxFONTWEIGHT_NORMAL);
-        dc.SetFont(font);
-        dc.SetTextForeground(m_active ? *wxWHITE : wxColour(181, 199, 213));
-        const wxSize ext = dc.GetTextExtent(m_caption);
-        dc.DrawText(m_caption, FromDIP(31), std::max(FromDIP(4), (size.y - ext.y) / 2));
-    }
-
-    wxString m_caption;
-    wxBitmap m_bitmap;
-    bool m_active{false};
-    bool m_hover{false};
-};
-
 class PrintbenchNavRow : public wxPanel
 {
 public:
@@ -1352,10 +1305,10 @@ private:
 };
 
 PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
-    : wxScrolledWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL | wxTAB_TRAVERSAL)
+    : wxScrolledWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxHSCROLL | wxVSCROLL | wxTAB_TRAVERSAL)
 {
     SetBackgroundColour(PB_BG);
-    SetScrollRate(0, FromDIP(12));
+    SetScrollRate(FromDIP(12), FromDIP(12));
 
     auto* shell = new wxBoxSizer(wxHORIZONTAL);
     // FINAL-MASTER fills the available desktop viewport edge-to-edge.
@@ -1429,12 +1382,8 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     // scroll an already fully visible dashboard.
     m_section_title = new wxStaticText(this, wxID_ANY, "");
     style_label(m_section_title, 16, true, PB_TEXT);
-    m_section_hint = new wxStaticText(this, wxID_ANY, "");
-    style_label(m_section_hint, 10, false, PB_MUTED);
-    root->Add(m_section_title, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(16));
-    root->Add(m_section_hint, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(16));
+    root->Add(m_section_title, 0, wxALL, FromDIP(12));
     m_section_title->Hide();
-    m_section_hint->Hide();
 
     auto* hero = new wxBoxSizer(wxHORIZONTAL);
     m_master_hero = hero;
@@ -1485,6 +1434,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     body->Add(m_media_play_ctrl, 0, wxEXPAND | wxTOP, FromDIP(4));
 
     auto* camera_actions = new wxBoxSizer(wxHORIZONTAL);
+    m_camera_actions = camera_actions;
     m_camera_record = new PrintbenchCameraTile(camera_card, ID_PB_CAMERA_RECORD, "AUFNAHME");
     m_camera_timelapse = new PrintbenchCameraTile(camera_card, ID_PB_CAMERA_TIMELAPSE, "TIMELAPSE");
     m_camera_resolution = new PrintbenchCameraTile(camera_card, ID_PB_CAMERA_RESOLUTION, wxString::FromUTF8("AUFLÖSUNG"));
@@ -1557,30 +1507,6 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     add_metric("SCHICHTEN", m_layers);
     add_metric("RESTZEIT", m_remaining);
     body->Add(print_metrics, 0, wxEXPAND);
-#ifdef __WXMSW__
-    // Keep the FINAL MASTER as the only navigation. The queue is an actual
-    // native PRINTBENCH action within Druckauftraege, not another top menu.
-    auto* queue_open = new wxButton(print_card, wxID_ANY, wxString(L"DRUCKWARTELISTE ÖFFNEN"));
-    queue_open->SetBackgroundColour(wxColour(12, 60, 101));
-    queue_open->SetForegroundColour(PB_TEXT);
-    queue_open->SetMinSize(wxSize(-1, FromDIP(40)));
-    queue_open->SetToolTip(wxString(L"Vorbereitete iPhone-Druckdateien im Windows-Slicer öffnen"));
-    queue_open->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
-        wxString appdata;
-        if (!wxGetEnv("APPDATA", &appdata) || appdata.empty()) {
-            wxMessageBox(wxString(L"Windows-Benutzerordner nicht gefunden."),
-                "PRINTBENCH", wxOK | wxICON_WARNING, this);
-            return;
-        }
-        const wxString shortcut = appdata +
-            wxString(L"\\Microsoft\\Windows\\Start Menu\\Programs\\PRINTBENCH Druckwarteliste.lnk");
-        if (!wxFileExists(shortcut) || !wxLaunchDefaultApplication(shortcut)) {
-            wxMessageBox(wxString(L"PRINTBENCH Druckwarteliste fehlt. Mobile-LAN-Installation erneut ausführen."),
-                "PRINTBENCH", wxOK | wxICON_WARNING, this);
-        }
-    });
-    body->Add(queue_open, 0, wxEXPAND | wxTOP, FromDIP(12));
-#endif
     middle->Add(print_card, 31, wxEXPAND | wxRIGHT, FromDIP(8));
 
     auto* temp_card = make_card(this, "TEMPERATUREN (LIVE)", body);
@@ -1659,7 +1585,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     for (int col = 0; col < 3; ++col)
         action_grid->AddGrowableCol(col, 1);
     const std::array<wxString, 6> action_names{
-        L"Datei senden", L"Kalibrieren", L"Neustart", L"AMS trocknen", L"Firmware", L"Logs anzeigen"};
+        L"Datei öffnen", L"Kalibrieren", L"Neustart", L"AMS trocknen", L"Firmware", L"Logs anzeigen"};
     const std::array<const char*, 6> action_icons{
         "topbar_file", "calib_sf", "refresh", "ams_setting_normal", "printer_sync", "info"};
     std::array<PrintbenchActionTile*, 6> action_buttons{};
@@ -1670,7 +1596,7 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     }
     action_buttons[0]->Bind(wxEVT_BUTTON, [](wxCommandEvent&) {
         if (wxGetApp().mainframe)
-            wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
+            wxGetApp().mainframe->open_printbench_files();
     });
     action_buttons[1]->Bind(wxEVT_BUTTON, [](wxCommandEvent&) {
         if (wxGetApp().mainframe)
@@ -1715,11 +1641,81 @@ PrintbenchNativePanel::PrintbenchNativePanel(wxWindow* parent)
     });
 
     root->Add(bottom, 5, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
+
+    auto section_card = [&](size_t section, const wxString& title) {
+        auto* card = make_card(this, title, body);
+        m_section_cards[section] = card;
+        root->Add(card, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
+        card->Hide();
+        return card;
+    };
+    auto section_action = [&](wxWindow* card, const wxString& caption, auto handler) {
+        auto* button = new wxButton(card, wxID_ANY, caption);
+        button->SetMinSize(wxSize(-1, FromDIP(40)));
+        button->Bind(wxEVT_BUTTON, handler);
+        body->Add(button, 0, wxALIGN_LEFT | wxBOTTOM, FromDIP(6));
+    };
+
+    auto* material_card = section_card(4, "FILAMENTPROFILE");
+    section_action(material_card, wxString::FromUTF8("Im Slicer bearbeiten"), [](wxCommandEvent&) {
+        if (wxGetApp().mainframe)
+            wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
+    });
+    section_action(material_card, "Filamentprofil anlegen", [](wxCommandEvent&) {
+        if (auto* plater = wxGetApp().plater())
+            wxQueueEvent(plater, new SimpleEvent(EVT_CREATE_FILAMENT));
+    });
+
+#ifdef __WXMSW__
+    auto* queue_card = section_card(5, "LOKALE DRUCKWARTELISTE");
+    section_action(queue_card, wxString::FromUTF8("Druckwarteliste öffnen"), [this](wxCommandEvent&) {
+        open_mobile_shortcut(this, "PRINTBENCH Druckwarteliste");
+    });
+#endif
+
+    auto* network_card = section_card(10, "LAN-VERBINDUNG");
+    m_network_connection = add_value(network_card, body, "P2S");
+    m_network_address = add_value(network_card, body, "Druckeradresse");
+    m_network_wifi = add_value(network_card, body, "WLAN-Signal");
+    section_action(network_card, wxString::FromUTF8("Geräte-Setup öffnen"), [](wxCommandEvent&) {
+        if (wxGetApp().mainframe)
+            wxGetApp().mainframe->select_tab(MainFrame::tpMultiDevice);
+    });
+
+    auto* security_card = section_card(11, "iPHONE-KOPPLUNG");
+#ifdef __WXMSW__
+    auto* pairing_help = new wxStaticText(security_card, wxID_ANY,
+        wxString::FromUTF8("Den Einmalcode in der iPhone-App unter Sicherheit über HTTPS eingeben."));
+    style_label(pairing_help, 10, false, PB_MUTED);
+    body->Add(pairing_help, 0, wxBOTTOM, FromDIP(10));
+    section_action(security_card, "iPhone koppeln", [this](wxCommandEvent&) {
+        open_mobile_shortcut(this, "PRINTBENCH iPhone koppeln");
+    });
+#else
+    auto* pairing_help = new wxStaticText(security_card, wxID_ANY,
+        wxString::FromUTF8("Den Einmalcode am Windows-Rechner mit PRINTBENCH Mobile-LAN abrufen."));
+    style_label(pairing_help, 10, false, PB_MUTED);
+    body->Add(pairing_help);
+#endif
+
+    auto* diagnostics_card = section_card(12, "LOKALE DIAGNOSE");
+    section_action(diagnostics_card, wxString::FromUTF8("PRINTBENCH-Protokoll öffnen"), [](wxCommandEvent&) {
+        if (wxGetApp().mainframe)
+            wxGetApp().mainframe->show_log_window();
+    });
+
+    auto* system_card = section_card(13, "PRINTBENCH");
+    add_value(system_card, body, "Version")->SetLabel(wxString::FromUTF8(PrintbenchUpdateService::current_version()));
+    section_action(system_card, "Programmeinstellungen", [](wxCommandEvent&) {
+        wxGetApp().open_preferences();
+    });
+
     shell->Add(root, 1, wxEXPAND);
     SetSizer(shell);
     load_history();
     update_history_ui();
     Layout();
+    FitInside();
 }
 
 wxPanel* PrintbenchNativePanel::make_card(wxWindow* parent, const wxString& title, wxBoxSizer*& body)
@@ -1824,6 +1820,10 @@ void PrintbenchNativePanel::apply_snapshot(const PrintbenchSnapshot& s)
         m_status_ready->SetForegroundColour(ready ? PB_OK : (s.online ? PB_TEXT : PB_MUTED));
     }
     const wxString wifi = s.wifi_signal.empty() ? "--" : wxString::FromUTF8(s.wifi_signal);
+    m_network_connection->SetLabel(s.online ? "Verbunden" : "Offline");
+    const std::string address = m_machine ? m_machine->get_dev_ip() : std::string{};
+    m_network_address->SetLabel(address.empty() ? wxString("--") : wxString::FromUTF8(address));
+    m_network_wifi->SetLabel(wifi);
     const std::array<wxString, 6> device_values{
         s.online ? wxString(L"●  Verbunden") : wxString(L"●  Offline"),
         s.has_camera ? wxString(L"●  Ready") : wxString(L"●  --"),
@@ -1963,15 +1963,6 @@ void PrintbenchNativePanel::apply_snapshot(const PrintbenchSnapshot& s)
     Layout();
 }
 
-void PrintbenchNativePanel::activate_top_nav(size_t index)
-{
-    if (index >= m_top_nav.size())
-        return;
-    for (size_t i = 0; i < m_top_nav.size(); ++i)
-        if (m_top_nav[i])
-            m_top_nav[i]->SetActive(i == index);
-}
-
 void PrintbenchNativePanel::activate_nav(size_t index)
 {
     if (index >= m_nav_rows.size())
@@ -2003,19 +1994,14 @@ void PrintbenchNativePanel::navigate_to_section(size_t index)
 
 void PrintbenchNativePanel::show_master_section(size_t index)
 {
-    if (!m_master_root || !m_master_hero || !m_master_middle || !m_master_bottom)
-        return;
-    // Overview is the actual FINAL MASTER dashboard. Other entries show a
-    // clearly identified functional workspace instead of a no-op scroll.
     const bool overview = index == 0;
     const bool camera = index == 1 || index == 8;
     const bool controls = index == 2;
     const bool ams = index == 3 || index == 4;
     const bool jobs = index == 5;
     const bool history = index == 6;
+    const bool diagnostics = index == 12;
     const bool system = index == 13;
-    if (!(overview || camera || controls || ams || jobs || history || system))
-        return;
 
     static const std::array<wxString, 14> names {
         wxString::FromUTF8("ÜBERSICHT"), "LIVE ANSICHT", "STEUERUNG",
@@ -2024,27 +2010,26 @@ void PrintbenchNativePanel::show_master_section(size_t index)
         "NETZWERK", "SICHERHEIT", "DIAGNOSE", "SYSTEM"
     };
     m_section_title->SetLabel(names[index]);
-    m_section_hint->SetLabel(index == 4
-        ? wxString::FromUTF8("AMS-Materialstatus. Profilverwaltung ist noch nicht verfügbar.")
-        : index == 5
-            ? wxString::FromUTF8("Aktueller Druck. Eine vollständige Warteschlange ist noch nicht verfügbar.")
-            : wxString::FromUTF8("PRINTBENCH / Bambu Lab P2S"));
     m_section_title->Show(!overview);
-    m_section_hint->Show(!overview);
 
     m_master_root->Show(m_master_hero, overview || camera || controls, true);
     m_master_root->Show(m_master_middle, overview || ams || jobs, true);
-    m_master_root->Show(m_master_bottom, overview || history || system, true);
+    m_master_root->Show(m_master_bottom, overview || history || diagnostics || system, true);
     m_master_hero->Show(m_printer_card, overview);
     m_master_hero->Show(m_status_card, overview);
     m_master_hero_right->Show(m_camera_card, overview || camera);
+    m_camera_card->GetSizer()->Show(m_camera_actions, overview || index == 8, true);
+    m_camera_card->Layout();
     m_master_hero_right->Show(m_quick_card, overview || controls);
     m_master_middle->Show(m_print_card, overview || jobs);
     m_master_middle->Show(m_temp_card, overview);
     m_master_middle->Show(m_ams_card, overview || ams);
-    m_master_bottom->Show(m_device_card, overview);
+    m_master_bottom->Show(m_device_card, overview || diagnostics);
     m_master_bottom->Show(m_history_card, overview || history);
     m_master_bottom->Show(m_action_card, overview || system);
+    for (size_t i = 0; i < m_section_cards.size(); ++i)
+        if (m_section_cards[i])
+            m_section_cards[i]->Show(i == index);
 
     Scroll(0, 0);
     m_master_root->Layout();
@@ -2054,27 +2039,15 @@ void PrintbenchNativePanel::show_master_section(size_t index)
 
 void PrintbenchNativePanel::handle_nav(size_t index)
 {
-    activate_nav(index);
+    if (index >= m_nav_rows.size())
+        return;
     switch (index) {
-    case 0: activate_top_nav(0); break;
-    case 3: case 4: activate_top_nav(3); break;
-    case 6: activate_top_nav(4); break;
-    case 7: activate_top_nav(1); break;
-    case 9: case 10: activate_top_nav(2); break;
-    case 11: case 13: activate_top_nav(5); break;
-    default: break;
-    }
-    switch (index) {
-    case 0: case 1: case 2: case 3: case 4: case 5: case 6:
-        show_master_section(index); break;
     case 7: if (wxGetApp().mainframe) wxGetApp().mainframe->open_printbench_files(); break;
-    case 8: show_master_section(index); break;               // Kamera
     case 9: if (wxGetApp().mainframe) wxGetApp().mainframe->select_tab(MainFrame::tpMultiDevice); break;
-    case 10: if (wxGetApp().mainframe) wxGetApp().mainframe->select_tab(MainFrame::tpMultiDevice); break;
-    case 11: wxGetApp().open_preferences(); break;            // Sicherheit / Einstellungen
-    case 12: if (wxGetApp().mainframe) wxGetApp().mainframe->show_log_window(); break;
-    case 13: show_master_section(index); break;              // System
-    default: break;
+    default:
+        activate_nav(index);
+        show_master_section(index);
+        break;
     }
 }
 

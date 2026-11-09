@@ -1,7 +1,7 @@
 $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot -Parent
 $launcher=Join-Path $PSScriptRoot 'start_printbench_mobile.ps1'
-$startup='C:\Users\dezen\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup'
+$startup=[Environment]::GetFolderPath('Startup')
 New-Item -ItemType Directory -Force -Path $startup | Out-Null
 $shortcut=Join-Path $startup 'PRINTBENCH Mobile LAN.lnk'
 $shell=New-Object -ComObject WScript.Shell

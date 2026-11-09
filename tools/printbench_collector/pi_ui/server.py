@@ -2,6 +2,7 @@ from __future__ import annotations
 import json, os, secrets, sqlite3, socket, subprocess, sys, threading, time, ssl
 from datetime import datetime, timezone, timedelta
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+from io import BytesIO
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs, unquote, quote
 from http.cookies import SimpleCookie
@@ -22,7 +23,7 @@ API_PREFIX='/api/v1'
 CAMERA_STREAMS=threading.BoundedSemaphore(2)
 CONTROL_TOKEN_FILE=Path(os.environ.get('PRINTBENCH_CONTROL_TOKEN_FILE','/etc/printbench/control.token'))
 MAX_CONTROL_BODY=4096
-UPLOADS=Path(os.environ.get('PRINTBENCH_MOBILE_UPLOADS',str(mobile_pairing.BASE/'uploads')))
+UPLOADS=mobile_workspace.UPLOADS
 MAX_UPLOAD_BYTES=256*1024*1024
 UPLOAD_EXTS={'.3mf','.stl','.gcode','.gco','.bgcode'}
 
@@ -209,6 +210,19 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header('Referrer-Policy','no-referrer');self.send_header('Permissions-Policy','camera=(), microphone=(), geolocation=()')
         self.send_header('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");super().end_headers()
     def list_directory(self,path):self.send_error(403);return None
+    def send_head(self):
+        if urlparse(self.path).path != '/PRINTBENCH-Local-CA.cer':
+            return super().send_head()
+        try:
+            data = local_tls.CA_CERT.read_bytes()
+        except OSError:
+            self.send_error(404, 'PRINTBENCH CA certificate not prepared')
+            return None
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/x-x509-ca-cert')
+        self.send_header('Content-Length', str(len(data)))
+        self.end_headers()
+        return BytesIO(data)
     def _json(self,obj,status=200,cookie=None):
         raw=json.dumps(obj,ensure_ascii=False,separators=(',',':')).encode()
         self.send_response(status)
@@ -277,9 +291,11 @@ class Handler(SimpleHTTPRequestHandler):
             cookie.load(self.headers.get('Cookie',''))
             return cookie['PRINTBENCH_SESSION'].value if 'PRINTBENCH_SESSION' in cookie else ''
         except Exception:return ''
+    def _paired_session(self):
+        return self._is_tls() and mobile_pairing.authenticated_session(self._session_value())
     def _control_authorized(self):
         if not self._is_tls():return False
-        if mobile_pairing.authenticated_session(self._session_value()):return True
+        if self._paired_session():return True
         expected=_control_token();provided=self.headers.get('X-API-Key','')
         return bool(expected and provided and secrets.compare_digest(expected,provided))
     def _upload_file(self):
@@ -376,7 +392,7 @@ class Handler(SimpleHTTPRequestHandler):
                 if not session:
                     status=429 if reason=='too_many_attempts' else 503 if reason=='session_storage_unavailable' else 403
                     return self._json({'error':reason or 'pairing_failed'},status)
-                cookie='PRINTBENCH_SESSION='+session+'; Path=/api/v1; Secure; HttpOnly; SameSite=Strict; Max-Age=2592000'
+                cookie=f'PRINTBENCH_SESSION={session}; Path=/api/v1; Secure; HttpOnly; SameSite=Strict; Max-Age={mobile_pairing.SESSION_AGE}'
                 return self._json({'ok':True},cookie=cookie)
             except ValueError:return self._json({'error':'invalid_pairing_request'},400)
         if path==API_PREFIX+'/materials':
@@ -413,7 +429,10 @@ class Handler(SimpleHTTPRequestHandler):
             if not self._control_authorized():return self._json({'error':'pairing_required'},403)
             return self._upload_file()
         if path==API_PREFIX+'/logout':
-            mobile_pairing.revoke_session(self._session_value())
+            try:
+                mobile_pairing.revoke_session(self._session_value())
+            except (OSError, sqlite3.Error):
+                return self._json({'error':'session_storage_unavailable'},503)
             return self._json({'ok':True},cookie='PRINTBENCH_SESSION=; Path=/api/v1; Secure; HttpOnly; SameSite=Strict; Max-Age=0')
         if not path.startswith(API_PREFIX+'/control/'):
             return self._json({'error':'not_found'},404)
@@ -438,27 +457,28 @@ class Handler(SimpleHTTPRequestHandler):
                 if path==API_PREFIX+'/live':return self._json(latest_payload())
                 if path==API_PREFIX+'/camera-status':return self._json(camera_state())
                 if path==API_PREFIX+'/pairing-status':
-                    # PIN bytes are never sent to browsers; only expiry.
-                    expires_in=0
                     try:
-                        expiry_str=mobile_pairing.PIN.read_text(encoding='ascii').split(':',1)[0]
-                        expires_in=max(0,int(expiry_str)-int(time.time()))
-                    except (ValueError,OSError):pass
+                        expires_in = mobile_pairing.pairing_seconds_remaining() if self._is_tls() else 0
+                    except (OSError, sqlite3.Error):
+                        return self._json({'error':'session_storage_unavailable'},503)
                     return self._json({'https':self._is_tls(),
-                        'paired':self._control_authorized(),
+                        'paired':self._paired_session(),
                         'pin_available':expires_in>0,
                         'pin_expires_in_sec':expires_in,
-                        'pin_valid_minutes':15})
+                        'pin_valid_minutes':mobile_pairing.PIN_AGE//60})
                 if path==API_PREFIX+'/mobile-health':
                     # The app's public health page never reveals session tokens,
                     # certificate private keys or printer access credentials.
-                    telemetry=latest_payload()
+                    try:
+                        telemetry=latest_payload()
+                    except (OSError, sqlite3.Error):
+                        telemetry={}
                     camera=camera_state()
                     return self._json({
-                        'version':'V21',
+                        'version':'V28',
                         'server':'online',
                         'transport':'https' if self._is_tls() else 'http',
-                        'paired':self._control_authorized(),
+                        'paired':self._paired_session(),
                         'printer_online':bool(telemetry.get('online')),
                         'telemetry_age_sec':telemetry.get('age_sec'),
                         'print_state':telemetry.get('print_state'),

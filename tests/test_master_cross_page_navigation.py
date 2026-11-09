@@ -15,5 +15,5 @@ def test_single_rail_routes_dashboard_sections_not_just_home():
 
 def test_slicer_and_device_routes_still_exist():
     assert 'case 7: open_printbench_files(); break;' in MAIN
-    assert 'case 9: case 10: select_tab(tpMultiDevice); break;' in MAIN
+    assert 'case 9: select_tab(tpMultiDevice); break;' in MAIN
     assert 'const std::array<wxString, 6> top_items' not in NATIVE

@@ -12,4 +12,6 @@ def test_files_menu_opens_real_native_project_file_chooser_in_all_workspaces():
     body=FRAME[start:FRAME.index('void MainFrame::select_tab(wxPanel* panel)',start)]
     assert 'can_open_project()' in body
     assert 'select_tab(tp3DEditor);' in body
-    assert 'm_plater->load_project();' in body
+    assert '*.stl;*.3mf' in body
+    assert 'dialog.ShowModal() != wxID_OK' in body
+    assert 'm_plater->load_files(files);' in body

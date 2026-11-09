@@ -37,7 +37,7 @@ def find_native_slicer():
             return candidate
     return None
 
-UPLOADS=workspace.BASE/'uploads'
+UPLOADS=workspace.UPLOADS
 PROJECT_EXT={'.stl','.3mf'}
 SUPPORTED_EXT=PROJECT_EXT|{'.gcode','.gco','.bgcode'}
 
@@ -113,8 +113,7 @@ class Inbox(tk.Tk):
             queue=workspace.list_queue()['items']
             import datetime
             for row in queue:
-                path=UPLOADS/row['upload_name']
-                size=(path.stat().st_size/1048576) if path.is_file() else None
+                size=row['bytes']/1048576 if row['file_available'] else None
                 stamp=datetime.datetime.fromtimestamp(row['created']).strftime('%d.%m.%Y %H:%M')
                 iid=self.tree.insert('',tk.END,values=(
                     row.get('display_name',row['upload_name']),'Bereit' if row.get('file_available') else 'Fehlt',
