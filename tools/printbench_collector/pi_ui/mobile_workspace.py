@@ -111,6 +111,32 @@ def queue_file(upload_name,uploads):
                    (id,name,pos,'prepared',int(time.time())))
     return {'ok':True,'id':id,'auto_start':False}
 
+def remove_uploaded_file(upload_name,uploads):
+    """Delete only an unqueued regular file from the managed upload directory.
+
+    The shared queue is checked using the same write transaction as other
+    queue changes. Neither slicer projects outside uploads nor queued jobs
+    can be removed by this API.
+    """
+    name=_short(upload_name,170)
+    if not name or Path(name).name!=name or name in ('.','..'):
+        raise ValueError('invalid_file_name')
+    if Path(name).suffix.lower() not in {'.3mf','.stl','.gcode','.gco','.bgcode'}:
+        raise ValueError('unsupported_file_type')
+    path=uploads/name
+    if path.is_symlink() or not path.is_file() or path.parent.resolve()!=uploads.resolve():
+        raise ValueError('uploaded_file_not_found')
+    with connection() as db:
+        if db.execute('SELECT 1 FROM queue WHERE upload_name=?',(name,)).fetchone():
+            raise ValueError('file_is_in_queue_remove_queue_entry_first')
+        try:
+            size=path.stat().st_size
+            path.unlink()
+        except OSError as exc:
+            raise ValueError('file_delete_failed') from exc
+    return {'ok':True,'deleted':True,'freed_bytes':size,'auto_start':False}
+
+
 def move_queued(id,direction):
     id=_short(id,36)
     if direction not in ('up','down'):raise ValueError('invalid_direction')

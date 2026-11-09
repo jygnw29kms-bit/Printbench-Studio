@@ -360,6 +360,14 @@ class Handler(SimpleHTTPRequestHandler):
             if not self._control_authorized():return self._json({'error':'pairing_required'},403)
             try:return self._json(mobile_workspace.remove_queued(self._read_json_body().get('id','')))
             except ValueError as e:return self._json({'error':str(e)},400)
+        if path==API_PREFIX+'/files/delete':
+            if not self._control_authorized():return self._json({'error':'pairing_required'},403)
+            try:
+                payload=self._read_json_body()
+                if payload.get('confirm') is not True:
+                    return self._json({'error':'confirmation_required'},400)
+                return self._json(mobile_workspace.remove_uploaded_file(payload.get('name',''),UPLOADS))
+            except ValueError as e:return self._json({'error':str(e)},400)
         if path==API_PREFIX+'/files':
             if not self._control_authorized():return self._json({'error':'pairing_required'},403)
             return self._upload_file()
@@ -426,7 +434,10 @@ class Handler(SimpleHTTPRequestHandler):
                     if not self._control_authorized():return self._json({'error':'pairing_required'},403)
                     UPLOADS.mkdir(parents=True,exist_ok=True)
                     rows=[{'name':p.name,'bytes':p.stat().st_size,'mtime':p.stat().st_mtime} for p in UPLOADS.iterdir() if p.is_file() and not p.name.endswith('.partial')]
-                    return self._json({'items':sorted(rows,key=lambda r:r['mtime'],reverse=True)[:100]})
+                    return self._json({'items':sorted(rows,key=lambda r:r['mtime'],reverse=True)[:100],
+                                       'count':len(rows),
+                                       'used_bytes':sum(row['bytes'] for row in rows),
+                                       'max_bytes':1024*1024*1024})
                 return self._json({'error':'not_found'},404)
             except Exception:return self._json({'error':'internal'},500)
         return super().do_GET()

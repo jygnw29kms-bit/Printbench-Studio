@@ -121,3 +121,8 @@ Upload von 3MF/STL/G-Code erfolgt über einen authentifizierten HTTPS-POST mit r
 
 ## V23 gemeinsame iPhone-/Windows-Warteliste
 Die vorbereitete Warteliste liefert jetzt einen lesbaren ursprünglichen Dateinamen, den tatsächlichen Dateistatus und die Dateigröße. Die lokale Windows-Inbox gleicht sich alle fünf Sekunden mit der gemeinsamen SQLite-Ablage ab und erhält dabei die Auswahl. Fehlende Dateien erscheinen im iPhone sichtbar als Fehler statt als vorbereiteter Druck. Die Übertragung, Wartelistenreihenfolge und das manuelle Öffnen im Slicer bleiben erhalten; es wird weder automatisch geöffnet noch gedruckt.
+
+
+## V24 Upload-Speicherverwaltung
+
+Das iPhone zeigt die tatsächliche Größe des lokalen Upload-Speichers an. Ein Dateieintrag lässt sich erst nach ausdrücklicher Bestätigung löschen. Der Server nimmt Löschbefehle ausschließlich über gekoppelte HTTPS-Sitzungen entgegen. Dateien, die noch in der vorbereiteten Warteliste stehen, lassen sich nicht löschen; dazu muss zuerst der Wartelisteneintrag entfernt werden. Die Dateioperationen sind ausschließlich auf den verwalteten Upload-Ordner begrenzt und betreffen weder Druckdateien an anderen Orten noch laufende Druckaufträge.

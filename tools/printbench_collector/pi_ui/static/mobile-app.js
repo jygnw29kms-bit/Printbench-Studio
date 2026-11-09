@@ -199,7 +199,39 @@
       queueButton.textContent=queued?'Bereits in Warteliste':'Auf Warteliste';
       queueButton.disabled=queued;
       if(!queued)queueButton.dataset.uploadQueue=item.name;
-      line.append(details,queueButton);
+      const actions=document.createElement('div');
+      actions.className='mobile-inline-actions';
+      const remove=document.createElement('button');
+      remove.type='button';
+      remove.className='mobile-inline-action mobile-delete-action';
+      remove.textContent='Datei löschen';
+      remove.disabled=queued;
+      remove.title=queued?'Zuerst aus Warteliste entfernen':'Nur diese hochgeladene Datei löschen';
+      remove.addEventListener('click',async()=>{
+        if(queued)return;
+        if(!confirm('Diese hochgeladene Datei endgültig von Jens-PC löschen?\n\n'+item.name+
+          '\n\nNicht rückgängig zu machen.'))return;
+        remove.disabled=true;
+        try{
+          const response=await fetch('/api/v1/files/delete',{
+            method:'POST',cache:'no-store',
+            headers:{'Content-Type':'application/json'},
+            credentials:'same-origin',
+            body:JSON.stringify({name:item.name,confirm:true})
+          });
+          const result=await response.json();
+          if(!response.ok||!result.ok)throw Error(result.error||'Löschen nicht möglich');
+          const info=document.getElementById('fileInfo');
+          if(info)info.textContent='Datei auf Jens-PC gelöscht: '+item.name;
+          await loadUploadedFiles();
+        }catch(error){
+          const info=document.getElementById('fileInfo');
+          if(info)info.textContent='Datei nicht gelöscht: '+error.message;
+          remove.disabled=false;
+        }
+      });
+      actions.append(queueButton,remove);
+      line.append(details,actions);
       list.append(line);
     }
   }
@@ -219,8 +251,12 @@
       ]);
       const files=await filesResponse.json();
       if(!filesResponse.ok)throw Error(files.error||'Dateiliste nicht verfügbar');
-      const queue=queueResponse.ok?await queueResponse.json():{items:[]};
+      if(!queueResponse.ok)throw Error('Warteliste nicht erreichbar: Dateien können aus Sicherheitsgründen nicht gelöscht werden');
+      const queue=await queueResponse.json();
       cachedUploadedFiles=(files.items||[]).filter(f=>typeof f.name==='string');
+      const usage=document.getElementById('mobileStorageUsed');
+      if(usage)usage.textContent=((files.used_bytes||0)/1048576).toFixed(1)+' MB / '+
+        ((files.max_bytes||1073741824)/1048576).toFixed(0)+' MB belegt';
       cachedQueuedNames=new Set((queue.items||[]).map(item=>item.upload_name));
       renderUploadedFiles();
     }catch(error){

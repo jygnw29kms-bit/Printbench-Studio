@@ -346,3 +346,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #39caff;outline-offse
 
 .mobile-queue-missing{border-color:#824457!important;background:#2b1724!important}
 .mobile-queue-missing .mobile-small{color:#ffd5aa!important}
+
+.mobile-delete-action{background:#371d2c!important;color:#ffc4ca!important;border:1px solid #865060!important}
+.mobile-delete-action:disabled{opacity:.35!important}
+#mobileStorageUsed{color:#9dccdf;font-size:11px;font-weight:750}
