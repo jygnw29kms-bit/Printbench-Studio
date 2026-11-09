@@ -63,6 +63,12 @@ Diese Funktionen wurden auf ausdrücklichen Wunsch ohne Test-Suite implementiert
 
 Eine funktionierende iPhone-Benachrichtigung in Hintergrund oder bei geschlossener App ist damit ausdrücklich nicht versprochen. Die sichere Kopplung benötigt ein vom iPhone vertrauenswürdiges lokales Zertifikat.
 
+## V14 sichtbare Versionsanzeige
+
+Auf jeder iPhone-Seite wird PRINTBENCH iPHONE V14 im Kopf angezeigt. Der Verbindungsstreifen unterscheidet HTTP :8080 (nur Überwachung, ohne Schreibzugriff) von HTTPS :8444 (Steuerung erst nach sicherer Kopplung). Die untere Navigation gibt Zugriff auf Übersicht, Kamera, Steuerung, AMS und Aufträge. Rückwärtsnavigation über Safari und automatische Wiederaufnahme der gepaarten HTTPS-Sitzung sind integriert.
+
+HTTP 8080 bleibt für Status/Einrichtung und die Bereitstellung des öffentlichen lokalen CA-Zertifikats aktiv. Es ist bewusst nicht mit dem sicheren Bedienzugang zu verwechseln.
+
 ## Abnahme noch offen
 
 Nach der CA-Installation auf dem iPhone müssen HTTPS-Zugriff, reale Steuerung, Kamera und restliche Menüs produktiv abgenommen werden. Der Code allein ist keine FINAL-Freigabe.

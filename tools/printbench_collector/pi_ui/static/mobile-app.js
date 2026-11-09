@@ -6,6 +6,13 @@
   const secureLink=document.getElementById('secureAppLink');
   if(secureLink)secureLink.href='https://'+location.hostname+':8444/';
   if (transport) transport.textContent = secureControl ? 'Verschlüsselte Verbindung. Das iPhone wird per geschützter Sitzung gekoppelt.' : 'HTTP: Nur Live-Anzeige. Für Druckbefehle bitte den HTTPS-Zugang aktivieren.';
+  const mode=document.getElementById('appAccessMode');
+  if(mode){
+    mode.textContent=location.protocol==='https:'
+      ? 'PRINTBENCH iPHONE V14 · HTTPS :8444 · STEUERUNG NACH KOPPLUNG'
+      : 'PRINTBENCH iPHONE V14 · HTTP :8080 · NUR LIVE-ANZEIGE';
+    mode.classList.toggle('read-only',location.protocol!=='https:');
+  }
   document.getElementById('networkOrigin').textContent = location.origin;
   const mobileConnection=document.getElementById('mobileActionMessage');
   if (location.protocol!=='https:' && mobileConnection) {
@@ -70,10 +77,27 @@
     mobileControlToken='';nativeControlAuthorized=false;tokenInput.value='';
     await reloadControlCapability();securityMessage.textContent='Steuerzugriff gesperrt.';
   });
-  function showView(name) {
+  function routeFromHash() {
+    const name=decodeURIComponent(location.hash.replace(/^#\/?/,''));
+    return Object.prototype.hasOwnProperty.call(titles,name)?name:null;
+  }
+  function showView(name,updateHistory=true) {
     if(!Object.prototype.hasOwnProperty.call(titles,name))return;
+    if(currentView===name && document.querySelector('[data-view-panel="'+name+'"]')?.classList.contains('active')){
+      setMobileNav(false);
+      return;
+    }
     currentView=name;
+    if(updateHistory && location.hash!=='#'+name){
+      history.pushState({printbenchView:name},'',location.pathname+location.search+'#'+name);
+    }
     stopCameraOnNonCameraView();
+    document.querySelectorAll('.mobile-dock button[data-view]').forEach(el=>{
+      const active=el.dataset.view===name;
+      el.classList.toggle('active',active);
+      if(active)el.setAttribute('aria-current','page');
+      else el.removeAttribute('aria-current');
+    });
     document.querySelectorAll('.side-nav button[data-view]').forEach(el=>{
       el.classList.toggle('active',el.dataset.view===name);
       el.setAttribute('aria-current',el.dataset.view===name?'page':'false');
@@ -89,6 +113,33 @@
     window.scrollTo(0,0);
   }
   document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
+  window.addEventListener('popstate',()=>showView(routeFromHash()||'overview',false));
+  window.addEventListener('hashchange',()=>showView(routeFromHash()||'overview',false));
+  if(routeFromHash())showView(routeFromHash(),false);
+  // The installed HTTPS app has a 30-day cookie. Restore control state
+  // automatically after every launch; do not force re-pairing every time.
+  if(secureControl){
+    document.addEventListener('DOMContentLoaded',()=>reloadControlCapability(),{once:true});
+    Promise.resolve().then(()=>reloadControlCapability());
+  }
+  const initialView=routeFromHash()||'overview';
+  document.querySelectorAll('.mobile-dock button').forEach(b=>b.classList.toggle('active',b.dataset.view===initialView));
+  const offlineNotice=document.getElementById('mobileOfflineNotice');
+  function updateConnectionNotice(){
+    if(!offlineNotice)return;
+    const disconnected=navigator.onLine===false;
+    offlineNotice.hidden=!disconnected;
+  }
+  window.addEventListener('online',()=>{
+    updateConnectionNotice();
+    if(typeof refreshFast==='function')refreshFast().catch(()=>{});
+    if(typeof refreshSlow==='function')refreshSlow().catch(()=>{});
+    if(secureControl)reloadControlCapability();
+  });
+
+  window.addEventListener('offline',updateConnectionNotice);
+  updateConnectionNotice();
+
   document.getElementById('mobileFile')?.addEventListener('change',event=>{
     const file=event.target.files?.[0];if(!file)return;
     document.getElementById('fileInfo').textContent=/\.(3mf|stl|gcode|gco|bgcode)$/i.test(file.name)

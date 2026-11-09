@@ -141,3 +141,22 @@ button:focus-visible,input:focus-visible{outline:2px solid #39caff;outline-offse
 .mobile-camera-status{color:#a8d6ee;padding:10px 12px;font-size:12px;font-weight:600}
 .dedicated-camera{background:#000}
 @media (max-width:650px){.mobile-connection-bar{gap:5px}.mobile-signal{font-size:9px;padding:10px 3px}.camera-actions{display:grid;grid-template-columns:1fr}}
+
+/* iPhone dock: FINAL MASTER palette, no duplicate header navigation. */
+.mobile-dock{display:none}
+.mobile-offline-notice{position:fixed;top:calc(12px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(92vw,480px);background:#48261b;color:#ffe9d6;border:1px solid #ce704c;box-shadow:0 6px 26px rgba(0,0,0,.55);padding:13px 18px;border-radius:9px;font-size:12px;font-weight:650;z-index:1400;text-align:center}
+.mobile-offline-notice[hidden]{display:none}
+@media(max-width:980px){
+  .mobile-dock{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));position:fixed;z-index:700;bottom:0;left:0;right:0;background:#061526;border-top:1px solid #25506e;padding:8px 6px calc(9px + env(safe-area-inset-bottom));box-shadow:0 -6px 24px rgba(0,0,0,.55)}
+  .mobile-dock button{min-width:0;min-height:54px;border:1px solid transparent;border-radius:8px;background:transparent;color:#87acc4;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;font-size:10px;font-weight:700;padding:4px 2px}
+  .mobile-dock button.active{color:#d8f7ff;background:#0b3354;border-color:#1a668d}
+  .mobile-dock .dock-symbol{font-size:20px;font-weight:800;line-height:1}
+  body main{padding-bottom:calc(115px + env(safe-area-inset-bottom))}
+  .mobile-command-toast{bottom:calc(93px + env(safe-area-inset-bottom))}
+  .side-nav button{min-height:48px}
+  .sidebar{padding-bottom:calc(110px + env(safe-area-inset-bottom))}
+}
+
+.app-version{display:inline-block;margin-left:9px;border:1px solid #33749b;border-radius:5px;background:#0e3855;color:#e7f8ff;font-size:11px;font-weight:800;padding:3px 7px;letter-spacing:.03em}
+.app-access-mode{border:1px solid #206d59;background:#0a2a26;color:#aaf7d0;border-radius:8px;padding:10px 12px;font-size:12px;font-weight:700;margin:8px 0}
+.app-access-mode.read-only{background:#2b2011;border-color:#8c642a;color:#ffdc9e}
