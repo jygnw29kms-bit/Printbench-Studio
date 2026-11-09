@@ -175,6 +175,21 @@ function controlArgs(button) {
   return {};
 }
 
+function reportMobileCommand(message,type='info'){
+  const toast=$('mobileCommandToast'),line=$('mobileCommandText');
+  if(line)line.textContent=String(message);
+  if(toast){
+    toast.classList.remove('success','error');
+    if(type==='success'||type==='error')toast.classList.add(type);
+    toast.hidden=false;
+  }
+  const global=$('mobileActionMessage');
+  if(global)global.textContent=String(message);
+}
+$('dismissCommandToast')?.addEventListener('click',()=>{
+  if($('mobileCommandToast'))$('mobileCommandToast').hidden=true;
+});
+
 async function sendControl(button) {
   if (commandBusy || button.disabled) return;
   const name = button.dataset.control, cap = latestCaps.controls?.[name];
@@ -184,6 +199,7 @@ async function sendControl(button) {
   if (confirmRequired && !window.confirm(destructive ? 'Druck wirklich sofort stoppen?' : name === 'ams.filament_setting' ? 'Materialzuordnung für den ausgewählten AMS-Slot am P2S überschreiben?' : name === 'ams.change_filament' ? 'Mechanischen Filamentwechsel am P2S ausführen? Der Druck muss vollständig gestoppt sein.' : name === 'printer.airduct' ? 'Luftkanal am P2S umschalten? Das verändert die Kammerbelüftung auch während eines Drucks.' : 'AMS 2 Pro mit den angegebenen Temperaturen und der Laufzeit trocknen lassen?')) return;
   commandBusy = true; refreshControlButtons();
   $('controlResult').textContent = `${name} · sende…`; $('controlResult').className = 'control-result busy';
+    reportMobileCommand('Befehl wird an den P2S gesendet: '+button.textContent.trim());
   try {
     const r = await fetch('/api/v1/control/' + name.replaceAll('.', '/'), {
       method:'POST', cache:'no-store', headers:{'Content-Type':'application/json',...(mobileControlToken ? {'X-API-Key':mobileControlToken} : {})},
@@ -193,9 +209,11 @@ async function sendControl(button) {
     if (r.status === 403 && body.error === 'control_authorization_required') throw new Error('Steuer-API-Schlüssel fehlt oder ist ungültig');
     if (!r.ok || !body.ok) throw new Error(body.detail || body.verification || body.error || `HTTP ${r.status}`);
     $('controlResult').textContent = `${name} · ${body.verification || 'OK'}`; $('controlResult').className = 'control-result ok';
+    reportMobileCommand(button.textContent.trim()+': '+(body.verification || 'vom Drucker beantwortet'),'success');
     setTimeout(refreshFast, 500);
   } catch (err) {
     $('controlResult').textContent = `${name} · ${err.message}`; $('controlResult').className = 'control-result bad';
+    reportMobileCommand(button.textContent.trim()+': '+err.message,'error');
   } finally {
     commandBusy = false; refreshControlButtons();
   }
@@ -243,7 +261,7 @@ async function refreshFast() {
     $('collector').textContent = sys.collector || '-'; $('collector2').textContent = sys.collector || '-'; $('readerBridge').textContent = sys.reader_bridge || 'inactive';
     $('collectorSide').textContent = `Collector ${sys.collector || '-'}`; $('piTemp').textContent = sys.disk ? sys.disk.free_gb + ' GB frei' : '-'; $('piTemp2').textContent = sys.disk ? sys.disk.free_gb + ' GB frei' : '-';
     $('hostName').textContent = sys.hostname || '-'; $('uptime').textContent = sec(sys.uptime_sec); $('disk').textContent = sys.disk ? `${sys.disk.free_gb} / ${sys.disk.total_gb} GB frei` : '-';
-    const camOk = sys.camera_bridge === 'active' && sys.camera_snapshot_age_sec != null && sys.camera_snapshot_age_sec < 75; updateCamera(camOk, live, sys);
+    const camOk = sys.camera_bridge === 'active' && sys.camera_snapshot_age_sec != null && sys.camera_snapshot_age_sec < 30; updateCamera(camOk, live, sys);
     $('updated').textContent = 'aktualisiert ' + new Date().toLocaleTimeString('de-DE'); refreshControlButtons();
   } catch (e) {
     latestLive = {online:false}; $('onlineText').textContent = 'OFFLINE'; $('onlineDot').style.background = '#ff6474'; refreshControlButtons(); console.error(e);

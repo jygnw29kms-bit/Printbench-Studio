@@ -50,6 +50,19 @@ Die Systemanzeige erhält Windows-Datenträgerdaten und einen echten Collector-T
 
 Diese Funktionen wurden auf ausdrücklichen Wunsch ohne Test-Suite implementiert. Eine tatsächliche Geräteabnahme ist davon zu unterscheiden. Die App heißt erst nach kompletter iPhone- und Druckerabnahme FINAL.
 
+## iPhone V12: größerer Funktionsblock
+
+- Sichtbare P2S-, Kamera- und iPhone-Kopplungszustände auf sämtlichen Seiten.
+- Rückmeldungen von Druckerbefehlen als gut lesbare Meldungen auch auf AMS- und Kamera-Seiten, statt nur in der versteckten Steuerungsansicht.
+- Kamera: aktuelles Bild, Aktualisieren, iOS-Teilen/Speichern sowie Großansicht.
+- Geräte-Setup: P2S-/AMS-Zustand und aktuelle Telemetrie.
+- Druckaufträge: optionale lokale Druckende-/Fehlermeldungen. Nur bei geöffneter App und erteilter iOS-Berechtigung; keine Hintergrundüberwachung oder Cloud-Push.
+- Diagnose: Status von P2S, Kamera, Windows-Collector und verfügbaren Funktionen als JSON lokal speichern/teilen.
+- Sofortige Datenaktualisierung, wenn PRINTBENCH auf dem iPhone wieder sichtbar wird.
+- Der laufende Druck wird durch diese Funktionen nicht verändert.
+
+Eine funktionierende iPhone-Benachrichtigung in Hintergrund oder bei geschlossener App ist damit ausdrücklich nicht versprochen. Die sichere Kopplung benötigt ein vom iPhone vertrauenswürdiges lokales Zertifikat.
+
 ## Abnahme noch offen
 
 Nach der CA-Installation auf dem iPhone müssen HTTPS-Zugriff, reale Steuerung, Kamera und restliche Menüs produktiv abgenommen werden. Der Code allein ist keine FINAL-Freigabe.

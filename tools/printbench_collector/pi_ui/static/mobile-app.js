@@ -92,7 +92,7 @@
   document.getElementById('mobileFile')?.addEventListener('change',event=>{
     const file=event.target.files?.[0];if(!file)return;
     document.getElementById('fileInfo').textContent=/\.(3mf|stl|gcode|gco|bgcode)$/i.test(file.name)
-      ? 'Ausgewählt: '+file.name+' ('+(file.size/1048576).toFixed(2)+' MB). Kein Upload. Slicing erfolgt weiterhin am PC.'
+      ? 'Ausgewählt: '+file.name+' ('+(file.size/1048576).toFixed(2)+' MB). Zum Übertragen auf „Datei sicher an PRINTBENCH übertragen“ tippen. Slicing erfolgt am PC.'
       : 'Dateityp nicht unterstützt.';
   });
   document.getElementById('diagnosticRefresh')?.addEventListener('click',async()=>{
@@ -240,6 +240,77 @@
     try {renderSpools(await api('/spools'));message('Materialdaten aktualisiert.');}
     catch(error){message('Materialdaten nicht erreichbar: '+error.message);}
   });
-  setInterval(updateMobile,5000);updateMobile();
+  const signal=(id,label,connected,warning=false)=>{
+    const e=document.getElementById(id);
+    if(!e)return;
+    e.textContent=label;
+    e.classList.toggle('connected',!!connected);
+    e.classList.toggle('warning',!!warning);
+  };
+  async function refreshCameraInfo(){
+    try{
+      const r=await fetch('/api/v1/camera-status',{cache:'no-store'});
+      const data=await r.json();
+      const online=r.ok && data.online===true && data.frame_age_sec!=null && Number(data.frame_age_sec)<30;
+      const label=online?'KAMERA LIVE':'KAMERA OFFLINE';
+      signal('mobileCameraSignal',label,online,!online);
+      const status=document.getElementById('cameraDetailStatus');
+      if(status)status.textContent=online
+        ? 'Bild aktuell · '+Number(data.frame_age_sec).toFixed(0)+' Sekunden alt'
+        : 'Kein aktuelles Kamerabild'+(data.error?' · '+data.error:'');
+      const setup=document.getElementById('setupCameraStatus');
+      if(setup)setup.textContent=label;
+    }catch(e){
+      signal('mobileCameraSignal','KAMERA OFFLINE',false,true);
+      const status=document.getElementById('cameraDetailStatus');
+      if(status)status.textContent='Kameradienst nicht erreichbar';
+    }
+  }
+  function refreshSignals(){
+    updateMobile();
+    const online=latestLive.online===true && Number(latestLive.age_sec||999)<45;
+    signal('mobileDeviceSignal',online?'P2S ONLINE':'P2S OFFLINE',online,!online);
+    signal('mobilePairingSignal',nativeControlAuthorized?'GEKOPPELT':secureControl?'KOPPLUNG FEHLT':'NUR ANZEIGE',nativeControlAuthorized,!nativeControlAuthorized);
+    const setup=document.getElementById('setupTelemetryAge');
+    if(setup)setup.textContent=online?Number(latestLive.age_sec||0).toFixed(0)+' s':'offline';
+  }
+  document.getElementById('cameraRefresh')?.addEventListener('click',()=>{
+    document.querySelectorAll('.view.active .dedicated-camera').forEach(img=>img.src='/camera/latest.jpg?ts='+Date.now());
+    refreshCameraInfo();
+  });
+  document.getElementById('cameraFullscreen')?.addEventListener('click',()=>{
+    const img=document.querySelector('[data-view-panel="camera"] .dedicated-camera');
+    if(!img)return;
+    if(img.requestFullscreen){
+      img.requestFullscreen().catch(()=>window.open('/camera/latest.jpg','_blank','noopener'));
+    }else{
+      window.open('/camera/latest.jpg','_blank','noopener');
+    }
+  });
+  document.getElementById('cameraShare')?.addEventListener('click',async()=>{
+    const button=document.getElementById('cameraShare');
+    button.disabled=true;
+    try{
+      const r=await fetch('/camera/latest.jpg?ts='+Date.now(),{cache:'no-store'});
+      if(!r.ok)throw Error('P2S-Kamerabild derzeit nicht verfügbar');
+      const blob=await r.blob();
+      if(blob.size<5000 || !blob.type.includes('image/'))throw Error('Kein gültiges Kamerabild');
+      const name='PRINTBENCH-P2S-'+new Date().toISOString().replace(/[:.]/g,'-')+'.jpg';
+      const file=new File([blob],name,{type:'image/jpeg'});
+      if(navigator.canShare?.({files:[file]}) && navigator.share){
+        try{await navigator.share({files:[file],title:'PRINTBENCH P2S Snapshot'});return;}
+        catch(e){if(e.name==='AbortError')return;}
+      }
+      const url=URL.createObjectURL(blob),link=document.createElement('a');
+      link.href=url;link.download=name;document.body.appendChild(link);link.click();link.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),30000);
+    }catch(e){message('Kamerabild: '+e.message);}
+    finally{button.disabled=false;}
+  });
+  setInterval(refreshSignals,5000);
+  setInterval(refreshCameraInfo,10000);
+  refreshSignals();
+  refreshCameraInfo();
+  updateMobile();
   if('serviceWorker' in navigator && secureControl)navigator.serviceWorker.register('/sw.js').catch(()=>{});
 })();
