@@ -121,3 +121,6 @@ button:focus-visible,input:focus-visible{outline:2px solid #39caff;outline-offse
 
 #secureAppLink{display:inline-flex;align-items:center;justify-content:center;margin:8px 0 14px;text-decoration:none;min-height:44px}
 .mobile-control-ready{background:#0b2c22;border-color:#247b57;color:#ccffe9}
+
+.ams-change-temp{display:flex;align-items:center;gap:8px;color:#9fc1d8;font-size:12px}
+.ams-change-temp input{min-width:72px;width:88px;min-height:44px;background:#091d31;color:#e9f6ff;border:1px solid #2c5573;border-radius:8px;padding:8px}

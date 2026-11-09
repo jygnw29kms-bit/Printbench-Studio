@@ -78,7 +78,7 @@ function renderCaps(caps) {
   const controls = caps.controls || {};
   $('controlCaps').innerHTML = Object.entries(controls).map(([k, v]) => `<div><span>${esc(k)}</span><b class="${v.enabled ? 'yes' : 'no'}">${esc(v.status || '-')}</b></div>`).join('');
   const controlReady = nativeControlAuthorized && Object.values(controls).some(v => v.enabled);
-  $('controlState').textContent = controlReady ? 'ORCA CONTROL AKTIV · TOKEN + POLICY' : 'BROWSER READ ONLY · ORCA TOKEN ERFORDERLICH';
+  $('controlState').textContent = controlReady ? 'STEUERUNG AUTORISIERT' : 'LESEMODUS · HTTPS-KOPPLUNG ERFORDERLICH';
   $('controlOverview').textContent = controlReady ? 'ORCA CONTROL' : 'READ ONLY';
   $('quickControlStatus').textContent = controlReady ? 'CONTROL AKTIV' : 'READ ONLY';
   refreshControlButtons();
@@ -150,9 +150,17 @@ function updateCamera(camOk, live, sys) {
 function controlArgs(button) {
   const name = button.dataset.control;
   if (name === 'printer.light') return {mode:button.dataset.mode};
+  if (name === 'printer.airduct') return {mode:Number(button.dataset.mode)};
   if (name === 'camera.recording' || name === 'camera.timelapse') return {enabled:button.dataset.enabled === 'true'};
   if (name === 'camera.resolution') return {resolution:$('cameraResolution').value};
   if (name === 'ams.rfid_read') return {ams_id:0,slot_id:Number($('rfidSlot').value)};
+  if (name === 'ams.change_filament') return {
+    load:button.dataset.load === 'true',
+    ams_id:0,
+    slot_id:Number($('amsChangeSlot').value),
+    old_temp:Math.round(Number(latestLive.nozzle_target_c || 0)),
+    new_temp:Number($('amsChangeTemp').value)
+  };
   if (name === 'ams.filament_setting') {
     const form=$('materialForm');
     return {ams_id:0,slot_id:Number($('materialAmsSlot').value),material:form.elements.material.value,
@@ -172,8 +180,8 @@ async function sendControl(button) {
   const name = button.dataset.control, cap = latestCaps.controls?.[name];
   if (!cap?.enabled) return;
   const destructive = cap.risk === 'destructive';
-  const confirmRequired = destructive || name === 'ams.start_drying' || name === 'ams.filament_setting';
-  if (confirmRequired && !window.confirm(destructive ? 'Druck wirklich sofort stoppen?' : name === 'ams.filament_setting' ? 'Materialzuordnung für den ausgewählten AMS-Slot am P2S überschreiben?' : 'AMS 2 Pro mit den angegebenen Temperaturen und der Laufzeit trocknen lassen?')) return;
+  const confirmRequired = destructive || ['ams.start_drying','ams.filament_setting','ams.change_filament','printer.airduct'].includes(name);
+  if (confirmRequired && !window.confirm(destructive ? 'Druck wirklich sofort stoppen?' : name === 'ams.filament_setting' ? 'Materialzuordnung für den ausgewählten AMS-Slot am P2S überschreiben?' : name === 'ams.change_filament' ? 'Mechanischen Filamentwechsel am P2S ausführen? Der Druck muss vollständig gestoppt sein.' : name === 'printer.airduct' ? 'Luftkanal am P2S umschalten? Das verändert die Kammerbelüftung auch während eines Drucks.' : 'AMS 2 Pro mit den angegebenen Temperaturen und der Laufzeit trocknen lassen?')) return;
   commandBusy = true; refreshControlButtons();
   $('controlResult').textContent = `${name} · sende…`; $('controlResult').className = 'control-result busy';
   try {
@@ -205,6 +213,7 @@ function refreshControlButtons() {
     if (name === 'ams.stop_drying') enabled = enabled && Number(latestLive.ams?.dry_time || 0) > 0;
     if (name === 'ams.start_drying') enabled = enabled && !active && !paused && Number(latestLive.ams?.dry_time || 0) <= 0;
     if (name === 'ams.filament_setting') enabled = enabled && !active && !paused;
+    if (name === 'ams.change_filament') enabled = enabled && !active && !paused;
     b.disabled = !enabled;
     b.title = cap ? `${cap.status} · ${cap.risk}` : 'Capability nicht gemeldet';
   });
@@ -229,9 +238,10 @@ async function refreshFast() {
     $('amsTemp').textContent = c(live.ams?.temp_c); $('amsHum').textContent = fmt(live.ams?.humidity_raw ?? live.ams?.humidity);
     const a = live.ams?.active_slot; $('amsActive').textContent = (a == null || a === '' || String(a) === '255') ? '-' : 'SLOT ' + (Number(a)+1);
     renderSlots(live.ams || {}); renderDrying(live.ams || {});
+    if ($('airductCurrent')) $('airductCurrent').textContent = live.airduct_mode === 0 ? 'KÜHLEN' : live.airduct_mode === 1 ? 'HEIZEN / FILTERN' : 'UNBEKANNT';
     const wifi = Number(live.wifi_rssi); $('wifi').textContent = Number.isFinite(wifi) ? Math.round(wifi) + ' dBm' : '-'; $('hms').textContent = fmt(live.hms_count);
     $('collector').textContent = sys.collector || '-'; $('collector2').textContent = sys.collector || '-'; $('readerBridge').textContent = sys.reader_bridge || 'inactive';
-    $('collectorSide').textContent = `Collector ${sys.collector || '-'}`; $('piTemp').textContent = c(sys.pi_temp_c); $('piTemp2').textContent = c(sys.pi_temp_c);
+    $('collectorSide').textContent = `Collector ${sys.collector || '-'}`; $('piTemp').textContent = sys.disk ? sys.disk.free_gb + ' GB frei' : '-'; $('piTemp2').textContent = sys.disk ? sys.disk.free_gb + ' GB frei' : '-';
     $('hostName').textContent = sys.hostname || '-'; $('uptime').textContent = sec(sys.uptime_sec); $('disk').textContent = sys.disk ? `${sys.disk.free_gb} / ${sys.disk.total_gb} GB frei` : '-';
     const camOk = sys.camera_bridge === 'active' && sys.camera_snapshot_age_sec != null && sys.camera_snapshot_age_sec < 75; updateCamera(camOk, live, sys);
     $('updated').textContent = 'aktualisiert ' + new Date().toLocaleTimeString('de-DE'); refreshControlButtons();

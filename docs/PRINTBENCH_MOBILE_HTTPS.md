@@ -40,6 +40,16 @@ Im Menü Dateien lässt sich eine hochgeladene Druckdatei zur lokalen Warteliste
 
 Die Kamera verwendet die MIT-lizenzierte RTSPS-Implementierung aus strands-cad mit eigenem Digest-RTSP-Handshake (siehe THIRD_PARTY_CAMERA_NOTICES.md). Der Drucker muss tatsächlich eine RTSPS/TLS-Sitzung zulassen.
 
+## Ausbau iPhone V10
+
+Die Steuerungsseite kann P2S-Luftkanal Kühlen (modeId 0) oder Heizen/Filtern (modeId 1) nach Bestätigung schalten. Das Kommando ist an die P2S-MQTT-Richtlinien gebunden und liest den tatsächlich berichteten Modus aus der aktuellen Telemetrie. Die implementierte Referenz ist PandaBeFree (MIT) plus P2S-Dokumentation.
+
+Im AMS 2 Pro gibt es manuelle Filament-Lade-/Entladeaktionen mit Slot- und Temperaturwahl. Diese mechanischen Aktionen sowie AMS-Materialzuweisungen und Trocknungsstart sind während laufenden oder pausierten Druckaufträgen gesperrt. Keine Automatisierung startet einen Druck.
+
+Die Systemanzeige erhält Windows-Datenträgerdaten und einen echten Collector-Telemetriestatus statt Linux-Dienst- und Raspberry-Pi-Temperatur-Platzhaltern.
+
+Diese Funktionen wurden auf ausdrücklichen Wunsch ohne Test-Suite implementiert. Eine tatsächliche Geräteabnahme ist davon zu unterscheiden. Die App heißt erst nach kompletter iPhone- und Druckerabnahme FINAL.
+
 ## Abnahme noch offen
 
 Nach der CA-Installation auf dem iPhone müssen HTTPS-Zugriff, reale Steuerung, Kamera und restliche Menüs produktiv abgenommen werden. Der Code allein ist keine FINAL-Freigabe.

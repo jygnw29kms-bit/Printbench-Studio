@@ -78,6 +78,14 @@ def _fan(args,seq):
     return {'print':{'sequence_id':seq,'command':'set_fan','fan_index':fan,'speed':speed}}
 
 
+def _airduct(args,seq):
+    mode=int(args.get('mode',-1))
+    if mode not in (0,1):
+        raise ValueError('P2S airduct mode must be 0 cooling or 1 heating/filter')
+    return {'print':{'sequence_id':seq,'command':'set_airduct',
+                     'modeId':mode,'submode':-1}}
+
+
 def _nozzle(args,seq):
     temp=int(args.get('temp')); extruder=int(args.get('extruder',0))
     if extruder!=0: raise ValueError('P2S supports extruder 0 only')
@@ -195,6 +203,16 @@ def _verify_fan(db,args):
         return abs(reported-int(args['speed']))<=26
     except Exception:return False
 
+def _verify_airduct(db,args):
+    try:
+        raw=json.loads(_latest(db).get('raw_json') or '{}')
+        p=raw.get('print') or {}
+        duct=p.get('airduct') or {}
+        if not isinstance(duct,dict):return False
+        return int(duct.get('modeCur',-1))==int(args['mode'])
+    except (ValueError,TypeError,KeyError):return False
+
+
 def _verify_nozzle(db,args):
     v=_latest(db).get('nozzle_target_c')
     try:return abs(float(v)-int(args['temp']))<=1
@@ -254,6 +272,7 @@ SPECS={
  'print.stop':CommandSpec('print.stop','destructive','supported_unverified',_simple_print('stop'),_verify_stop,'destructive',qos=1),
  'printer.speed':CommandSpec('printer.speed','low','supported_unverified',_speed,_verify_speed),
  'printer.light':CommandSpec('printer.light','low','supported_verified',_light,_verify_light),
+ 'printer.airduct':CommandSpec('printer.airduct','medium','supported_unverified',_airduct,_verify_airduct),
  'printer.fan':CommandSpec('printer.fan','medium','supported_unverified',_fan,_verify_fan),
  'printer.nozzle_temp':CommandSpec('printer.nozzle_temp','thermal','supported_verified',_nozzle,_verify_nozzle,'thermal',qos=1),
  'printer.bed_temp':CommandSpec('printer.bed_temp','thermal','supported_verified',_bed,_verify_bed,'thermal'),
@@ -313,11 +332,11 @@ def execute(name,args=None,confirm=False,timeout=8.0,verify_timeout=12.0):
     if not spec:raise ValueError('unsupported command')
     args=dict(args or {});seq=str(int(time.time()*1000));payload=spec.builder(args,seq);cap=capabilities()[name]
     if not cap['enabled']:raise PermissionError(f'{name} disabled by local policy')
-    if (spec.risk=='destructive' or name in {'ams.start_drying','ams.filament_setting'}) and not confirm:
+    if (spec.risk=='destructive' or name in {'ams.start_drying','ams.filament_setting','ams.change_filament','printer.airduct'}) and not confirm:
         raise PermissionError('explicit confirmation required')
     db=_db_open_readonly();state=_latest(db)
     if not _state_fresh(state):db.close();raise RuntimeError('printer telemetry is stale')
-    if name in {'ams.start_drying','ams.filament_setting'} and str(state.get('print_state') or '').upper() in {'RUNNING','PREPARE','PRINTING','PAUSE','PAUSED'}:
+    if name in {'ams.start_drying','ams.filament_setting','ams.change_filament'} and str(state.get('print_state') or '').upper() in {'RUNNING','PREPARE','PRINTING','PAUSE','PAUSED'}:
         db.close()
         raise RuntimeError('AMS changes are blocked while a print is active; finish printing first')
     with _LOCK:

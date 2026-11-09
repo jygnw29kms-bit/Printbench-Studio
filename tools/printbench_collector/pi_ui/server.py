@@ -69,7 +69,7 @@ def latest_payload():
         r=db.execute('''SELECT ts,print_state,progress,remaining_min,layer_current,layer_total,
           nozzle_c,nozzle_target_c,bed_c,bed_target_c,chamber_c,wifi_rssi,speed_level,speed_mag,
           fan_part,fan_aux,fan_chamber,fan_heatbreak,print_stage,print_sub_stage,print_error,fail_reason,
-          ams_json,ipcam_json,hms_json FROM telemetry ORDER BY id DESC LIMIT 1''').fetchone()
+          ams_json,ipcam_json,hms_json,raw_json FROM telemetry ORDER BY id DESC LIMIT 1''').fetchone()
         if not r:return {'online':False,'reason':'no_telemetry'}
         out={k:r[k] for k in r.keys() if k not in ('ams_json','ipcam_json','hms_json')}
         ams=safe_json(r['ams_json'],{}) or {};unit=(ams.get('ams') or [{}])[0]
@@ -81,6 +81,12 @@ def latest_payload():
         ip=safe_json(r['ipcam_json'],{}) or {}
         out['camera']={'printer_liveview':bool(ip.get('liveview_preview')),'browser_bridge':camera_fresh(),
           'recording':ip.get('ipcam_record')=='enable','timelapse':ip.get('timelapse')=='enable','resolution':ip.get('resolution')}
+        raw=safe_json(r['raw_json'],{}) or {}
+        airduct=(raw.get('print') or {}).get('airduct') or {}
+        try:
+            mode=int(airduct.get('modeCur',-1))
+            out['airduct_mode']=mode if mode in (0,1) else None
+        except (ValueError,TypeError,AttributeError):out['airduct_mode']=None
         hms=safe_json(r['hms_json'],[]) or [];out['hms_count']=len(hms) if isinstance(hms,list) else 0
         try:age=(datetime.now(timezone.utc)-datetime.fromisoformat(r['ts'])).total_seconds()
         except Exception:age=9999
@@ -146,12 +152,24 @@ def system_info():
     try:
         st=os.statvfs('/');disk={'total_gb':round(st.f_blocks*st.f_frsize/1e9,1),'free_gb':round(st.f_bavail*st.f_frsize/1e9,1)}
     except Exception:disk=None
+    if os.name=='nt':
+        try:
+            import shutil
+            st=shutil.disk_usage(str(Path.home()))
+            disk={'total_gb':round(st.total/1e9,1),'free_gb':round(st.free/1e9,1)}
+        except OSError:pass
     try:uptime=int(float(Path('/proc/uptime').read_text().split()[0]))
     except Exception:uptime=None
+    if os.name=='nt':
+        try:
+            import ctypes
+            ctypes.windll.kernel32.GetTickCount64.restype=ctypes.c_ulonglong
+            uptime=int(ctypes.windll.kernel32.GetTickCount64()/1000)
+        except Exception:pass
     try:cam_age=round(time.time()-CAMERA_SNAPSHOT.stat().st_mtime,1) if CAMERA_SNAPSHOT.exists() else None
     except Exception:cam_age=None
-    return {'hostname':socket.gethostname(),'pi_temp_c':temp,'collector':cmd(['systemctl','is-active','printbench-collector.service']) or 'unknown',
-      'camera_bridge':'active' if camera_fresh() else 'unavailable','reader_bridge':cmd(['systemctl','is-active','printbench-reader.service']) or 'inactive','camera_snapshot_age_sec':cam_age,'camera_error':camera_state().get('error'),'ui':'active',
+    return {'hostname':socket.gethostname(),'pi_temp_c':temp,'collector':('ONLINE' if latest_payload().get('online') else 'TELEMETRIE FEHLT') if os.name=='nt' else (cmd(['systemctl','is-active','printbench-collector.service']) or 'unknown'),
+      'camera_bridge':'active' if camera_fresh() else 'unavailable','reader_bridge':('NICHT EINGERICHTET' if os.name=='nt' else (cmd(['systemctl','is-active','printbench-reader.service']) or 'inactive')),'camera_snapshot_age_sec':cam_age,'camera_error':camera_state().get('error'),'ui':'active',
       'uptime_sec':uptime,'disk':disk,'time':datetime.now(timezone.utc).isoformat()}
 
 

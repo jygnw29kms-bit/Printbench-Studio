@@ -7,6 +7,11 @@
   if(secureLink)secureLink.href='https://'+location.hostname+':8444/';
   if (transport) transport.textContent = secureControl ? 'Verschlüsselte Verbindung. Das iPhone wird per geschützter Sitzung gekoppelt.' : 'HTTP: Nur Live-Anzeige. Für Druckbefehle bitte den HTTPS-Zugang aktivieren.';
   document.getElementById('networkOrigin').textContent = location.origin;
+  const mobileConnection=document.getElementById('mobileActionMessage');
+  if (location.protocol!=='https:' && mobileConnection) {
+    mobileConnection.textContent='Liveüberwachung aktiv. Druckersteuerung nur über den HTTPS-Zugang unter Sicherheit.';
+  }
+
   const controlNotice=document.getElementById('mobileControlNotice');
   function showControlNotice(enabled) {
     if(!controlNotice)return;
