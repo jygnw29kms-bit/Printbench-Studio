@@ -83,6 +83,12 @@ Die offen dokumentierten P2S-Kommandos aus PandaBeFree wurden in die lokale Comm
 
 Die Datei assets/final-master-reference.webp konnte am 09.11.2026 auf Jens-PC nicht als Bild dekodiert werden. Ein pixelgenauer Vergleich mit dem verbindlichen Master ist deshalb weiterhin ausstehend. Keine Druckerbefehle für diese Entwicklung ausgeführt.
 
+## V21: Zentrale iPhone-Verbindungsanzeige
+
+Die App hat unterhalb der Versionsanzeige einen gemeinsamen Status für Jens-PC, P2S, Kamera und HTTPS-Kopplung. Die lokale API /api/v1/mobile-health liefert dazu nur nicht geheime Zustandsinformationen, keine Schlüssel, Drucker-Passwörter oder Nutzdaten. Der Button Verbindung erneuern lädt Telemetrie und Berechtigungen erneut. Bei iOS-App-Rückkehr und WLAN-Wiederverbindung wird der Zustand neu gelesen. Nach Ablauf der Kopplung werden Steuerknöpfe gesperrt, statt alte Freigaben anzuzeigen.
+
+Die Anzeige benennt ausdrücklich, wenn die Kamera offline ist, aber der P2S-Collector online bleibt. HTTP :8080 ist weiterhin nur für Anzeige, HTTPS :8444 für autorisierte Steuerung. Der laufende Druck und die Kamera-Bridge werden durch die neuen Leseabfragen nicht verändert.
+
 ## Abnahme noch offen
 
 Nach der CA-Installation auf dem iPhone müssen HTTPS-Zugriff, reale Steuerung, Kamera und restliche Menüs produktiv abgenommen werden. Der Code allein ist keine FINAL-Freigabe.

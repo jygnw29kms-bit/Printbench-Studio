@@ -312,3 +312,14 @@ button:focus-visible,input:focus-visible{outline:2px solid #39caff;outline-offse
 .camera-health-panel strong{font-size:13px;color:#f2ba8c}
 .camera-health-panel strong.camera-health-ok{color:#79e3ad}
 @media(max-width:420px){.camera-health-panel{gap:5px}.camera-health-panel>div{padding:9px 4px}.camera-health-panel small{font-size:8px}}
+
+.mobile-health-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#091c2c;border:1px solid #24465d;border-radius:10px;padding:10px 12px;margin:8px 0 10px}
+.mobile-health-bar .health-summary{display:flex;align-items:center;gap:9px;min-width:0;flex:1}
+.mobile-health-bar .health-led{width:9px;height:9px;border-radius:50%;flex-shrink:0;background:#7194a8;box-shadow:0 0 0 3px #264057}
+.mobile-health-bar .health-led[data-status="ok"]{background:#54dc9b;box-shadow:0 0 0 3px #124b3b}
+.mobile-health-bar .health-led[data-status="warn"]{background:#e9bb6d;box-shadow:0 0 0 3px #60411d}
+.mobile-health-bar .health-led[data-status="error"]{background:#ff817c;box-shadow:0 0 0 3px #562c30}
+.mobile-health-bar #mobileHealthText{font-size:11px;font-weight:700;line-height:1.45;color:#b4cddd;overflow-wrap:anywhere}
+.mobile-health-bar button{min-height:42px;border:1px solid #2f698a;background:#103652;color:#d6f1ff;border-radius:8px;padding:7px 11px;font-size:11px;font-weight:800;flex-shrink:0}
+.mobile-health-bar button:disabled{opacity:.4}
+@media(max-width:420px){.mobile-health-bar{align-items:stretch;flex-direction:column}.mobile-health-bar button{width:100%}}

@@ -388,6 +388,25 @@ class Handler(SimpleHTTPRequestHandler):
                 if path.startswith('/api/') and not path.startswith(API_PREFIX+'/'):path=API_PREFIX+path[4:]
                 if path==API_PREFIX+'/live':return self._json(latest_payload())
                 if path==API_PREFIX+'/camera-status':return self._json(camera_state())
+                if path==API_PREFIX+'/mobile-health':
+                    # The app's public health page never reveals session tokens,
+                    # certificate private keys or printer access credentials.
+                    telemetry=latest_payload()
+                    camera=camera_state()
+                    return self._json({
+                        'version':'V21',
+                        'server':'online',
+                        'transport':'https' if self._is_tls() else 'http',
+                        'paired':self._control_authorized(),
+                        'printer_online':bool(telemetry.get('online')),
+                        'telemetry_age_sec':telemetry.get('age_sec'),
+                        'print_state':telemetry.get('print_state'),
+                        'camera_online':camera.get('online',False),
+                        'camera_age_sec':camera.get('frame_age_sec'),
+                        'camera_frames':camera.get('frames',0),
+                        'camera_error':camera.get('error','')
+                    })
+
                 if path==API_PREFIX+'/history':return self._json(history(q.get('hours',['24'])[0],q.get('limit',['240'])[0]))
                 if path==API_PREFIX+'/sessions':return self._json(sessions(q.get('limit',['20'])[0]))
                 if path==API_PREFIX+'/rfid':return self._json(rfid_summary())
