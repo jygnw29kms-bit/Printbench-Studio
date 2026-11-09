@@ -132,30 +132,40 @@ def _ams_control(args,seq):
 
 
 def _ams_start_dry(args,seq):
+    # Port of panda-be-free PrinterCommand.startDrying.
     ams_id=int(args.get('ams_id',0))
     temp=int(args.get('temp',0))
     hours=int(args.get('duration_h',0))
-    filament=str(args.get('filament','PLA')).upper().strip()
     rotate=args.get('rotate_tray',False)
     if ams_id!=0: raise ValueError('Only the configured AMS 2 Pro is supported')
+    # Respect our configured P2S thermal policy even if reference presets
+    # permit a higher value on another printer/AMS model.
     if not 35<=temp<=65: raise ValueError('AMS 2 Pro temperature must be 35..65 C')
     if not 1<=hours<=24: raise ValueError('drying duration must be 1..24 hours')
-    if filament not in {'PLA','PETG','ABS','ASA','TPU','PA','PC','PVA','PP','PET','OTHER'}:
-        raise ValueError('unsupported drying filament')
     if not isinstance(rotate,bool): raise ValueError('rotate_tray must be boolean')
     return {'print':{'sequence_id':seq,'command':'ams_filament_drying',
                      'ams_id':ams_id,'temp':temp,'cooling_temp':45,
                      'duration':hours,'humidity':0,'mode':1,
-                     'filament':filament,'rotate_tray':rotate,
-                     'close_power_conflict':True}}
+                     'rotate_tray':rotate}}
 
 
 def _ams_stop_dry(args,seq):
-    if args: raise ValueError('ams.stop_drying takes no arguments')
+    # Port of panda-be-free PrinterCommand.stopDrying.
+    ams_id=int(args.get('ams_id',0))
+    if ams_id!=0:raise ValueError('Only the configured AMS 2 Pro is supported')
     return {'print':{'sequence_id':seq,'command':'ams_filament_drying',
-                     'ams_id':0,'temp':0,'cooling_temp':45,'duration':0,
-                     'humidity':0,'mode':0,'rotate_tray':False,
-                     'filament':'','close_power_conflict':True}}
+                     'ams_id':ams_id,'temp':0,'cooling_temp':45,'duration':0,
+                     'humidity':0,'mode':0,'rotate_tray':False}}
+
+
+def _get_version(args,seq):
+    if args:raise ValueError('device.get_version takes no arguments')
+    return {'info':{'sequence_id':seq,'command':'get_version'}}
+
+
+def _push_all(args,seq):
+    if args:raise ValueError('device.refresh takes no arguments')
+    return {'pushing':{'sequence_id':seq,'command':'pushall'}}
 
 
 def _ams_filament_setting(args,seq):
@@ -267,6 +277,9 @@ def _verify_ams_filament(db,args):
     except Exception:return False
 
 SPECS={
+ 'device.get_version':CommandSpec('device.get_version','read','supported_unverified',_get_version,None,'writes'),
+ 'device.refresh':CommandSpec('device.refresh','read','supported_unverified',_push_all,None,'writes'),
+
  'print.pause':CommandSpec('print.pause','low','supported_unverified',_simple_print('pause'),_verify_pause,qos=1),
  'print.resume':CommandSpec('print.resume','low','supported_unverified',_simple_print('resume'),_verify_resume,qos=1),
  'print.stop':CommandSpec('print.stop','destructive','supported_unverified',_simple_print('stop'),_verify_stop,'destructive',qos=1),

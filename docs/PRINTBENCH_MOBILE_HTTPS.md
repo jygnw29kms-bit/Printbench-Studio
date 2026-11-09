@@ -75,6 +75,14 @@ Die bereits aus einer MIT-lizenzierten Open-Source-Implementierung portierte RTS
 
 Für die Protokollfunktionen wurde die offen dokumentierte P2S-Implementierung von panda-be-free als Referenz herangezogen. Swift-UI-Quellcode wird nicht als angeblich native iOS-App ausgegeben. Die freigegebenen Protokollteile und deren Lizenzhinweise sind unter docs/THIRD_PARTY_CAMERA_NOTICES.md sowie in der jeweiligen Codequelle dokumentiert.
 
+## V18: Cockpit-Redesign und Panda-Protokollfunktionen
+
+Die iPhone-Oberfläche erhält ein dunkles PRINTBENCH-Cockpit statt schematischer Karten: Druckfortschritt oben, unmittelbar darunter P2S-Livekamera, getrennte Temperaturinstrumente, AMS-Slots, JL1976-Branding und einheitliche Steuerelemente auf allen Unteransichten. Die bisherige reine CSS-Druckerattrappe wurde aus der Startseite entfernt. Alle API-IDs und die bestehende Navigation bleiben erhalten.
+
+Die offen dokumentierten P2S-Kommandos aus PandaBeFree wurden in die lokale CommandEngine portiert: AMS-Trocknung starten/stoppen mit bereinigter MQTT-Nutzlast, Geräteversion abfragen (info/get_version) und Vollstatus anfordern (pushing/pushall). Quellen und MIT-Hinweise in docs/PANDABEFREE_PROTOCOL_NOTICE.md.
+
+Die Datei assets/final-master-reference.webp konnte am 09.11.2026 auf Jens-PC nicht als Bild dekodiert werden. Ein pixelgenauer Vergleich mit dem verbindlichen Master ist deshalb weiterhin ausstehend. Keine Druckerbefehle für diese Entwicklung ausgeführt.
+
 ## Abnahme noch offen
 
 Nach der CA-Installation auf dem iPhone müssen HTTPS-Zugriff, reale Steuerung, Kamera und restliche Menüs produktiv abgenommen werden. Der Code allein ist keine FINAL-Freigabe.

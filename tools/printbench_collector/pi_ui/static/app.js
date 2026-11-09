@@ -265,8 +265,10 @@ async function sendControl(button) {
     if (r.status === 403 && body.error === 'control_authorization_required') throw new Error('Steuer-API-Schlüssel fehlt oder ist ungültig');
     if (!r.ok || !body.ok) throw new Error(body.detail || body.verification || body.error || `HTTP ${r.status}`);
     $('controlResult').textContent = `${name} · ${body.verification || 'OK'}`; $('controlResult').className = 'control-result ok';
-    reportMobileCommand(button.textContent.trim()+': '+(body.verification || 'vom Drucker beantwortet'),'success');
-    setTimeout(refreshFast, 500);
+    const confirmed=body.post_state_verified===true;
+    const reply=confirmed ? 'Zustand am P2S bestätigt' : (body.response_received ? 'MQTT-Antwort erhalten; Ausführung nicht abschließend bestätigt' : 'Befehl gesendet, Rückmeldung ausstehend');
+    reportMobileCommand(button.textContent.trim()+': '+reply,confirmed?'success':'info');
+    setTimeout(()=>{refreshFast();if(name==='device.get_version'||name==='device.refresh')refreshSlow();}, 500);
   } catch (err) {
     $('controlResult').textContent = `${name} · ${err.message}`; $('controlResult').className = 'control-result bad';
     reportMobileCommand(button.textContent.trim()+': '+err.message,'error');
@@ -300,7 +302,7 @@ async function refreshFast() {
     $('printerStatusText').textContent = live.online ? 'ONLINE / BEREIT' : 'TELEMETRIE STALE';
     $('printerStatusDot').style.background = live.online ? '#4ee59b' : '#ff5f72';
     $('printerStatusAge').textContent = `vor ${fmt(live.age_sec)} s`;
-    $('age').textContent = `letztes Telegramm vor ${fmt(live.age_sec)} s`; $('state').textContent = live.print_state || 'UNBEKANNT'; $('stateHero').textContent = live.print_state || 'UNBEKANNT';
+    $('age').textContent = `letztes Telegramm vor ${fmt(live.age_sec)} s`; $('state').textContent = live.print_state || 'UNBEKANNT'; $('stateHero').textContent = live.print_state || 'UNBEKANNT'; if ($('cockpitState'))$('cockpitState').textContent=live.print_state||'VERBINDE';
     const p = Math.max(0, Math.min(100, Math.round(live.progress || 0))); $('progress').textContent = p + '%'; $('progressBar').style.width = p + '%';
     $('layer').textContent = `${fmt(live.layer_current)} / ${fmt(live.layer_total)}`; $('remain').textContent = live.remaining_min != null ? Math.round(live.remaining_min) + ' min' : '-';
     $('speed').textContent = live.speed_mag != null ? Math.round(live.speed_mag) + '%' : fmt(live.speed_level);

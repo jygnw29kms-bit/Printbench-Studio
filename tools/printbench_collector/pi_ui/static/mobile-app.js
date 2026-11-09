@@ -9,8 +9,8 @@
   const mode=document.getElementById('appAccessMode');
   if(mode){
     mode.textContent=location.protocol==='https:'
-      ? 'PRINTBENCH iPHONE V16 · HTTPS :8444 · STEUERUNG NACH KOPPLUNG'
-      : 'PRINTBENCH iPHONE V16 · HTTP :8080 · NUR LIVE-ANZEIGE';
+      ? 'PRINTBENCH iPHONE V18 · HTTPS :8444 · STEUERUNG NACH KOPPLUNG'
+      : 'PRINTBENCH iPHONE V18 · HTTP :8080 · NUR LIVE-ANZEIGE';
     mode.classList.toggle('read-only',location.protocol!=='https:');
   }
   document.getElementById('networkOrigin').textContent = location.origin;

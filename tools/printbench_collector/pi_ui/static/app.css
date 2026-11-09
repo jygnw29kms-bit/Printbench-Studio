@@ -170,3 +170,134 @@ button:focus-visible,input:focus-visible{outline:2px solid #39caff;outline-offse
 .camera-zoom-row span{font-weight:700;color:#cfecff;min-width:55px;text-align:center}
 .mobile-camera{overflow:hidden}
 .dedicated-camera{object-fit:contain;transition:transform 120ms ease}
+
+
+/* PRINTBENCH mobile cockpit, derived from the project's FINAL MASTER visual language.
+   Only visual treatments: data bindings and original navigation remain intact. */
+:root {
+ --pb-night:#030914;
+ --pb-depth:#061322;
+ --pb-surface:#0b1b2b;
+ --pb-edge:#1b3954;
+ --pb-glow:#00c9fd;
+ --pb-blue:#168df9;
+ --pb-white:#eaf7ff;
+ --pb-secondary:#88a8bd;
+}
+.cockpit-machine{min-height:228px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:8px;
+ background:radial-gradient(ellipse 65% 60% at 50% 50%,rgba(10,104,166,.22),transparent 76%),
+ repeating-linear-gradient(90deg,transparent 0,transparent 36px,rgba(71,195,238,.024) 37px),
+ linear-gradient(160deg,#071a2b,#02080f);
+ border:1px solid rgba(68,163,202,.18);border-radius:10px}
+.cockpit-machine-ring{width:184px;height:184px;border-radius:50%;padding:10px;
+ background:conic-gradient(from 215deg,transparent 0deg,#0f74bd 25deg,#16caff 110deg,#155083 230deg,transparent 275deg);
+ box-shadow:0 0 0 1px #19374e,0 0 28px rgba(13,137,214,.17),inset 0 0 24px #06192b}
+.cockpit-ring-core{height:100%;width:100%;border-radius:50%;background:radial-gradient(circle at 50% 35%,#112d45,#04101c 75%);
+ border:3px solid #061522;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.cockpit-ring-core img{width:58px;height:58px;object-fit:contain;filter:drop-shadow(0 0 10px #03a6e35c)}
+.cockpit-ring-core span{font-size:9px;font-weight:800;letter-spacing:1.7px;color:#7baac4}
+.cockpit-ring-core b{font-size:14px;letter-spacing:1px;color:#f3fbff}
+.cockpit-machine-footer{width:100%;display:flex;justify-content:space-between;align-items:center;padding:0 15px}
+.cockpit-machine-footer span{font-size:9px;letter-spacing:1.5px;color:#4783a5;font-weight:800}
+.cockpit-machine-footer strong{font-size:11px;color:#a2e6ff;letter-spacing:.7px}
+@media(max-width:980px){
+ html,body{background:#020914!important;color:var(--pb-white)}
+ body{background-image:none!important}
+ main{padding-left:12px!important;padding-right:12px!important}
+ .topbar{height:64px!important;border-bottom:1px solid #162d43!important;background:linear-gradient(180deg,#061627,#030d18)}
+ .page-head{padding:16px 2px 15px!important;margin-bottom:6px}
+ .page-head h1{font-size:30px!important;line-height:1.12;font-weight:790;letter-spacing:-.7px}
+ .page-head>div>small{font-size:10px!important;color:#6eaad0!important;letter-spacing:1px}
+ .page-head p{font-size:12px!important;color:#7292aa!important;margin-top:8px}
+ .headstat{background:#0b2337;border:1px solid #225071;padding:9px 12px;border-radius:10px}
+ .headstat b{font-size:11px!important;color:#b8eaff}
+ .headstat small{font-size:10px!important}
+ .app-version{background:#072a45;border:1px solid #1a85bc;color:#a3ebff;padding:4px 8px;font-weight:800}
+ .app-access-mode{background:#061d2e;border:1px solid #164b6a;border-radius:6px;color:#9dc9dd;font-size:10px;letter-spacing:.45px;padding:8px 11px;margin:4px 0 10px}
+ .app-access-mode.read-only{color:#f2c783;border-color:#74572c;background:#241b10}
+ .mobile-toolbar{display:none!important}
+ .mobile-connection-bar{margin:3px 0 17px!important;gap:8px}
+ .mobile-signal{border-radius:6px!important;background:#071a2b!important;min-height:41px;display:flex;align-items:center;justify-content:center;font-size:10px!important}
+ .mobile-signal.connected{background:#0a2a24!important;border-color:#286f56!important}
+ .mobile-signal.warning{background:#291c12!important;border-color:#68502c!important}
+ .view.active[data-view-panel="overview"]{gap:14px!important}
+ .view.active[data-view-panel="overview"] .current-print{order:0!important}
+ .view.active[data-view-panel="overview"] .camera-panel{order:1!important}
+ .view.active[data-view-panel="overview"] .therm{order:2!important}
+ .view.active[data-view-panel="overview"] .ams-card{order:3!important}
+ .view.active[data-view-panel="overview"] .printer-status{order:4!important}
+ .view.active[data-view-panel="overview"] .machine-hero{order:5!important}
+ .view.active[data-view-panel="overview"] .quick-actions{order:6!important}
+ .panel{background:linear-gradient(145deg,#0c2133 0%,#071523 62%,#06111d 100%)!important;
+  border:1px solid #1c3b53!important;border-radius:12px!important;padding:17px!important;
+  box-shadow:0 8px 30px rgba(0,0,0,.22),inset 0 1px 0 rgba(130,203,244,.035)!important}
+ .panel:before{border-left:0!important;left:16px!important;right:16px;top:0!important;width:auto;height:1px!important;
+  background:linear-gradient(90deg,transparent,#177fb4,transparent);opacity:.65}
+ .panel-title{margin-bottom:16px!important;align-items:baseline}
+ .panel-title span{font-size:14px!important;letter-spacing:.45px!important;text-transform:uppercase}
+ .panel-title small{font-size:10px!important;letter-spacing:1.25px!important;color:#558cad!important}
+ .print-body{grid-template-columns:112px minmax(0,1fr)!important;gap:18px!important}
+ .print-preview{height:142px!important;border-color:#1d5475!important;border-radius:9px!important}
+ .progress-line strong{font-size:46px!important;line-height:1;color:#e8faff;letter-spacing:-1px}
+ .bar{height:9px!important;border-radius:9px!important;margin:16px 0!important;background:#10283b}
+ .bar i{background:linear-gradient(90deg,#1363d8,#13b5ed,#7bedff)!important;box-shadow:0 0 16px #2caff780}
+ .metrics{gap:10px}
+ .metrics div{padding-top:10px!important;border-color:#1d3d54!important}
+ .metrics small{font-size:9px!important;letter-spacing:.7px;color:#7099b1!important}
+ .metrics b{font-size:14px!important}
+ .camera-frame{border-radius:9px!important;border:1px solid #1a4b66!important}
+ .camera-frame img{object-fit:contain!important}
+ .camera-tools{font-size:11px!important;color:#84aec7!important;margin-top:10px}
+ .thermgrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+ .thermgrid div{background:#071b2b;border:1px solid #1b4057;border-radius:9px;padding:12px!important}
+ .thermgrid b{font-size:22px!important;color:#e7faff}
+ .thermgrid small{font-size:9px!important;color:#719bb3!important}
+ .thermgrid em{font-size:10px!important}
+ .slots{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+ .slot{border-radius:9px!important;padding:12px!important;background:#071b2b!important;border-color:#20445e!important}
+ .slot.active{box-shadow:inset 0 0 0 1px #198fc1,0 0 16px #00b2f51c!important}
+ .slot .swatch{height:12px!important;border-radius:4px}
+ .slot b{font-size:14px!important}.slot small,.slot em{font-size:11px!important}
+ .status-primary{background:#061925!important;border-radius:9px!important;padding:13px!important}
+ .status-primary b{font-size:15px!important}
+ .status-primary small{font-size:10px!important}
+ .status-list div,.sys dl div{font-size:13px!important;padding:12px 1px!important}
+ .status-list dd,.sys dd{color:#d8efff}
+ .mobile-dock{background:linear-gradient(180deg,#071d30,#020c18)!important;border-top:1px solid #1a5273!important;
+  padding:10px 8px calc(12px + env(safe-area-inset-bottom))!important}
+ .mobile-dock button{border-radius:9px!important;font-size:10px!important;min-height:56px}
+ .mobile-dock button.active{background:#0b3555!important;border-color:#247bac!important;color:#e9f9ff!important}
+ .mobile-dock .dock-symbol{font-size:23px}
+ .mobile-actions button,.control-row button,.quick-grid button,.mobile-inline-action,
+ #diagnosticRefresh{background:linear-gradient(180deg,#104063,#092640)!important;border:1px solid #245a7c!important;
+  border-radius:9px!important;color:#d7f2ff!important;font-size:12px!important;font-weight:750!important;
+  min-height:48px!important;letter-spacing:.2px;touch-action:manipulation}
+ button:disabled{opacity:.4!important;filter:saturate(.5)}
+ .mobile-material-form{gap:14px!important}
+ .mobile-material-form label{font-size:12px!important;color:#8fb9d0}
+ .mobile-material-form input,.mobile-material-form select,
+ .control-row input,.control-row select{border:1px solid #24526e!important;background:#06192a!important;
+  color:#eaf7ff!important;border-radius:8px!important;font-size:14px!important;min-height:46px!important}
+ .mobile-file-list{border-top:1px solid #24475c}
+ .mobile-upload-row{background:#081e30;margin:7px 0;padding:13px!important;border:1px solid #1d455f!important;border-radius:9px}
+ .control-group{background:linear-gradient(145deg,#0b2335,#081927);border:1px solid #1a3c55;padding:13px;border-radius:9px}
+ .control-group>small{font-size:10px!important;color:#8ec2db!important;letter-spacing:.7px;margin-bottom:12px!important}
+ .control-grid,.advanced-controls{gap:12px!important}
+ .control-notice{font-size:12px!important;line-height:1.5!important}
+ .mobile-dl dt{color:#8eb0c5}
+ .mobile-dl dd{color:#e5f6ff}
+ .note,.empty{font-size:12px!important;line-height:1.55!important;color:#8fabbb!important}
+ .sidebar{background:#061625;border-right:1px solid #235071}
+ .side-nav{gap:5px}
+ .side-nav button{font-size:13px!important;padding:12px!important;border-radius:8px!important}
+ .side-nav button.active{background:linear-gradient(90deg,#0d6fb4,#083d68)!important;border-color:#26bcf2!important}
+}
+@media(max-width:420px){
+ .page-head h1{font-size:27px!important}
+ .print-body{grid-template-columns:96px minmax(0,1fr)!important;gap:12px!important}
+ .print-preview{height:130px!important}
+ .progress-line strong{font-size:40px!important}
+ .panel{padding:14px!important}
+ .thermgrid b{font-size:19px!important}
+ .mobile-dock button{font-size:9px!important}
+}
