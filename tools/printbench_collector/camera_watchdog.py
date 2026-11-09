@@ -61,7 +61,9 @@ def run():
                 if fresh():
                     last_fresh=time.monotonic()
                     restarts=0
-                if time.monotonic()-max(started,last_fresh)>105:
+                # Check the JPEG's actual age, not a repeatedly refreshed observation
+                # timestamp. Otherwise a frozen frame can delay recovery to ~210 s.
+                if time.monotonic()-started>105 and not fresh(105):
                     write_log('camera stalled; restarting worker after 105 seconds without fresh frame')
                     child.terminate()
                     try:child.wait(timeout=8)
