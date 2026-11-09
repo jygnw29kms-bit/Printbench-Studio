@@ -9,8 +9,8 @@
   const mode=document.getElementById('appAccessMode');
   if(mode){
     mode.textContent=location.protocol==='https:'
-      ? 'PRINTBENCH iPHONE V14 · HTTPS :8444 · STEUERUNG NACH KOPPLUNG'
-      : 'PRINTBENCH iPHONE V14 · HTTP :8080 · NUR LIVE-ANZEIGE';
+      ? 'PRINTBENCH iPHONE V15 · HTTPS :8444 · STEUERUNG NACH KOPPLUNG'
+      : 'PRINTBENCH iPHONE V15 · HTTP :8080 · NUR LIVE-ANZEIGE';
     mode.classList.toggle('read-only',location.protocol!=='https:');
   }
   document.getElementById('networkOrigin').textContent = location.origin;
@@ -325,6 +325,18 @@
     const setup=document.getElementById('setupTelemetryAge');
     if(setup)setup.textContent=online?Number(latestLive.age_sec||0).toFixed(0)+' s':'offline';
   }
+  document.querySelectorAll('.dedicated-camera').forEach(img=>{
+    img.addEventListener('error',()=>{
+      img.hidden=true;
+      const status=document.getElementById('cameraDetailStatus');
+      if(status && img.closest('[data-view-panel="camera"]')){
+        status.textContent='Der Kameradienst liefert gerade kein aktuelles Bild. Automatische Wiederverbindung läuft.';
+      }
+    });
+    img.addEventListener('load',()=>{
+      if(img.naturalWidth>0 && img.naturalHeight>0)img.hidden=false;
+    });
+  });
   document.getElementById('cameraRefresh')?.addEventListener('click',()=>{
     document.querySelectorAll('.view.active .dedicated-camera').forEach(img=>img.src='/camera/latest.jpg?ts='+Date.now());
     refreshCameraInfo();

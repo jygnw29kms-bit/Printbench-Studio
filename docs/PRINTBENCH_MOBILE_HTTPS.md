@@ -72,3 +72,10 @@ HTTP 8080 bleibt für Status/Einrichtung und die Bereitstellung des öffentliche
 ## Abnahme noch offen
 
 Nach der CA-Installation auf dem iPhone müssen HTTPS-Zugriff, reale Steuerung, Kamera und restliche Menüs produktiv abgenommen werden. Der Code allein ist keine FINAL-Freigabe.
+
+
+## V15 Kamera-Wiederherstellung
+
+Ein lokaler Watchdog überwacht den einzelnen P2S-RTSPS-Kameraprozess und startet diesen nach Absturz oder 105 Sekunden ohne aktuelles JPEG selbstständig neu. PRINTBENCH gibt veraltete Kamerasnapshots nicht länger mit HTTP 200 aus, sondern meldet HTTP 503. Die iPhone-App zeigt bei einem vorübergehend nicht vorhandenen Bild einen verständlichen Hinweis statt eines kaputten Bildsymbols. V15 ist im Kopf und auf der Zugangsseite sichtbar.
+
+Die Kamera-Bridge wurde am 09.11.2026 erneut gestartet; danach lag auf Jens-PC ein neuer Snapshot mit fortlaufenden Frames vor. Das ist eine Live-Statusbeobachtung und keine vollständige iOS-Abnahme.

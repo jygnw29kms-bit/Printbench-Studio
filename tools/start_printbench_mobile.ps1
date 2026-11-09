@@ -53,11 +53,23 @@ if ($StartCollector) {
         Write-Output "Local P2S collector PID=$($proc.Id)"
     } else {Write-Output 'Collector already running, retained.'}
 }
-# Camera bridge is strictly local; legacy media_worker is disabled above.
-if (-not (Get-CimInstance Win32_Process | Where-Object {$_.CommandLine -match '[p]ython.*[c]amera_bridge.py'})) {
-    $env:PRINTBENCH_CAMERA_RUNTIME=$cameraDir
-    $cam=Start-Process -FilePath $python -ArgumentList @('-u','camera_bridge.py') -WorkingDirectory $collector -WindowStyle Hidden -RedirectStandardOutput (Join-Path $logDir 'camera.log') -RedirectStandardError (Join-Path $logDir 'camera-errors.log') -PassThru
-    Write-Output "Local camera bridge PID=$($cam.Id)"
+# One watchdog supervises the camera and restarts it when frames go stale.
+# It never touches the MQTT collector or the current print.
+$env:PRINTBENCH_CAMERA_RUNTIME=$cameraDir
+$watchdog=Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+    $_.Name -eq 'python.exe' -and $_.CommandLine -match '[c]amera_watchdog.py'
+}
+if (-not $watchdog) {
+    $oldCameras=Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+        $_.Name -eq 'python.exe' -and $_.CommandLine -match '[c]amera_bridge.py'
+    }
+    foreach($old in $oldCameras){
+        Stop-Process -Id $old.ProcessId -Force -ErrorAction SilentlyContinue
+    }
+    $watch=Start-Process -FilePath $python -ArgumentList @('-u','camera_watchdog.py') -WorkingDirectory $collector -WindowStyle Hidden -RedirectStandardOutput (Join-Path $logDir 'camera-watchdog.log') -RedirectStandardError (Join-Path $logDir 'camera-watchdog-errors.log') -PassThru
+    Write-Output "Local camera watchdog PID=$($watch.Id)"
+} else {
+    Write-Output 'Local camera watchdog already running.'
 }
 # Windows can classify a trusted LAN as Public. Allow only LocalSubnet on
 # both Windows profiles without exposing the UI beyond the local segment.

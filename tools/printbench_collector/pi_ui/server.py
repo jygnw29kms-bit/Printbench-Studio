@@ -224,7 +224,7 @@ class Handler(SimpleHTTPRequestHandler):
     def _jpeg(self):
         self._viewer_touch()
         try:
-            if not CAMERA_SNAPSHOT.is_file() or CAMERA_SNAPSHOT.stat().st_size<5000:self.send_error(404);return
+            if not camera_fresh(30):self.send_error(503,'Camera frame stale');return
             raw=CAMERA_SNAPSHOT.read_bytes();self.send_response(200);self.send_header('Content-Type','image/jpeg');self.send_header('Cache-Control','no-store, max-age=0');self.send_header('Content-Length',str(len(raw)));self.end_headers();self.wfile.write(raw)
         except OSError:self.send_error(404)
     def _mjpeg(self):
@@ -235,7 +235,9 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_response(200);self.send_header('Content-Type','multipart/x-mixed-replace; boundary=frame');self.send_header('Cache-Control','no-store, no-cache, must-revalidate, max-age=0');self.send_header('Connection','close');self.end_headers();last_mtime=0.0
             while True:
                 self._viewer_touch()
-                if not CAMERA_SNAPSHOT.is_file():time.sleep(.5);continue
+                if not camera_fresh(30):
+                    time.sleep(.5)
+                    continue
                 st=CAMERA_SNAPSHOT.stat()
                 if st.st_mtime<=last_mtime:time.sleep(.2);continue
                 raw=CAMERA_SNAPSHOT.read_bytes();last_mtime=st.st_mtime
