@@ -29,4 +29,11 @@ $fileLink.Arguments='"'+(Join-Path $env:LOCALAPPDATA 'PRINTBENCH\mobile\uploads'
 $fileLink.WorkingDirectory=$root
 $fileLink.Description='Vom iPhone an PRINTBENCH übertragene Druckdateien'
 $fileLink.Save()
-Write-Output 'PRINTBENCH mobile autostart, pairing and uploaded-file shortcuts installed.'
+$queueScript=Join-Path $PSScriptRoot 'printbench_mobile_inbox.py'
+$queueLink=$shell.CreateShortcut((Join-Path ([Environment]::GetFolderPath('StartMenu')) 'Programs\PRINTBENCH Druckwarteliste.lnk'))
+$queueLink.TargetPath=(Get-Command pythonw -ErrorAction Stop).Source
+$queueLink.Arguments='"'+$queueScript+'"'
+$queueLink.WorkingDirectory=$root
+$queueLink.Description='iPhone-Dateien im nativen PRINTBENCH-Slicer öffnen'
+$queueLink.Save()
+Write-Output 'PRINTBENCH mobile autostart, pairing, uploaded files and desktop queue shortcuts installed.'
