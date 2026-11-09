@@ -313,6 +313,12 @@ class Handler(SimpleHTTPRequestHandler):
             if not self._control_authorized():return self._json({'error':'pairing_required'},403)
             try:return self._json(mobile_workspace.queue_file(self._read_json_body().get('upload_name',''),UPLOADS))
             except ValueError as e:return self._json({'error':str(e)},400)
+        if path==API_PREFIX+'/queue/move':
+            if not self._control_authorized():return self._json({'error':'pairing_required'},403)
+            try:
+                body=self._read_json_body()
+                return self._json(mobile_workspace.move_queued(body.get('id',''),body.get('direction','')))
+            except ValueError as e:return self._json({'error':str(e)},400)
         if path==API_PREFIX+'/queue/remove':
             if not self._control_authorized():return self._json({'error':'pairing_required'},403)
             try:return self._json(mobile_workspace.remove_queued(self._read_json_body().get('id','')))

@@ -93,6 +93,21 @@ def queue_file(upload_name,uploads):
                    (id,name,pos,'prepared',int(time.time())))
     return {'ok':True,'id':id,'auto_start':False}
 
+def move_queued(id,direction):
+    id=_short(id,36)
+    if direction not in ('up','down'):raise ValueError('invalid_direction')
+    with connection() as db:
+        rows=db.execute('SELECT id FROM queue ORDER BY position ASC,created ASC').fetchall()
+        ids=[row['id'] for row in rows]
+        if id not in ids:raise ValueError('queue_entry_not_found')
+        index=ids.index(id)
+        target=index+(-1 if direction=='up' else 1)
+        if 0<=target<len(ids):
+            ids[index],ids[target]=ids[target],ids[index]
+            for pos,ident in enumerate(ids,1):
+                db.execute('UPDATE queue SET position=? WHERE id=?',(pos,ident))
+    return {'ok':True,'id':id,'moved':0<=target<len(ids),'auto_start':False}
+
 def remove_queued(id):
     id=_short(id,36)
     with connection() as db:

@@ -98,7 +98,10 @@
         const line=el('div',null,'mobile-upload-row');
         const details=el('div');
         details.append(el('strong',item.upload_name),el('div','Bereitgestellt, kein automatischer Druckstart','mobile-small'));
-        line.append(details,btn('Entfernen',async()=>{
+        const actions=el('div',null,'mobile-inline-actions');
+        actions.append(btn('Hoch',async()=>{try{await request('/queue/move',{id:item.id,direction:'up'});await loadQueue();}catch(e){notice('queueMessage',e.message);}}));
+        actions.append(btn('Runter',async()=>{try{await request('/queue/move',{id:item.id,direction:'down'});await loadQueue();}catch(e){notice('queueMessage',e.message);}}));
+        actions.append(btn('Entfernen',async()=>{
           if(!confirm('Datei aus der Warteliste entfernen? Die hochgeladene Datei bleibt erhalten.'))return;
           try{
             await request('/queue/remove',{id:item.id});
@@ -106,6 +109,7 @@
             await loadQueue();
           }catch(e){notice('queueMessage',e.message);}
         }));
+        line.append(details,actions);
         list.append(line);
       }
     }catch(e){list.textContent='Warteliste: '+e.message;}

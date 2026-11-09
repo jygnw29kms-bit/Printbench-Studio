@@ -48,7 +48,7 @@ class Inbox(tk.Tk):
         footer=tk.Frame(self,bg='#071728')
         footer.pack(fill='x',padx=22,pady=17)
         for label,fn in [
-            ('Aktualisieren',self.refresh),('Im Slicer öffnen',self.open_project),
+            ('Aktualisieren',self.refresh),('Nach oben',lambda:self.move('up')),('Nach unten',lambda:self.move('down')),('Im Slicer öffnen',self.open_project),
             ('Aus Warteliste entfernen',self.remove_from_queue),('Eingangsordner öffnen',self.open_folder)
         ]:
             tk.Button(footer,text=label,command=fn,relief='flat',cursor='hand2',
@@ -81,6 +81,21 @@ class Inbox(tk.Tk):
             self.status.config(text=f'{len(queue)} vorbereitete Dateien · kein automatischer Druckstart')
         except Exception as e:
             self.status.config(text=f'Warteliste nicht verfügbar: {e}')
+
+    def move(self,direction):
+        row=self.selected()
+        if not row:return
+        try:
+            workspace.move_queued(row['id'],direction)
+            self.refresh()
+            for iid,item in self.rows.items():
+                if item['id']==row['id']:
+                    self.tree.selection_set(iid)
+                    self.tree.focus(iid)
+                    self.tree.see(iid)
+                    break
+        except ValueError as e:
+            self.status.config(text=f'Reihenfolge konnte nicht geändert werden: {e}')
 
     def open_project(self):
         row=self.selected()
