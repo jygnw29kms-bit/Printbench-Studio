@@ -11,8 +11,8 @@
   const mode=document.getElementById('appAccessMode');
   if(mode){
     mode.textContent=location.protocol==='https:'
-      ? 'PRINTBENCH iPHONE V25 · HTTPS :8444 · STEUERUNG NACH KOPPLUNG'
-      : 'PRINTBENCH iPHONE V25 · HTTP :8080 · NUR LIVE-ANZEIGE';
+      ? 'PRINTBENCH iPHONE V26 · HTTPS :8444 · STEUERUNG NACH KOPPLUNG'
+      : 'PRINTBENCH iPHONE V26 · HTTP :8080 · NUR LIVE-ANZEIGE';
     mode.classList.toggle('read-only',location.protocol!=='https:');
   }
   document.getElementById('networkOrigin').textContent = location.origin;
@@ -81,17 +81,27 @@
     if(!secureControl){securityMessage.textContent='Steuerung über unverschlüsseltes HTTP gesperrt.';return;}
     const code=tokenInput.value.trim();
     if(!/^[0-9]{8}$/.test(code)){securityMessage.textContent='Bitte den 8-stelligen Kopplungscode eingeben.';return;}
-    tokenInput.value='';
     try {
       const response=await fetch('/api/v1/pair',{
-        method:'POST',
+        method:'POST',credentials:'same-origin',cache:'no-store',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({code})
       });
       const result=await response.json();
-      if(!response.ok || !result.ok)throw Error('Kopplungscode abgelaufen oder ungültig');
+      if(!response.ok || !result.ok){
+        const reasons={
+          invalid_format:'Der Code muss genau acht Ziffern enthalten.',
+          expired_code:'Code abgelaufen. Auf Jens-PC einen neuen Kopplungscode öffnen.',
+          invalid_code:'Code stimmt nicht. Bitte aktuellen Code von Jens-PC verwenden.',
+          too_many_attempts:'Zu viele Versuche. Aus Sicherheitsgründen zehn Minuten warten.',
+          session_storage_unavailable:'Sitzung konnte auf Jens-PC nicht gespeichert werden. Code bleibt gültig.',
+          pairing_not_initialized:'Kopplung auf Jens-PC noch nicht vorbereitet.'
+        };
+        throw Error(reasons[result.error]||('Kopplung abgelehnt (HTTP '+response.status+')'));
+      }
       const valid=await reloadControlCapability();
       if(!valid)throw Error('Keine Steuerfunktionen für dieses Gerät freigegeben');
+      tokenInput.value='';
       securityMessage.textContent='iPhone gekoppelt. Die Druckersteuerung ist jetzt freigegeben.';
       showPairingStatus();
     }catch(error){

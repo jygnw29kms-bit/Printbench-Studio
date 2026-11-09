@@ -372,9 +372,10 @@ class Handler(SimpleHTTPRequestHandler):
         if path==API_PREFIX+'/pair':
             try:
                 data=self._read_json_body()
-                token=mobile_pairing.pair(data.get('code'),self.client_address[0])
-                if not token:return self._json({'error':'invalid_or_expired_pairing_code'},403)
-                session=mobile_pairing.create_session()
+                session,reason=mobile_pairing.pair_and_create_session(data.get('code'),self.client_address[0])
+                if not session:
+                    status=429 if reason=='too_many_attempts' else 503 if reason=='session_storage_unavailable' else 403
+                    return self._json({'error':reason or 'pairing_failed'},status)
                 cookie='PRINTBENCH_SESSION='+session+'; Path=/api/v1; Secure; HttpOnly; SameSite=Strict; Max-Age=2592000'
                 return self._json({'ok':True},cookie=cookie)
             except ValueError:return self._json({'error':'invalid_pairing_request'},400)

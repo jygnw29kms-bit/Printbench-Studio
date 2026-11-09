@@ -148,3 +148,7 @@ Von iPhone hochgeladene 3MF/STL/G-Code-Dateien können aus der lokalen PRINTBENC
 ## V25 Kopplungsstatus in der iPhone-App
 
 Die Sicherheit-Seite verweist zum initialen Einrichten auf den Zertifikatsdownload über den lokalen HTTP-Anzeigeport 8080. Der anschließende Zugriff auf die Steuerung und jede PIN-Eingabe bleiben HTTPS-only auf Port 8444. Eine neue nicht geheime Statusabfrage zeigt, ob eine gepaarte Sitzung besteht und wie lange der auf Jens-PC erzeugte Einmal-PIN noch gültig ist. Der PIN selbst wird niemals über diese Statusabfrage übertragen.
+
+
+## V26: Ausfallsichere Kopplung
+Die einmalige Kopplung legt erst eine serverseitige 30-Tage-Sitzung an und verbraucht den PIN danach. Ein SQLite-Schreibfehler lässt den gültigen PIN bestehen. Die iPhone-App unterscheidet ungültige, abgelaufene und durch zu viele Fehlversuche gesperrte PINs. Der Code wird bei einem Fehler nicht aus dem Eingabefeld gelöscht. Kein Druckerbefehl ist Teil der Kopplung.

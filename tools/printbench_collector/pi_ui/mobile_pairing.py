@@ -85,22 +85,47 @@ def revoke_session(value):
         db.execute('DELETE FROM sessions WHERE token_hash=?',(digest,))
         db.commit()
 
-def pair(code,ip):
+def pair_and_create_session(code,ip):
+    """Issue cookie session before consuming the one-use PIN, atomically.
+
+    The caller never receives printer credentials. Failed database writes
+    leave the original PIN usable until it expires.
+    """
     now=time.time()
     if not isinstance(code,str) or len(code)!=8 or not code.isascii() or not code.isdigit():
-        return None
+        return None,'invalid_format'
     with LOCK:
         attempts=[t for t in ATTEMPTS.get(ip,[]) if now-t<WINDOW]
-        if len(attempts)>=MAX_ATTEMPTS:return None
+        if len(attempts)>=MAX_ATTEMPTS:
+            return None,'too_many_attempts'
         attempts.append(now)
         ATTEMPTS[ip]=attempts
         try:
             expiry,pin=PIN.read_text(encoding='ascii').strip().split(':',1)
-            if now>int(expiry) or not secrets.compare_digest(pin,code):
-                return None
+            if now>int(expiry):return None,'expired_code'
+            if not secrets.compare_digest(pin,code):return None,'invalid_code'
+            if not TOKEN.is_file():return None,'pairing_not_initialized'
             token=TOKEN.read_text(encoding='ascii').strip()
-            if len(token)!=64:return None
-            PIN.unlink(missing_ok=True)
+            if len(token)!=64:return None,'pairing_not_initialized'
+            value=secrets.token_urlsafe(40)
+            digest=hashlib.sha256(value.encode('ascii')).hexdigest()
+            # Persisting the session precedes deleting the user's PIN.
+            try:
+                with _open_sessions() as db:
+                    db.execute('INSERT INTO sessions(token_hash,expiry) VALUES(?,?)',
+                               (digest,int(time.time()+SESSION_AGE)))
+            except (OSError,sqlite3.Error):
+                return None,'session_storage_unavailable'
+            protect(SESSIONS)
+            try:PIN.unlink(missing_ok=True)
+            except OSError:pass
             ATTEMPTS.pop(ip,None)
-            return token
-        except (OSError,ValueError):return None
+            return value,None
+        except (OSError,ValueError):
+            return None,'pairing_not_initialized'
+
+
+def pair(code,ip):
+    """Compatibility for legacy callers; no secret return value."""
+    _,reason=pair_and_create_session(code,ip)
+    return reason is None
