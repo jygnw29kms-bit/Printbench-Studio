@@ -41,6 +41,17 @@ PRINTBENCH reuses Orca's native Bambu device model instead of routing the deskto
 - `pi-image/` - optional Raspberry Pi companion image source
 - `Druckkosten-Rechner/` - filament/cost logic and data
 
+## Arbeitsstand 09.11.2026: iPhone zu Windows-Druckwarteliste
+
+- Die iPhone-LAN-App unterstützt gesicherte STL-/3MF-Übertragung und eine lokale Warteliste auf Jens-PC.
+- Die Reihenfolge lässt sich auf iPhone und Windows bearbeiten, ohne einen laufenden Druck zu beeinflussen.
+- Im nativen FINAL-MASTER-Bereich **Druckaufträge** gibt es die Aktion **DRUCKWARTELISTE ÖFFNEN**.
+- Der lokale Desktop-Eingang (tools/printbench_mobile_inbox.py) bietet eine Dateiliste, Sortierung, Entfernen und die ausdrücklich bestätigte Übergabe von STL/3MF an den nativen Slicer.
+- Der Windows-Release-Build mit neuer OrcaSlicer.dll wurde am 09.11.2026 abgeschlossen und die native App in Jens' Sitzung gestartet.
+- Kein automatischer Druckstart, keine automatische G-Code-Übergabe.
+- Noch offen: optische FINAL-MASTER-Abnahme, vollständige iPhone-Kopplung und tatsächliche Hardware-Befehlsabnahme. Dies ist keine FINAL-Freigabe.
+- Auf ausdrücklichen Wunsch keine Test-Suite ausgeführt.
+
 ## Verification status
 
 - Product contract validates P2S `N7` and all four supported nozzle profiles
