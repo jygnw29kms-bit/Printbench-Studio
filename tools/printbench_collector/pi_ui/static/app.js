@@ -18,6 +18,33 @@ let cameraIntervalMs=2000;
 let cameraFrameFailures=0;
 let cameraStreamMode=false;
 let cameraStreamFailures=0;
+let cameraLastLiveFrameAt=0;
+let cameraLastLiveFrameCount=-1;
+let cameraStreamStartedAt=0;
+function observeCameraHealth(data){
+  const online=data?.online===true && Number(data.frame_age_sec)<30;
+  const count=Number(data?.frames);
+  const decoder=$('cameraDecoderStatus');
+  const age=$('cameraLastFrame');
+  const frames=$('cameraFrameCount');
+  if(decoder)decoder.textContent=online?'ONLINE':'OFFLINE';
+  if(decoder)decoder.classList.toggle('camera-health-ok',online);
+  if(age)age.textContent=data?.frame_age_sec==null?'–':Math.round(Number(data.frame_age_sec))+' s';
+  if(frames)frames.textContent=Number.isFinite(count)?count:'–';
+  if(online && Number.isFinite(count)){
+    if(count!==cameraLastLiveFrameCount){
+      cameraLastLiveFrameCount=count;
+      cameraLastLiveFrameAt=Date.now();
+    }
+  }
+  if(cameraStreamMode && !online){
+    disableCameraStream('Videoverbindung verloren · Einzelbilder aktiv');
+  } else if(cameraStreamMode && cameraLastLiveFrameAt>0 &&
+            Date.now()-Math.max(cameraLastLiveFrameAt,cameraStreamStartedAt)>25000){
+    disableCameraStream('Videodaten stehen · Einzelbilder aktiv');
+  }
+}
+
 function updateCameraStreamLabel(text){
   const button=$('cameraStreamMode');
   if(button)button.textContent=cameraStreamMode?'LIVE-VIDEO STOPPEN':'LIVE-VIDEO STARTEN';
@@ -40,10 +67,13 @@ function enableCameraStream(){
   if(document.hidden)return;
   cameraStreamMode=true;
   cameraStreamFailures=0;
+  cameraStreamStartedAt=Date.now();
+  cameraLastLiveFrameAt=Date.now();
   updateCameraStreamLabel('Lokaler MJPEG-Livestream · kein Cloud-Zugriff');
   const stream='/camera/stream.mjpg?session='+Date.now();
   document.querySelectorAll('.view.active .dedicated-camera').forEach(img=>{
     img.dataset.printbenchStream='1';
+    img.style.transform='scale(1)';
     img.src=stream;
     img.hidden=false;
   });

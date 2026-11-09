@@ -305,3 +305,10 @@ button:focus-visible,input:focus-visible{outline:2px solid #39caff;outline-offse
 .camera-stream-hint{min-height:24px;color:#9fd6f0;font-size:12px;padding:8px 4px;letter-spacing:.2px}
 #cameraStreamMode{background:linear-gradient(180deg,#075987,#073653)!important;border-color:#2199c2!important;color:#e4f9ff!important}
 .dedicated-camera[data-printbench-stream="1"]{transform:none!important;object-fit:contain;min-height:170px}
+
+.camera-health-panel{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+.camera-health-panel>div{padding:11px 8px;background:#081a2b;border:1px solid #24516e;border-radius:9px;display:flex;flex-direction:column;gap:6px;text-align:center}
+.camera-health-panel small{font-size:9px;letter-spacing:.75px;color:#83aabe;font-weight:750}
+.camera-health-panel strong{font-size:13px;color:#f2ba8c}
+.camera-health-panel strong.camera-health-ok{color:#79e3ad}
+@media(max-width:420px){.camera-health-panel{gap:5px}.camera-health-panel>div{padding:9px 4px}.camera-health-panel small{font-size:8px}}

@@ -232,17 +232,34 @@ class Handler(SimpleHTTPRequestHandler):
             return self._json({'error':'camera_busy'},503)
         try:
             self._viewer_touch()
-            self.send_response(200);self.send_header('Content-Type','multipart/x-mixed-replace; boundary=frame');self.send_header('Cache-Control','no-store, no-cache, must-revalidate, max-age=0');self.send_header('Connection','close');self.end_headers();last_mtime=0.0
+            # Never leave an iPhone's MJPEG image pending indefinitely when the
+            # local decoder is down. A 503 triggers its snapshot fallback.
+            if not camera_fresh(30):
+                return self._json({'error':'camera_not_ready'},503)
+            self.send_response(200)
+            self.send_header('Content-Type','multipart/x-mixed-replace; boundary=frame')
+            self.send_header('Cache-Control','no-store, no-cache, must-revalidate, max-age=0')
+            self.send_header('Connection','close')
+            self.end_headers()
+            last_mtime=0.0
+            stale_since=None
             while True:
                 self._viewer_touch()
                 if not camera_fresh(30):
+                    if stale_since is None:stale_since=time.monotonic()
+                    if time.monotonic()-stale_since>8:
+                        # Closing the stream permits Safari to reconnect or
+                        # fall back, rather than displaying a frozen image.
+                        break
                     time.sleep(.5)
                     continue
+                stale_since=None
                 st=CAMERA_SNAPSHOT.stat()
                 if st.st_mtime<=last_mtime:time.sleep(.2);continue
                 raw=CAMERA_SNAPSHOT.read_bytes();last_mtime=st.st_mtime
                 if len(raw)<5000:continue
-                self.wfile.write(b'--frame\r\nContent-Type: image/jpeg\r\nContent-Length: '+str(len(raw)).encode()+b'\r\n\r\n'+raw+b'\r\n');self.wfile.flush()
+                self.wfile.write(b'--frame\r\nContent-Type: image/jpeg\r\nContent-Length: '+str(len(raw)).encode()+b'\r\n\r\n'+raw+b'\r\n')
+                self.wfile.flush()
         except (BrokenPipeError,ConnectionResetError,ConnectionAbortedError):
             pass
         finally:

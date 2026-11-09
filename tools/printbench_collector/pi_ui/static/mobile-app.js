@@ -9,8 +9,8 @@
   const mode=document.getElementById('appAccessMode');
   if(mode){
     mode.textContent=location.protocol==='https:'
-      ? 'PRINTBENCH iPHONE V19 · HTTPS :8444 · STEUERUNG NACH KOPPLUNG'
-      : 'PRINTBENCH iPHONE V19 · HTTP :8080 · NUR LIVE-ANZEIGE';
+      ? 'PRINTBENCH iPHONE V20 · HTTPS :8444 · STEUERUNG NACH KOPPLUNG'
+      : 'PRINTBENCH iPHONE V20 · HTTP :8080 · NUR LIVE-ANZEIGE';
     mode.classList.toggle('read-only',location.protocol!=='https:');
   }
   document.getElementById('networkOrigin').textContent = location.origin;
@@ -304,6 +304,7 @@
       const r=await fetch('/api/v1/camera-status',{cache:'no-store'});
       const data=await r.json();
       const online=r.ok && data.online===true && data.frame_age_sec!=null && Number(data.frame_age_sec)<30;
+      if(typeof observeCameraHealth==='function')observeCameraHealth(data);
       const label=online?'KAMERA LIVE':'KAMERA OFFLINE';
       signal('mobileCameraSignal',label,online,!online);
       const status=document.getElementById('cameraDetailStatus');
@@ -328,6 +329,9 @@
   }
   document.querySelectorAll('.dedicated-camera').forEach(img=>{
     img.addEventListener('error',()=>{
+      if(img.dataset.printbenchStream==='1' && cameraStreamMode){
+        disableCameraStream('Livestream nicht verfügbar · Einzelbilder aktiv');
+      }
       img.hidden=true;
       const status=document.getElementById('cameraDetailStatus');
       if(status && img.closest('[data-view-panel="camera"]')){

@@ -97,3 +97,12 @@ Die Kamera-Bridge wurde am 09.11.2026 erneut gestartet; danach lag auf Jens-PC e
 
 ## V19: iPhone Live-Video
 Der P2S-Decoder aus der lokalen Kamera-Bridge bleibt bestehen. Auf der iPhone-Kameraseite kann der Nutzer zwischen kontrolliertem Einzelbildabruf und MJPEG-Livestream über den lokalen PRINTBENCH-Server wechseln. Bei einem Browser-/Netzwerkfehler wird wieder auf Einzelbilder umgestellt. Der Livestream endet beim Verlassen der Kameraansicht und beim Wechsel der App in den Hintergrund. Kein Cloud-Zugriff und kein Druckerkommando.
+
+
+## V20: Kamera-Live-Status und automatischer Fallback
+
+- Der Server liefert bei fehlendem Snapshot vor dem Start eines MJPEG-Videostreams einen HTTP-503-Fehler.
+- Ein laufender MJPEG-Stream wird bei mehr als acht Sekunden anhaltender Bildstörung beendet, statt ein eingefrorenes Bild unbegrenzt offen zu halten.
+- Auf der Kameraansicht zeigen drei Instrumente Dekoderstatus, Alter des letzten Bildes und empfangene Frames.
+- Die iPhone-App erkennt fehlende Dekoderdaten und wechselt selbstständig wieder zu kontrolliert geladenen Einzelbildern. Druck, AMS und die Kamera-Bridge werden nicht gesteuert.
+- iPhone-Safari-Abnahme und funktionierendes Bild im Endgerät sind nach wie vor gesondert erforderlich.
