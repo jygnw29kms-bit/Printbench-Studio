@@ -350,3 +350,11 @@ button:focus-visible,input:focus-visible{outline:2px solid #39caff;outline-offse
 .mobile-delete-action{background:#371d2c!important;color:#ffc4ca!important;border:1px solid #865060!important}
 .mobile-delete-action:disabled{opacity:.35!important}
 #mobileStorageUsed{color:#9dccdf;font-size:11px;font-weight:750}
+
+.mobile-download-action{background:linear-gradient(160deg,#0b527b,#0b314f)!important;border-color:#247fa5!important;color:#e8fbff!important}
+@media(max-width:560px){.mobile-upload-row .mobile-inline-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.mobile-upload-row .mobile-inline-actions button{min-width:0;white-space:normal}}
+
+.pairing-setup-status{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#071d30;border:1px solid #23577a;border-radius:10px;padding:11px 12px;margin:13px 0}
+.pairing-setup-status span{font-size:12px;color:#b8d7e9;line-height:1.45}
+.pairing-setup-status button{min-height:43px;flex-shrink:0;border:1px solid #2577a5;background:#0a4164;border-radius:8px;color:#effaff;padding:8px 10px;font-weight:700}
+@media(max-width:440px){.pairing-setup-status{flex-direction:column;align-items:stretch}.pairing-setup-status button{width:100%}}

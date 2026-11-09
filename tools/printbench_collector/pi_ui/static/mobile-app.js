@@ -5,12 +5,14 @@
   const transport = document.getElementById('securityTransport');
   const secureLink=document.getElementById('secureAppLink');
   if(secureLink)secureLink.href='https://'+location.hostname+':8444/';
+  const caDownload=document.getElementById('printbenchCaDownload');
+  if(caDownload)caDownload.href='http://'+location.hostname+':8080/PRINTBENCH-Local-CA.cer';
   if (transport) transport.textContent = secureControl ? 'Verschlüsselte Verbindung. Das iPhone wird per geschützter Sitzung gekoppelt.' : 'HTTP: Nur Live-Anzeige. Für Druckbefehle bitte den HTTPS-Zugang aktivieren.';
   const mode=document.getElementById('appAccessMode');
   if(mode){
     mode.textContent=location.protocol==='https:'
-      ? 'PRINTBENCH iPHONE V20 · HTTPS :8444 · STEUERUNG NACH KOPPLUNG'
-      : 'PRINTBENCH iPHONE V20 · HTTP :8080 · NUR LIVE-ANZEIGE';
+      ? 'PRINTBENCH iPHONE V25 · HTTPS :8444 · STEUERUNG NACH KOPPLUNG'
+      : 'PRINTBENCH iPHONE V25 · HTTP :8080 · NUR LIVE-ANZEIGE';
     mode.classList.toggle('read-only',location.protocol!=='https:');
   }
   document.getElementById('networkOrigin').textContent = location.origin;
@@ -49,6 +51,30 @@
       return false;
     }
   }
+  async function showPairingStatus(){
+    const label=document.getElementById('pairingCodeStatus');
+    if(!label)return;
+    try{
+      const response=await fetch('/api/v1/pairing-status',{cache:'no-store',credentials:'same-origin'});
+      if(!response.ok)throw Error('HTTP '+response.status);
+      const info=await response.json();
+      if(info.paired){
+        label.textContent='iPhone gekoppelt. Sichere Steuerung freigegeben.';
+      } else if(info.pin_available){
+        label.textContent='Kopplungscode verfügbar, noch '+Math.ceil(info.pin_expires_in_sec/60)+' Min. gültig. Code wird auf Jens-PC angezeigt.';
+      } else {
+        label.textContent='Kein gültiger Code. Auf Jens-PC „PRINTBENCH iPhone koppeln“ öffnen, um einen neuen zu erzeugen.';
+      }
+    }catch(_){
+      label.textContent='Kopplungsstatus nicht erreichbar. Bitte HTTPS-Verbindung prüfen.';
+    }
+  }
+  document.getElementById('checkPairingCode')?.addEventListener('click',showPairingStatus);
+  document.querySelectorAll('[data-view="security"]').forEach(button=>{
+    button.addEventListener('click',showPairingStatus);
+  });
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden && currentView==='security')showPairingStatus();});
+  if(location.hash==='#security')showPairingStatus();
   const tokenInput = document.getElementById('controlToken');
   const securityMessage = document.getElementById('securityMessage');
   document.getElementById('applyControlToken')?.addEventListener('click',async()=>{
@@ -67,15 +93,18 @@
       const valid=await reloadControlCapability();
       if(!valid)throw Error('Keine Steuerfunktionen für dieses Gerät freigegeben');
       securityMessage.textContent='iPhone gekoppelt. Die Druckersteuerung ist jetzt freigegeben.';
+      showPairingStatus();
     }catch(error){
       mobileControlToken='';
       securityMessage.textContent='Kopplung fehlgeschlagen: '+error.message;
+      showPairingStatus();
     }
   });
   document.getElementById('clearControlToken')?.addEventListener('click',async()=>{
     try{await fetch('/api/v1/logout',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});}catch(_){}
     mobileControlToken='';nativeControlAuthorized=false;tokenInput.value='';
     await reloadControlCapability();securityMessage.textContent='Steuerzugriff gesperrt.';
+    showPairingStatus();
   });
   function routeFromHash() {
     const name=decodeURIComponent(location.hash.replace(/^#\/?/,''));
@@ -186,7 +215,7 @@
       line.className='mobile-upload-row';
       const details=document.createElement('div');
       const title=document.createElement('strong');
-      title.textContent=item.name;
+      title.textContent=item.display_name||item.name;
       const size=document.createElement('div');
       size.className='mobile-small';
       size.textContent=(item.bytes/1048576).toFixed(2)+' MB · '+
@@ -230,7 +259,21 @@
           remove.disabled=false;
         }
       });
-      actions.append(queueButton,remove);
+      const download=document.createElement('button');
+      download.type='button';
+      download.className='mobile-inline-action mobile-download-action';
+      download.textContent='Herunterladen';
+      download.addEventListener('click',()=>{
+        // Native Safari transfer, preserving iPhone Files / Share Sheet.
+        // The URL is same-origin and the existing paired HTTPS cookie is sent.
+        const link=document.createElement('a');
+        link.href='/api/v1/files/download?name='+encodeURIComponent(item.name);
+        link.download=item.display_name||item.name;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      });
+      actions.append(download,queueButton,remove);
       line.append(details,actions);
       list.append(line);
     }

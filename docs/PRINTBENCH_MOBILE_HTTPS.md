@@ -143,3 +143,8 @@ Das iPhone zeigt die tatsächliche Größe des lokalen Upload-Speichers an. Ein 
 ## V25 iPhone-Download der eigenen Dateien
 
 Von iPhone hochgeladene 3MF/STL/G-Code-Dateien können aus der lokalen PRINTBENCH-Ablage wieder heruntergeladen werden. Der Download läuft ausschließlich über die authentifizierte HTTPS-API, ist auf vorhandene Dateien im verwalteten Upload-Verzeichnis begrenzt und verwendet den ursprünglichen Dateinamen. Er ändert keine Warteliste und löst keine Druckerbefehle aus. Auf iPhone erfolgt die Speicherung über die Safari-Dateiverwaltung.
+
+
+## V25 Kopplungsstatus in der iPhone-App
+
+Die Sicherheit-Seite verweist zum initialen Einrichten auf den Zertifikatsdownload über den lokalen HTTP-Anzeigeport 8080. Der anschließende Zugriff auf die Steuerung und jede PIN-Eingabe bleiben HTTPS-only auf Port 8444. Eine neue nicht geheime Statusabfrage zeigt, ob eine gepaarte Sitzung besteht und wie lange der auf Jens-PC erzeugte Einmal-PIN noch gültig ist. Der PIN selbst wird niemals über diese Statusabfrage übertragen.

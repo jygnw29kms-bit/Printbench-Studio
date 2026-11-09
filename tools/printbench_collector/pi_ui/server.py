@@ -3,7 +3,7 @@ import json, os, secrets, sqlite3, socket, subprocess, sys, threading, time, ssl
 from datetime import datetime, timezone, timedelta
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
-from urllib.parse import urlparse, parse_qs, unquote
+from urllib.parse import urlparse, parse_qs, unquote, quote
 from http.cookies import SimpleCookie
 sys.path.insert(0,str(Path(__file__).resolve().parent.parent))
 import command_engine
@@ -312,6 +312,46 @@ class Handler(SimpleHTTPRequestHandler):
         except OSError:
             tmp.unlink(missing_ok=True)
             return self._json({'error':'upload_failed'},500)
+    def _download_file(self,name):
+        # Download only an exact file from the managed inbox.
+        # Authorization is checked before this method is called.
+        if not isinstance(name,str) or not name or len(name)>170:
+            return self._json({'error':'invalid_file_name'},400)
+        if Path(name).name!=name or name in ('.','..') or '\\' in name or '/' in name:
+            return self._json({'error':'invalid_file_name'},400)
+        if Path(name).suffix.lower() not in UPLOAD_EXTS:
+            return self._json({'error':'unsupported_file_type'},400)
+        path=UPLOADS/name
+        try:
+            if path.is_symlink() or not path.is_file() or path.parent.resolve()!=UPLOADS.resolve():
+                return self._json({'error':'file_not_found'},404)
+            # Open without following a file that was replaced by a symlink.
+            if hasattr(os,'O_NOFOLLOW'):
+                fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW)
+                inp=os.fdopen(fd,'rb')
+            else:
+                inp=path.open('rb')
+            with inp:
+                st=os.fstat(inp.fileno())
+                if not path.is_file() or path.is_symlink():
+                    return self._json({'error':'file_not_found'},404)
+                original=mobile_workspace.queue_display_name(name)
+                ascii_name='PRINTBENCH-download'+path.suffix.lower()
+                self.send_response(200)
+                self.send_header('Content-Type','application/octet-stream')
+                self.send_header('Content-Disposition',
+                    'attachment; filename="'+ascii_name+'"; filename*=UTF-8\'\''+quote(original,safe=''))
+                self.send_header('Content-Length',str(st.st_size))
+                self.end_headers()
+                while True:
+                    chunk=inp.read(1024*1024)
+                    if not chunk:break
+                    self.wfile.write(chunk)
+        except (OSError,ValueError):
+            # If headers have already gone out, a client disconnect is handled
+            # by the HTTP server. Never claim a successful transfer.
+            return
+
     def _read_json_body(self):
         if (self.headers.get('Content-Type') or '').split(';',1)[0].strip().lower()!='application/json':
             raise ValueError('application/json required')
@@ -396,6 +436,18 @@ class Handler(SimpleHTTPRequestHandler):
                 if path.startswith('/api/') and not path.startswith(API_PREFIX+'/'):path=API_PREFIX+path[4:]
                 if path==API_PREFIX+'/live':return self._json(latest_payload())
                 if path==API_PREFIX+'/camera-status':return self._json(camera_state())
+                if path==API_PREFIX+'/pairing-status':
+                    # PIN bytes are never sent to browsers; only expiry.
+                    expires_in=0
+                    try:
+                        expiry_str=mobile_pairing.PIN.read_text(encoding='ascii').split(':',1)[0]
+                        expires_in=max(0,int(expiry_str)-int(time.time()))
+                    except (ValueError,OSError):pass
+                    return self._json({'https':self._is_tls(),
+                        'paired':self._control_authorized(),
+                        'pin_available':expires_in>0,
+                        'pin_expires_in_sec':expires_in,
+                        'pin_valid_minutes':15})
                 if path==API_PREFIX+'/mobile-health':
                     # The app's public health page never reveals session tokens,
                     # certificate private keys or printer access credentials.
@@ -430,10 +482,15 @@ class Handler(SimpleHTTPRequestHandler):
                 if path==API_PREFIX+'/queue':
                     if not self._control_authorized():return self._json({'error':'pairing_required'},403)
                     return self._json(mobile_workspace.list_queue())
+                if path==API_PREFIX+'/files/download':
+                    if not self._control_authorized():return self._json({'error':'pairing_required'},403)
+                    names=q.get('name',[])
+                    if len(names)!=1:return self._json({'error':'file_name_required'},400)
+                    return self._download_file(names[0])
                 if path==API_PREFIX+'/files':
                     if not self._control_authorized():return self._json({'error':'pairing_required'},403)
                     UPLOADS.mkdir(parents=True,exist_ok=True)
-                    rows=[{'name':p.name,'bytes':p.stat().st_size,'mtime':p.stat().st_mtime} for p in UPLOADS.iterdir() if p.is_file() and not p.name.endswith('.partial')]
+                    rows=[{'name':p.name,'display_name':mobile_workspace.queue_display_name(p.name),'bytes':p.stat().st_size,'mtime':p.stat().st_mtime} for p in UPLOADS.iterdir() if p.is_file() and not p.is_symlink() and p.suffix.lower() in UPLOAD_EXTS]
                     return self._json({'items':sorted(rows,key=lambda r:r['mtime'],reverse=True)[:100],
                                        'count':len(rows),
                                        'used_bytes':sum(row['bytes'] for row in rows),
