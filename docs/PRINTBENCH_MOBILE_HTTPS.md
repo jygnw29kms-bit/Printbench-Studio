@@ -152,3 +152,8 @@ Die Sicherheit-Seite verweist zum initialen Einrichten auf den Zertifikatsdownlo
 
 ## V26: Ausfallsichere Kopplung
 Die einmalige Kopplung legt erst eine serverseitige 30-Tage-Sitzung an und verbraucht den PIN danach. Ein SQLite-Schreibfehler lässt den gültigen PIN bestehen. Die iPhone-App unterscheidet ungültige, abgelaufene und durch zu viele Fehlversuche gesperrte PINs. Der Code wird bei einem Fehler nicht aus dem Eingabefeld gelöscht. Kein Druckerbefehl ist Teil der Kopplung.
+
+
+## V27: Native Windows-Slicer-Übergabe
+
+Die Windows-Druckwarteliste öffnet 3MF/STL ausschließlich nach Bestätigung. Sie sucht PRINTBENCH zuerst in einem explizit konfigurierten Pfad (\`PRINTBENCH_NATIVE_EXE\`), anschließend in den üblichen Installationsordnern und zuletzt im lokalen Entwicklungs-Build. Es werden keine fremden OrcaSlicer-Installationen als PRINTBENCH ausgegeben. Druckaufträge werden dadurch nicht gestartet.

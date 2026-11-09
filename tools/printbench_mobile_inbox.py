@@ -6,6 +6,7 @@ Does not publish MQTT commands, start prints or modify active jobs.
 from __future__ import annotations
 import subprocess
 import sys
+import os
 import tkinter as tk
 from tkinter import ttk,messagebox
 from pathlib import Path
@@ -13,7 +14,29 @@ sys.path.insert(0,str(Path(__file__).resolve().parent/'printbench_collector'/'pi
 import mobile_workspace as workspace
 
 ROOT=Path(__file__).resolve().parent.parent
-EXE=ROOT/'app'/'orcaslicer'/'build-printbench-check'/'src'/'Release'/'135er-PRINTBENCH.exe'
+def find_native_slicer():
+    # Explicitly selected installer location takes precedence. Avoid finding
+    # an unrelated OrcaSlicer installation and calling it PRINTBENCH.
+    override=os.environ.get('PRINTBENCH_NATIVE_EXE','').strip().strip('"')
+    candidates=[]
+    if override:
+        candidates.append(Path(override))
+    local=Path(os.environ.get('LOCALAPPDATA',str(Path.home()/'AppData'/'Local')))
+    program_files=Path(os.environ.get('ProgramFiles',r'C:\Program Files'))
+    program_files_x86=Path(os.environ.get('ProgramFiles(x86)',r'C:\Program Files (x86)'))
+    candidates += [
+        local/'Programs'/'135er-PRINTBENCH'/'135er-PRINTBENCH.exe',
+        local/'Programs'/'PRINTBENCH'/'135er-PRINTBENCH.exe',
+        program_files/'135er-PRINTBENCH'/'135er-PRINTBENCH.exe',
+        program_files/'PRINTBENCH'/'135er-PRINTBENCH.exe',
+        program_files_x86/'135er-PRINTBENCH'/'135er-PRINTBENCH.exe',
+        ROOT/'app'/'orcaslicer'/'build-printbench-check'/'src'/'Release'/'135er-PRINTBENCH.exe'
+    ]
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    return None
+
 UPLOADS=workspace.BASE/'uploads'
 PROJECT_EXT={'.stl','.3mf'}
 SUPPORTED_EXT=PROJECT_EXT|{'.gcode','.gco','.bgcode'}
@@ -128,13 +151,16 @@ class Inbox(tk.Tk):
             return
         if not path.is_file() or path.resolve().parent!=UPLOADS.resolve():
             messagebox.showerror('PRINTBENCH','Die Druckdatei ist nicht mehr vorhanden.',parent=self);return
-        if not EXE.is_file():
-            messagebox.showerror('PRINTBENCH','Die native PRINTBENCH-EXE wurde nicht gefunden. Bitte den Slicer installieren.',parent=self)
+        exe=find_native_slicer()
+        if exe is None:
+            messagebox.showerror('PRINTBENCH',
+                'Die native PRINTBENCH-EXE wurde nicht gefunden. Bitte PRINTBENCH installieren oder '
+                'PRINTBENCH_NATIVE_EXE auf den korrekten Pfad setzen.',parent=self)
             return
         if not messagebox.askyesno('PRINTBENCH',f'Diese Datei im nativen Slicer öffnen?\n\n{path.name}\n\nDadurch wird kein Druck gestartet.',parent=self):
             return
         try:
-            subprocess.Popen([str(EXE),str(path)],cwd=str(EXE.parent),close_fds=True)
+            subprocess.Popen([str(exe),str(path)],cwd=str(exe.parent),close_fds=True)
             self.status.config(text=f'Datei an PRINTBENCH übergeben: {path.name}')
         except OSError as e:
             messagebox.showerror('PRINTBENCH',f'Native App konnte nicht geöffnet werden: {e}',parent=self)
