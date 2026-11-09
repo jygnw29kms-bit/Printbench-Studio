@@ -165,44 +165,96 @@
     text('networkCollector',s.online?'P2S online':'Keine aktuellen P2S-Daten');
     text('setupStatus',s.online?'Bambu Lab P2S meldet aktuelle LAN-Telemetrie.':'Collector / Druckerverbindung prüfen.');
   }
+  let cachedUploadedFiles=[];
+  let cachedQueuedNames=new Set();
+  function renderUploadedFiles() {
+    const list=document.getElementById('mobileUploadList');
+    const counter=document.getElementById('mobileFileCount');
+    if(!list)return;
+    const filter=(document.getElementById('mobileFileFilter')?.value||'').trim().toLocaleLowerCase('de-DE');
+    const items=cachedUploadedFiles.filter(f=>f.name.toLocaleLowerCase('de-DE').includes(filter));
+    if(counter)counter.textContent=items.length+' / '+cachedUploadedFiles.length+' Dateien';
+    list.replaceChildren();
+    if(!items.length){
+      list.textContent=cachedUploadedFiles.length
+        ? 'Keine passenden Dateien gefunden.'
+        : 'Noch keine Dateien vom iPhone übertragen.';
+      return;
+    }
+    for(const item of items){
+      const line=document.createElement('div');
+      line.className='mobile-upload-row';
+      const details=document.createElement('div');
+      const title=document.createElement('strong');
+      title.textContent=item.name;
+      const size=document.createElement('div');
+      size.className='mobile-small';
+      size.textContent=(item.bytes/1048576).toFixed(2)+' MB · '+
+        new Date(item.mtime*1000).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'});
+      details.append(title,size);
+      const queued=cachedQueuedNames.has(item.name);
+      const queueButton=document.createElement('button');
+      queueButton.type='button';
+      queueButton.className='mobile-inline-action';
+      queueButton.textContent=queued?'Bereits in Warteliste':'Auf Warteliste';
+      queueButton.disabled=queued;
+      if(!queued)queueButton.dataset.uploadQueue=item.name;
+      line.append(details,queueButton);
+      list.append(line);
+    }
+  }
   async function loadUploadedFiles() {
     const list=document.getElementById('mobileUploadList');
     if(!list)return;
     if(!secureControl || !nativeControlAuthorized){
+      cachedUploadedFiles=[];
+      cachedQueuedNames=new Set();
       list.textContent='Dateien auf Jens-PC sind erst nach sicherer Kopplung sichtbar.';
       return;
     }
-    try {
-      const response=await fetch('/api/v1/files',{cache:'no-store'});
-      const data=await response.json();
-      if(!response.ok)throw Error(data.error||'Dateiliste nicht verfügbar');
-      list.replaceChildren();
-      const items=data.items||[];
-      if(!items.length){list.textContent='Noch keine Dateien vom iPhone übertragen.';return;}
-      for(const item of items){
-        const line=document.createElement('div');
-        line.className='mobile-upload-row';
-        const title=document.createElement('strong');
-        title.textContent=item.name;
-        const size=document.createElement('span');
-        size.textContent=(item.bytes/1048576).toFixed(2)+' MB';
-        const queueButton=document.createElement('button');
-        queueButton.type='button';
-        queueButton.className='mobile-inline-action';
-        queueButton.textContent='Auf Warteliste';
-        queueButton.dataset.uploadQueue=item.name;
-        line.append(title,size,queueButton);
-        list.append(line);
-      }
-    } catch(error) {
+    try{
+      const [filesResponse,queueResponse]=await Promise.all([
+        fetch('/api/v1/files',{cache:'no-store'}),
+        fetch('/api/v1/queue',{cache:'no-store'})
+      ]);
+      const files=await filesResponse.json();
+      if(!filesResponse.ok)throw Error(files.error||'Dateiliste nicht verfügbar');
+      const queue=queueResponse.ok?await queueResponse.json():{items:[]};
+      cachedUploadedFiles=(files.items||[]).filter(f=>typeof f.name==='string');
+      cachedQueuedNames=new Set((queue.items||[]).map(item=>item.upload_name));
+      renderUploadedFiles();
+    }catch(error){
       list.textContent='Dateiliste fehlgeschlagen: '+error.message;
     }
   }
+  document.getElementById('mobileFileFilter')?.addEventListener('input',renderUploadedFiles);
   document.getElementById('refreshMobileFiles')?.addEventListener('click',loadUploadedFiles);
+  let activeMobileUpload=null;
+  const uploadState=(text,percent,show=true)=>{
+    const region=document.getElementById('mobileUploadProgress');
+    const label=document.getElementById('mobileUploadState');
+    const value=document.getElementById('mobileUploadPercent');
+    const bar=document.getElementById('mobileUploadBar');
+    if(region)region.hidden=!show;
+    if(label)label.textContent=text;
+    if(percent!=null && Number.isFinite(percent)){
+      const p=Math.max(0,Math.min(100,percent));
+      if(value)value.textContent=Math.round(p)+' %';
+      if(bar)bar.value=p;
+    }
+  };
+  document.getElementById('cancelMobileUpload')?.addEventListener('click',()=>{
+    if(activeMobileUpload){
+      activeMobileUpload.abort();
+    }
+  });
   document.getElementById('uploadMobileFile')?.addEventListener('click',async()=>{
     const input=document.getElementById('mobileFile');
     const selected=input?.files?.[0];
     const info=document.getElementById('fileInfo');
+    const button=document.getElementById('uploadMobileFile');
+    const cancel=document.getElementById('cancelMobileUpload');
+    if(activeMobileUpload)return;
     if(!selected){info.textContent='Bitte zuerst eine 3MF-, STL- oder G-Code-Datei auswählen.';return;}
     if(!secureControl || !nativeControlAuthorized){
       info.textContent='Upload gesperrt: zuerst HTTPS öffnen und unter Sicherheit iPhone koppeln.';
@@ -216,23 +268,65 @@
       info.textContent='Datei ist leer oder größer als 256 MB.';
       return;
     }
-    const button=document.getElementById('uploadMobileFile');
     button.disabled=true;
-    info.textContent='Übertragung an Jens-PC läuft…';
-    try{
-      const response=await fetch('/api/v1/files',{
-        method:'POST',
-        headers:{'Content-Type':'application/octet-stream','X-File-Name':encodeURIComponent(selected.name)},
-        body:selected
+    if(cancel)cancel.disabled=false;
+    input.disabled=true;
+    uploadState('Übertragung an Jens-PC',0);
+    info.textContent='Die Datei wird verschlüsselt an PRINTBENCH übertragen.';
+    const xhr=new XMLHttpRequest();
+    activeMobileUpload=xhr;
+    const done=new Promise((resolve,reject)=>{
+      xhr.open('POST','/api/v1/files',true);
+      xhr.responseType='json';
+      xhr.timeout=180000;
+      xhr.withCredentials=true;
+      xhr.setRequestHeader('Content-Type','application/octet-stream');
+      xhr.setRequestHeader('X-File-Name',encodeURIComponent(selected.name));
+      xhr.upload.addEventListener('progress',event=>{
+        if(!event.lengthComputable)return;
+        const percent=(event.loaded/event.total)*100;
+        uploadState(percent>=100?'Datei wird auf Jens-PC gespeichert':'Datei wird übertragen',percent);
       });
-      const data=await response.json();
-      if(!response.ok || !data.ok)throw Error(data.error||'Übertragung fehlgeschlagen');
-      info.textContent='Übertragen: '+data.name+' ('+(data.bytes/1048576).toFixed(2)+' MB). Im PRINTBENCH-Dateiordner auf Jens-PC verfügbar.';
+      xhr.addEventListener('load',()=>{
+        const result=xhr.response || {};
+        if(xhr.status>=200&&xhr.status<300&&result.ok)resolve(result);
+        else reject(Error(result.error||'Upload fehlgeschlagen (HTTP '+xhr.status+')'));
+      });
+      xhr.addEventListener('error',()=>reject(Error('Netzwerkverbindung während des Uploads unterbrochen')));
+      xhr.addEventListener('timeout',()=>reject(Error('Upload-Zeitüberschreitung')));
+      xhr.addEventListener('abort',()=>reject(Error('Upload abgebrochen')));
+      xhr.send(selected);
+    });
+    try{
+      const data=await done;
+      uploadState('Auf Jens-PC gespeichert',100);
+      info.textContent='Übertragen: '+data.name+' ('+(data.bytes/1048576).toFixed(2)+' MB).';
       input.value='';
+      if(document.getElementById('queueAfterUpload')?.checked){
+        uploadState('Warteliste wird aktualisiert',100);
+        try{
+          const response=await fetch('/api/v1/queue',{
+            method:'POST',cache:'no-store',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({upload_name:data.stored_as})
+          });
+          const result=await response.json();
+          if(!response.ok||!result.ok)throw Error(result.error||'Warteliste nicht verfügbar');
+          info.textContent+=' In die lokale Warteliste aufgenommen. Kein Druckstart.';
+        }catch(error){
+          info.textContent+=' Warteliste nicht aktualisiert: '+error.message;
+        }
+      }
       await loadUploadedFiles();
     }catch(error){
-      info.textContent='Upload fehlgeschlagen: '+error.message;
-    }finally{button.disabled=false;}
+      uploadState('Übertragung beendet',null);
+      info.textContent=error.message;
+    }finally{
+      activeMobileUpload=null;
+      button.disabled=false;
+      if(cancel)cancel.disabled=true;
+      input.disabled=false;
+    }
   });
 
   const actionMessage=document.getElementById('mobileActionMessage');

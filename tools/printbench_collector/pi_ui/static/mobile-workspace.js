@@ -122,6 +122,7 @@
     try{
       await request('/queue',{upload_name:button.dataset.uploadQueue});
       button.textContent='In Warteliste';
+      button.disabled=true;
       notice('fileInfo','Datei in die lokale Warteliste aufgenommen. Es wird kein Druck gestartet.');
     }catch(error){
       notice('fileInfo','Warteliste: '+error.message);

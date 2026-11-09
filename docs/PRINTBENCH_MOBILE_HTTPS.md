@@ -112,3 +112,8 @@ Der P2S-Decoder aus der lokalen Kamera-Bridge bleibt bestehen. Auf der iPhone-Ka
 - Auf der Kameraansicht zeigen drei Instrumente Dekoderstatus, Alter des letzten Bildes und empfangene Frames.
 - Die iPhone-App erkennt fehlende Dekoderdaten und wechselt selbstständig wieder zu kontrolliert geladenen Einzelbildern. Druck, AMS und die Kamera-Bridge werden nicht gesteuert.
 - iPhone-Safari-Abnahme und funktionierendes Bild im Endgerät sind nach wie vor gesondert erforderlich.
+
+
+## V22 iPhone-Dateiübertragung
+
+Upload von 3MF/STL/G-Code erfolgt über einen authentifizierten HTTPS-POST mit realem XHR-Fortschritt. Übertragungen lassen sich abbrechen; unvollständige Upload-Dateien entfernt die Serverlogik. Wahlweise wird die vollständig gespeicherte Datei anschließend automatisch in die **lokale vorbereitete Warteliste** aufgenommen. Das löst ausdrücklich **keinen Druckstart** aus. Dateigröße max. 256 MB, lokaler Eingang maximal 1 GB. Die Warteliste bleibt auf Jens-PC verfügbar.

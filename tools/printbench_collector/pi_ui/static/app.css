@@ -323,3 +323,23 @@ button:focus-visible,input:focus-visible{outline:2px solid #39caff;outline-offse
 .mobile-health-bar button{min-height:42px;border:1px solid #2f698a;background:#103652;color:#d6f1ff;border-radius:8px;padding:7px 11px;font-size:11px;font-weight:800;flex-shrink:0}
 .mobile-health-bar button:disabled{opacity:.4}
 @media(max-width:420px){.mobile-health-bar{align-items:stretch;flex-direction:column}.mobile-health-bar button{width:100%}}
+
+
+/* V22 actual iPhone file transfer state, not a simulated progress bar */
+.mobile-upload-progress{padding:14px;border:1px solid #246184;background:linear-gradient(145deg,#0a263c,#071827);border-radius:10px;margin:15px 0}
+.mobile-upload-progress[hidden]{display:none}
+.mobile-upload-progress-head{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#b4d9ee;font-size:12px;font-weight:700;margin-bottom:9px}
+.mobile-upload-progress-head strong{font-size:17px;color:#e8faff;white-space:nowrap}
+.mobile-upload-progress progress{display:block;appearance:none;width:100%;height:11px;border:0;border-radius:8px;background:#14374d;overflow:hidden}
+.mobile-upload-progress progress::-webkit-progress-bar{background:#14374d}
+.mobile-upload-progress progress::-webkit-progress-value{background:linear-gradient(90deg,#136fda,#3cd2ff)}
+.mobile-upload-progress progress::-moz-progress-bar{background:linear-gradient(90deg,#136fda,#3cd2ff)}
+.mobile-queue-option{display:flex;align-items:flex-start;gap:10px;color:#c6e5f7;font-size:12px;line-height:1.5;padding:12px 3px}
+.mobile-queue-option input{width:20px;height:20px;min-width:20px;accent-color:#1eaadf}
+#cancelMobileUpload{background:#3c2430!important;border-color:#81505d!important}
+
+.mobile-file-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px;padding:12px 0}
+.mobile-file-toolbar label{font-size:11px;font-weight:700;color:#98c6dc}
+.mobile-file-toolbar input{flex:1;min-width:140px;min-height:44px;border:1px solid #285e7c;border-radius:8px;background:#091e30;color:#e8f7ff;padding:8px 12px}
+.mobile-file-toolbar span{font-size:11px;color:#92b3c9}
+.mobile-upload-row>div{min-width:0;overflow-wrap:anywhere}
