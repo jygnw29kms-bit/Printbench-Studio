@@ -9,8 +9,8 @@
   const mode=document.getElementById('appAccessMode');
   if(mode){
     mode.textContent=location.protocol==='https:'
-      ? 'PRINTBENCH iPHONE V18 · HTTPS :8444 · STEUERUNG NACH KOPPLUNG'
-      : 'PRINTBENCH iPHONE V18 · HTTP :8080 · NUR LIVE-ANZEIGE';
+      ? 'PRINTBENCH iPHONE V19 · HTTPS :8444 · STEUERUNG NACH KOPPLUNG'
+      : 'PRINTBENCH iPHONE V19 · HTTP :8080 · NUR LIVE-ANZEIGE';
     mode.classList.toggle('read-only',location.protocol!=='https:');
   }
   document.getElementById('networkOrigin').textContent = location.origin;
@@ -91,6 +91,7 @@
     if(updateHistory && location.hash!=='#'+name){
       history.pushState({printbenchView:name},'',location.pathname+location.search+'#'+name);
     }
+    if(name!=='camera' && cameraStreamMode)disableCameraStream('Einzelbild-Modus · stabiler Fallback');
     stopCameraOnNonCameraView();
     document.querySelectorAll('.mobile-dock button[data-view]').forEach(el=>{
       const active=el.dataset.view===name;
@@ -338,6 +339,7 @@
     });
   });
   document.getElementById('cameraRefresh')?.addEventListener('click',()=>{
+    if(cameraStreamMode){disableCameraStream('Einzelbild-Modus · manuell aktualisiert');}
     cameraFrameRequested=0;
     if(typeof refreshFast==='function')refreshFast().catch(()=>{});
     refreshCameraInfo();

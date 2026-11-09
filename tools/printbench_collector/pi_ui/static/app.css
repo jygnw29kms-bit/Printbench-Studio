@@ -301,3 +301,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #39caff;outline-offse
  .thermgrid b{font-size:19px!important}
  .mobile-dock button{font-size:9px!important}
 }
+
+.camera-stream-hint{min-height:24px;color:#9fd6f0;font-size:12px;padding:8px 4px;letter-spacing:.2px}
+#cameraStreamMode{background:linear-gradient(180deg,#075987,#073653)!important;border-color:#2199c2!important;color:#e4f9ff!important}
+.dedicated-camera[data-printbench-stream="1"]{transform:none!important;object-fit:contain;min-height:170px}

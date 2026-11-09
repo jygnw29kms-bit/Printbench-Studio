@@ -16,6 +16,50 @@ let cameraUserPaused=false;
 let cameraFrameRequested=0;
 let cameraIntervalMs=2000;
 let cameraFrameFailures=0;
+let cameraStreamMode=false;
+let cameraStreamFailures=0;
+function updateCameraStreamLabel(text){
+  const button=$('cameraStreamMode');
+  if(button)button.textContent=cameraStreamMode?'LIVE-VIDEO STOPPEN':'LIVE-VIDEO STARTEN';
+  const hint=$('cameraStreamHint');
+  if(hint)hint.textContent=text;
+}
+function disableCameraStream(reason){
+  cameraStreamMode=false;
+  cameraFrameRequested=0;
+  document.querySelectorAll('.dedicated-camera').forEach(img=>{
+    if(img.dataset.printbenchStream==='1'){
+      img.dataset.printbenchStream='0';
+      img.removeAttribute('src');
+    }
+  });
+  updateCameraStreamLabel(reason||'Einzelbild-Modus · stabiler Fallback');
+}
+function enableCameraStream(){
+  if(cameraStreamMode){disableCameraStream('Einzelbild-Modus · stabiler Fallback');return;}
+  if(document.hidden)return;
+  cameraStreamMode=true;
+  cameraStreamFailures=0;
+  updateCameraStreamLabel('Lokaler MJPEG-Livestream · kein Cloud-Zugriff');
+  const stream='/camera/stream.mjpg?session='+Date.now();
+  document.querySelectorAll('.view.active .dedicated-camera').forEach(img=>{
+    img.dataset.printbenchStream='1';
+    img.src=stream;
+    img.hidden=false;
+  });
+}
+$('cameraStreamMode')?.addEventListener('click',enableCameraStream);
+document.querySelectorAll('.dedicated-camera').forEach(img=>{
+  img.addEventListener('error',()=>{
+    if(img.dataset.printbenchStream!=='1')return;
+    cameraStreamFailures++;
+    disableCameraStream('Live-Video unterbrochen · automatischer Wechsel auf Einzelbilder');
+  });
+});
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden && cameraStreamMode)disableCameraStream('App im Hintergrund · Livestream pausiert');
+});
+
 
 let currentView = 'overview';
 let nativeControlAuthorized = false;
@@ -138,7 +182,7 @@ function updateCamera(camOk, live, sys) {
          'P2S LAN-Liveview am Drucker aktivieren.'));
   const refreshSnapshot = () => {
     if (!cameraStarted || document.hidden || !['overview','live','camera'].includes(currentView) ||
-        cameraRequestPending || cameraUserPaused) return;
+        cameraRequestPending || cameraUserPaused || cameraStreamMode) return;
     const now=Date.now();
     if (now-cameraFrameRequested<cameraIntervalMs) return;
     cameraFrameRequested=now;

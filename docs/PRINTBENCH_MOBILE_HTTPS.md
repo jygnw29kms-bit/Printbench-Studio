@@ -93,3 +93,7 @@ Nach der CA-Installation auf dem iPhone müssen HTTPS-Zugriff, reale Steuerung, 
 Ein lokaler Watchdog überwacht den einzelnen P2S-RTSPS-Kameraprozess und startet diesen nach Absturz oder 105 Sekunden ohne aktuelles JPEG selbstständig neu. PRINTBENCH gibt veraltete Kamerasnapshots nicht länger mit HTTP 200 aus, sondern meldet HTTP 503. Die iPhone-App zeigt bei einem vorübergehend nicht vorhandenen Bild einen verständlichen Hinweis statt eines kaputten Bildsymbols. V15 ist im Kopf und auf der Zugangsseite sichtbar.
 
 Die Kamera-Bridge wurde am 09.11.2026 erneut gestartet; danach lag auf Jens-PC ein neuer Snapshot mit fortlaufenden Frames vor. Das ist eine Live-Statusbeobachtung und keine vollständige iOS-Abnahme.
+
+
+## V19: iPhone Live-Video
+Der P2S-Decoder aus der lokalen Kamera-Bridge bleibt bestehen. Auf der iPhone-Kameraseite kann der Nutzer zwischen kontrolliertem Einzelbildabruf und MJPEG-Livestream über den lokalen PRINTBENCH-Server wechseln. Bei einem Browser-/Netzwerkfehler wird wieder auf Einzelbilder umgestellt. Der Livestream endet beim Verlassen der Kameraansicht und beim Wechsel der App in den Hintergrund. Kein Cloud-Zugriff und kein Druckerkommando.
