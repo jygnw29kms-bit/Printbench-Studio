@@ -445,7 +445,8 @@ class Handler(SimpleHTTPRequestHandler):
                         expires_in=max(0,int(expiry_str)-int(time.time()))
                     except (ValueError,OSError):pass
                     return self._json({'https':self._is_tls(),
-                        'paired':self._control_authorized(),
+                        'paired':bool(self._is_tls() and mobile_pairing.authenticated_session(self._session_value())),
+                        'control_authorized':self._control_authorized(),
                         'pin_available':expires_in>0,
                         'pin_expires_in_sec':expires_in,
                         'pin_valid_minutes':15})
@@ -455,10 +456,11 @@ class Handler(SimpleHTTPRequestHandler):
                     telemetry=latest_payload()
                     camera=camera_state()
                     return self._json({
-                        'version':'V21',
+                        'version':'V28',
                         'server':'online',
                         'transport':'https' if self._is_tls() else 'http',
-                        'paired':self._control_authorized(),
+                        'paired':bool(self._is_tls() and mobile_pairing.authenticated_session(self._session_value())),
+                        'control_authorized':self._control_authorized(),
                         'printer_online':bool(telemetry.get('online')),
                         'telemetry_age_sec':telemetry.get('age_sec'),
                         'print_state':telemetry.get('print_state'),
