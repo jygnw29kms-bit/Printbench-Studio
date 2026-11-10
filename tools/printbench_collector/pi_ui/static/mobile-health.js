@@ -34,8 +34,10 @@
       state.lastGood=Date.now();
       state.lastResult=data;
       const access=data.transport==='https'
-        ? data.paired?'Steuerung bereit':'HTTPS · Kopplung erforderlich'
-        :'Nur Anzeige · HTTPS für Steuerung';
+        ? data.paired
+          ? data.control_authorized?'iPhone gekoppelt · Steuerzugriff freigegeben':'iPhone gekoppelt · Steuerzugriff gesperrt'
+          : 'HTTPS · Kopplung erforderlich'
+        : 'Nur Anzeige · HTTPS für Steuerung';
       const printer=data.printer_online?'P2S online':'P2S offline';
       const camera=data.camera_online?'Kamera live':'Kamera nicht verfügbar';
       display([printer,camera,access].join(' · '),
