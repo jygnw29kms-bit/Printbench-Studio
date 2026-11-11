@@ -70,14 +70,22 @@ class Inbox(tk.Tk):
         self.tree.pack(fill='both',expand=True,padx=22)
         footer=tk.Frame(self,bg='#071728')
         footer.pack(fill='x',padx=22,pady=17)
-        for label,fn in [
-            ('Aktualisieren',self.refresh),('Nach oben',lambda:self.move('up')),('Nach unten',lambda:self.move('down')),('Im Slicer öffnen',self.open_project),
-            ('Aus Warteliste entfernen',self.remove_from_queue),('Eingangsordner öffnen',self.open_folder)
-        ]:
-            tk.Button(footer,text=label,command=fn,relief='flat',cursor='hand2',
-                      bg='#114b7a',fg='white',activebackground='#176daa',
-                      activeforeground='white',font=('Segoe UI',10,'bold'),
-                      padx=13,pady=11).pack(side='left',padx=(0,9))
+        # Two rows keep every action visible at the minimum window width.
+        button_groups=[
+            [('Aktualisieren',self.refresh),('Nach oben',lambda:self.move('up')),
+             ('Nach unten',lambda:self.move('down'))],
+            [('Im Slicer öffnen',self.open_project),
+             ('Aus Warteliste entfernen',self.remove_from_queue),
+             ('Eingangsordner öffnen',self.open_folder)]
+        ]
+        for group in button_groups:
+            button_row=tk.Frame(footer,bg='#071728')
+            button_row.pack(fill='x',pady=(0,7))
+            for label,fn in group:
+                tk.Button(button_row,text=label,command=fn,relief='flat',cursor='hand2',
+                          bg='#114b7a',fg='white',activebackground='#176daa',
+                          activeforeground='white',font=('Segoe UI',10,'bold'),
+                          padx=13,pady=8).pack(side='left',padx=(0,9))
         self.status=tk.Label(self,text='',bg='#071728',fg='#8de1c7',anchor='w')
         self.status.pack(fill='x',padx=24,pady=(0,14))
         self.tree.bind('<Double-1>',lambda _:self.open_project())
@@ -107,10 +115,14 @@ class Inbox(tk.Tk):
         return self.rows.get(selection[0]) if selection else None
 
     def refresh(self):
+        # Preserve selection across manual and periodic refreshes. Without this,
+        # an incoming iPhone upload silently deselects the Windows action target.
+        previous=self.selected() if hasattr(self,'rows') else None
+        previous_id=previous['id'] if previous else None
         try:
+            queue=workspace.list_queue()['items']
             self.rows={}
             self.tree.delete(*self.tree.get_children())
-            queue=workspace.list_queue()['items']
             import datetime
             for row in queue:
                 path=UPLOADS/row['upload_name']
@@ -120,6 +132,9 @@ class Inbox(tk.Tk):
                     row.get('display_name',row['upload_name']),'Bereit' if row.get('file_available') else 'Fehlt',
                     f'{size:.1f} MB' if size is not None else '-',stamp))
                 self.rows[iid]=row
+                if row['id']==previous_id:
+                    self.tree.selection_set(iid)
+                    self.tree.focus(iid)
             self.status.config(text=f'{len(queue)} vorbereitete Dateien · kein automatischer Druckstart')
         except Exception as e:
             self.status.config(text=f'Warteliste nicht verfügbar: {e}')
