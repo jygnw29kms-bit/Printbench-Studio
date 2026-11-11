@@ -37,7 +37,7 @@ def find_native_slicer():
             return candidate
     return None
 
-UPLOADS=workspace.BASE/'uploads'
+UPLOADS=workspace.UPLOADS
 PROJECT_EXT={'.stl','.3mf'}
 SUPPORTED_EXT=PROJECT_EXT|{'.gcode','.gco','.bgcode'}
 
