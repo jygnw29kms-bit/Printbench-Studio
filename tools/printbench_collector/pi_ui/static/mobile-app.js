@@ -59,7 +59,9 @@
       if(!response.ok)throw Error('HTTP '+response.status);
       const info=await response.json();
       if(info.paired){
-        label.textContent='iPhone gekoppelt. Sichere Steuerung freigegeben.';
+        label.textContent=info.control_authorized
+          ? 'iPhone gekoppelt. Steuerzugriff freigegeben.'
+          : 'iPhone gekoppelt. Steuerzugriff derzeit nicht freigegeben.';
       } else if(info.pin_available){
         label.textContent='Kopplungscode verfügbar, noch '+Math.ceil(info.pin_expires_in_sec/60)+' Min. gültig. Code wird auf Jens-PC angezeigt.';
       } else {
