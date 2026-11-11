@@ -10,6 +10,7 @@ from contextlib import contextmanager
 
 BASE=Path(os.environ.get('LOCALAPPDATA',str(Path.home()/'AppData'/'Local')))/'PRINTBENCH'/'mobile'
 DB=BASE/'workspace.sqlite3'
+UPLOADS=Path(os.environ.get('PRINTBENCH_MOBILE_UPLOADS',str(BASE/'uploads')))
 MATERIAL_TYPES={'PLA','PETG','ABS','ASA','TPU','PA','PC','PVA','OTHER'}
 
 @contextmanager
@@ -82,14 +83,15 @@ def queue_display_name(upload_name):
 
 
 def list_queue():
-    uploads=BASE/'uploads'
+    uploads=UPLOADS
     with connection() as db:
         rows=[dict(r) for r in db.execute(
             'SELECT * FROM queue ORDER BY position ASC, created ASC LIMIT 200').fetchall()]
     for row in rows:
         stored=str(row['upload_name'])
         path=uploads/stored
-        exists=path.is_file() and path.parent==uploads
+        exists=(path.is_file() and not path.is_symlink() and
+                path.parent.resolve()==uploads.resolve())
         row['display_name']=queue_display_name(stored)
         row['file_available']=exists
         row['bytes']=path.stat().st_size if exists else None
@@ -98,11 +100,14 @@ def list_queue():
 
 def queue_file(upload_name,uploads):
     name=_short(upload_name,170)
-    if not name or Path(name).name!=name or not (uploads/name).is_file():
+    if (not name or Path(name).name!=name or '/' in name or '\\' in name or
+            (uploads/name).is_symlink() or not (uploads/name).is_file() or
+            (uploads/name).parent.resolve()!=uploads.resolve()):
         raise ValueError('uploaded_file_not_found')
     if (uploads/name).suffix.lower() not in {'.3mf','.stl','.gcode','.gco','.bgcode'}:
         raise ValueError('unsupported_file_type')
     with connection() as db:
+        db.execute('BEGIN IMMEDIATE')
         exists=db.execute('SELECT id FROM queue WHERE upload_name=?',(name,)).fetchone()
         if exists:return {'ok':True,'id':exists[0],'duplicate':True}
         pos=db.execute('SELECT COALESCE(MAX(position),0)+1 FROM queue').fetchone()[0]
@@ -119,7 +124,7 @@ def remove_uploaded_file(upload_name,uploads):
     can be removed by this API.
     """
     name=_short(upload_name,170)
-    if not name or Path(name).name!=name or name in ('.','..'):
+    if not name or Path(name).name!=name or name in ('.','..') or '/' in name or '\\' in name:
         raise ValueError('invalid_file_name')
     if Path(name).suffix.lower() not in {'.3mf','.stl','.gcode','.gco','.bgcode'}:
         raise ValueError('unsupported_file_type')
@@ -127,6 +132,7 @@ def remove_uploaded_file(upload_name,uploads):
     if path.is_symlink() or not path.is_file() or path.parent.resolve()!=uploads.resolve():
         raise ValueError('uploaded_file_not_found')
     with connection() as db:
+        db.execute('BEGIN IMMEDIATE')
         if db.execute('SELECT 1 FROM queue WHERE upload_name=?',(name,)).fetchone():
             raise ValueError('file_is_in_queue_remove_queue_entry_first')
         try:
@@ -141,6 +147,7 @@ def move_queued(id,direction):
     id=_short(id,36)
     if direction not in ('up','down'):raise ValueError('invalid_direction')
     with connection() as db:
+        db.execute('BEGIN IMMEDIATE')
         rows=db.execute('SELECT id FROM queue ORDER BY position ASC,created ASC').fetchall()
         ids=[row['id'] for row in rows]
         if id not in ids:raise ValueError('queue_entry_not_found')
