@@ -157,3 +157,10 @@ Die einmalige Kopplung legt erst eine serverseitige 30-Tage-Sitzung an und verbr
 ## V27: Native Windows-Slicer-Übergabe
 
 Die Windows-Druckwarteliste öffnet 3MF/STL ausschließlich nach Bestätigung. Sie sucht PRINTBENCH zuerst in einem explizit konfigurierten Pfad (\`PRINTBENCH_NATIVE_EXE\`), anschließend in den üblichen Installationsordnern und zuletzt im lokalen Entwicklungs-Build. Es werden keine fremden OrcaSlicer-Installationen als PRINTBENCH ausgegeben. Druckaufträge werden dadurch nicht gestartet.
+
+
+## Gemeinsame Dateiablage und Wartelistenkonsistenz (11.11.2026)
+
+Die Server-API, das lokale SQLite-Wartelistenmodul und die Windows-Inbox verwenden dieselbe Einstellung `PRINTBENCH_MOBILE_UPLOADS`. Ohne explizite Konfiguration bleibt der lokale Standardordner `%LOCALAPPDATA%\\PRINTBENCH\\mobile\\uploads`. Wenn ein abweichender Ordner verwendet wird, muss diese Umgebungsvariable auch beim Start der Windows-Inbox gesetzt sein.
+
+Wartelisten-Einfügen, Sortieren sowie das prüfende Löschen nicht eingereihter Dateien beginnen ihre SQLite-Schreibtransaktion nun mit `BEGIN IMMEDIATE`. Dadurch werden konkurrierende Operationen über mehrere Threads beziehungsweise Prozesse hinweg koordiniert. Symlinks und relative/absolute Pfadangaben außerhalb des Uploadordners werden für diese Aktionen abgelehnt. Ein tatsächlicher iPhone- und Druckertest ist weiterhin offen; die Änderungen lösen keinerlei Druckerbefehle aus.
