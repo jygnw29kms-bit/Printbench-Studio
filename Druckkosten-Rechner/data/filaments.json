@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-15T12:49:14+00:00",
+  "updated": "2026-11-16T13:45:44+00:00",
   "sources": [
     {
       "name": "3D Filament Profiles",
@@ -48,7 +48,7 @@
         "HS-PLA": 11.99,
         "PETG": 5.09,
         "ABS": 8.04,
-        "ASA": 8.1,
+        "ASA": 10.58,
         "TPU": 9.99
       }
     },
@@ -59,7 +59,7 @@
         "PLA+": 9.49,
         "HS-PLA": 9.99,
         "PETG": 7.45,
-        "ABS": 14.67,
+        "ABS": 14.28,
         "ASA": 14.99,
         "TPU": 15.54
       }
@@ -83,7 +83,7 @@
         "PETG": 7.19,
         "ABS": 8.04,
         "TPU": 9.99,
-        "ASA": 13.99
+        "ASA": 17.84
       }
     },
     {
@@ -112,7 +112,7 @@
       "name": "Bambu Lab",
       "materials": {
         "PLA": 6.99,
-        "PETG": 9.05,
+        "PETG": 8.39,
         "ABS": 14.81,
         "ASA": 18.95,
         "TPU": 29.99,
@@ -210,13 +210,6 @@
       "url": "https://spulenheld.de/deals/pla"
     },
     {
-      "brand": "Bambu Lab",
-      "material": "PLA",
-      "eur_per_kg": 6.99,
-      "source": "Spulenheld",
-      "url": "https://spulenheld.de/deals/pla"
-    },
-    {
       "brand": "SUNLU",
       "material": "PETG",
       "eur_per_kg": 5.09,
@@ -233,7 +226,14 @@
     {
       "brand": "Bambu Lab",
       "material": "PETG",
-      "eur_per_kg": 9.05,
+      "eur_per_kg": 8.39,
+      "source": "Spulenheld",
+      "url": "https://spulenheld.de/deals/petg"
+    },
+    {
+      "brand": "eSUN",
+      "material": "PETG",
+      "eur_per_kg": 8.99,
       "source": "Spulenheld",
       "url": "https://spulenheld.de/deals/petg"
     },
@@ -254,14 +254,21 @@
     {
       "brand": "JAYO",
       "material": "ABS",
-      "eur_per_kg": 14.67,
+      "eur_per_kg": 14.28,
       "source": "Spulenheld",
       "url": "https://spulenheld.de/deals/abs"
     },
     {
       "brand": "SUNLU",
       "material": "ASA",
-      "eur_per_kg": 8.1,
+      "eur_per_kg": 10.58,
+      "source": "Spulenheld",
+      "url": "https://spulenheld.de/deals/asa"
+    },
+    {
+      "brand": "GEEETECH",
+      "material": "ASA",
+      "eur_per_kg": 17.84,
       "source": "Spulenheld",
       "url": "https://spulenheld.de/deals/asa"
     },
