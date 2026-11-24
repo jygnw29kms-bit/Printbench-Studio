@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-23T16:07:03+00:00",
+  "updated": "2026-11-24T15:57:54+00:00",
   "sources": [
     {
       "name": "3D Filament Profiles",
@@ -35,7 +35,7 @@
         "PLA+": 10.99,
         "HS-PLA": 11.99,
         "PETG": 10.99,
-        "ABS": 12.69,
+        "ABS": 12.99,
         "ASA": 15.99,
         "TPU": 16.99
       }
@@ -46,7 +46,7 @@
         "PLA": 12.0,
         "PLA+": 10.79,
         "HS-PLA": 11.99,
-        "PETG": 4.49,
+        "PETG": 3.68,
         "ABS": 8.04,
         "ASA": 12.0,
         "TPU": 9.99
@@ -80,7 +80,7 @@
       "materials": {
         "PLA": 4.49,
         "PLA+": 10.99,
-        "PETG": 7.19,
+        "PETG": 7.25,
         "ABS": 8.04,
         "TPU": 9.99,
         "ASA": 17.84
@@ -166,7 +166,7 @@
         "PLA": 7.69,
         "PLA+": 14.99,
         "PETG": 7.69,
-        "ABS": 13.79,
+        "ABS": 12.99,
         "ASA": 19.99,
         "TPU": 21.8
       }
@@ -212,14 +212,14 @@
     {
       "brand": "SUNLU",
       "material": "PETG",
-      "eur_per_kg": 4.49,
+      "eur_per_kg": 3.68,
       "source": "Spulenheld",
       "url": "https://spulenheld.de/deals/petg"
     },
     {
       "brand": "GEEETECH",
       "material": "PETG",
-      "eur_per_kg": 7.19,
+      "eur_per_kg": 7.25,
       "source": "Spulenheld",
       "url": "https://spulenheld.de/deals/petg"
     },
@@ -245,9 +245,16 @@
       "url": "https://spulenheld.de/deals/abs"
     },
     {
+      "brand": "KINGROON",
+      "material": "ABS",
+      "eur_per_kg": 12.99,
+      "source": "Spulenheld",
+      "url": "https://spulenheld.de/deals/abs"
+    },
+    {
       "brand": "Creality",
       "material": "ABS",
-      "eur_per_kg": 13.79,
+      "eur_per_kg": 12.99,
       "source": "Spulenheld",
       "url": "https://spulenheld.de/deals/abs"
     },
@@ -283,13 +290,6 @@
       "brand": "GEEETECH",
       "material": "TPU",
       "eur_per_kg": 9.99,
-      "source": "Spulenheld",
-      "url": "https://spulenheld.de/deals/tpu"
-    },
-    {
-      "brand": "Elegoo",
-      "material": "TPU",
-      "eur_per_kg": 16.59,
       "source": "Spulenheld",
       "url": "https://spulenheld.de/deals/tpu"
     }
