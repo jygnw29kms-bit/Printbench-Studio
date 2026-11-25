@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-24T15:57:54+00:00",
+  "updated": "2026-11-25T15:44:12+00:00",
   "sources": [
     {
       "name": "3D Filament Profiles",
@@ -36,7 +36,7 @@
         "HS-PLA": 11.99,
         "PETG": 10.99,
         "ABS": 12.99,
-        "ASA": 15.99,
+        "ASA": 8.99,
         "TPU": 16.99
       }
     },
@@ -46,9 +46,9 @@
         "PLA": 12.0,
         "PLA+": 10.79,
         "HS-PLA": 11.99,
-        "PETG": 3.68,
+        "PETG": 4.59,
         "ABS": 8.04,
-        "ASA": 12.0,
+        "ASA": 8.99,
         "TPU": 9.99
       }
     },
@@ -105,7 +105,7 @@
         "PETG": 6.38,
         "ABS": 15.99,
         "ASA": 19.99,
-        "TPU": 16.59
+        "TPU": 15.99
       }
     },
     {
@@ -203,16 +203,9 @@
       "url": "https://spulenheld.de/deals/pla"
     },
     {
-      "brand": "Extrudr",
-      "material": "PLA",
-      "eur_per_kg": 6.0,
-      "source": "Spulenheld",
-      "url": "https://spulenheld.de/deals/pla"
-    },
-    {
       "brand": "SUNLU",
       "material": "PETG",
-      "eur_per_kg": 3.68,
+      "eur_per_kg": 4.59,
       "source": "Spulenheld",
       "url": "https://spulenheld.de/deals/petg"
     },
@@ -268,7 +261,14 @@
     {
       "brand": "SUNLU",
       "material": "ASA",
-      "eur_per_kg": 12.0,
+      "eur_per_kg": 8.99,
+      "source": "Spulenheld",
+      "url": "https://spulenheld.de/deals/asa"
+    },
+    {
+      "brand": "KINGROON",
+      "material": "ASA",
+      "eur_per_kg": 8.99,
       "source": "Spulenheld",
       "url": "https://spulenheld.de/deals/asa"
     },
@@ -290,6 +290,13 @@
       "brand": "GEEETECH",
       "material": "TPU",
       "eur_per_kg": 9.99,
+      "source": "Spulenheld",
+      "url": "https://spulenheld.de/deals/tpu"
+    },
+    {
+      "brand": "Elegoo",
+      "material": "TPU",
+      "eur_per_kg": 15.99,
       "source": "Spulenheld",
       "url": "https://spulenheld.de/deals/tpu"
     }
