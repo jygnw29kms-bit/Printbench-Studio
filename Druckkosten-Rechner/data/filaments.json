@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-25T15:44:12+00:00",
+  "updated": "2026-11-26T15:25:41+00:00",
   "sources": [
     {
       "name": "3D Filament Profiles",
@@ -35,7 +35,7 @@
         "PLA+": 10.99,
         "HS-PLA": 11.99,
         "PETG": 10.99,
-        "ABS": 12.99,
+        "ABS": 12.89,
         "ASA": 8.99,
         "TPU": 16.99
       }
@@ -92,7 +92,7 @@
         "PLA": 12.99,
         "PLA+": 13.99,
         "PETG": 12.99,
-        "ABS": 15.99,
+        "ABS": 13.39,
         "ASA": 18.99,
         "TPU": 12.99
       }
@@ -105,7 +105,7 @@
         "PETG": 6.38,
         "ABS": 15.99,
         "ASA": 19.99,
-        "TPU": 15.99
+        "TPU": 16.59
       }
     },
     {
@@ -166,7 +166,7 @@
         "PLA": 7.69,
         "PLA+": 14.99,
         "PETG": 7.69,
-        "ABS": 12.99,
+        "ABS": 12.89,
         "ASA": 19.99,
         "TPU": 21.8
       }
@@ -240,14 +240,21 @@
     {
       "brand": "KINGROON",
       "material": "ABS",
-      "eur_per_kg": 12.99,
+      "eur_per_kg": 12.89,
       "source": "Spulenheld",
       "url": "https://spulenheld.de/deals/abs"
     },
     {
       "brand": "Creality",
       "material": "ABS",
-      "eur_per_kg": 12.99,
+      "eur_per_kg": 12.89,
+      "source": "Spulenheld",
+      "url": "https://spulenheld.de/deals/abs"
+    },
+    {
+      "brand": "Anycubic",
+      "material": "ABS",
+      "eur_per_kg": 13.39,
       "source": "Spulenheld",
       "url": "https://spulenheld.de/deals/abs"
     },
@@ -296,7 +303,7 @@
     {
       "brand": "Elegoo",
       "material": "TPU",
-      "eur_per_kg": 15.99,
+      "eur_per_kg": 16.59,
       "source": "Spulenheld",
       "url": "https://spulenheld.de/deals/tpu"
     }
